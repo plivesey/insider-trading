@@ -24,7 +24,7 @@ A strategic trading and market manipulation game for 3+ players where you bid on
 ## Setup
 
 1. Shuffle the resource deck
-2. Deal 3 random resource cards to each player (these are kept private/hidden)
+2. Deal 2 random resource cards to each player (these are kept private/hidden)
 3. Deal 3 goal cards to each player (these are kept private/hidden)
 4. Give each player $5 in coins
 5. Set all stock prices to $4 (use a shared tracker visible to all players)
@@ -34,7 +34,7 @@ A strategic trading and market manipulation game for 3+ players where you bid on
 The game is played over **3 rounds**. Each round consists of 4 phases:
 
 ### Phase 1: Auction
-- Reveal **n+1 cards** from the resource deck one at a time (where n = number of players)
+- Reveal **n+2 cards** from the resource deck one at a time (where n = number of players)
 - For each card revealed, conduct an open outcry auction:
   - Players call out bids freely with no set order
   - Highest bidder pays their bid to the bank and takes the card
@@ -71,20 +71,31 @@ This phase happens in the following order:
 
 ## Goal Card Structure
 
-Goal cards come in two difficulty levels:
+Goal cards come in three difficulty levels:
 
-### Easy Goals (1 coin equivalent bonuses)
-- Simpler resource requirements
+### Easy Goals ($1 value bonuses)
+- Simpler resource requirements (1-2 cards)
 - Example bonuses:
-  - Gain 1 coin
-  - Peek at the top 2 cards of the resource deck
+  - Gain $1
+  - Peek at top card, choose to put it on top or bottom of deck
+  - Look at another player's hand
 
-### Hard Goals (2 coin equivalent bonuses)
-- More complex or rare resource combinations
+### Medium Goals ($2 value bonuses)
+- Moderate resource requirements (2-3 cards)
 - Example bonuses:
-  - Gain 2 coins
-  - Swap one of your resource cards for a random card from the deck
+  - Gain $2
+  - Buy the lowest-priced stock for $1 discount
+  - Steal $1 from another player
+  - Peek at top 5 cards of the resource deck, and rearrange them in any order
+
+### Hard Goals ($3 value bonuses)
+- Complex or rare resource combinations (3-4 cards)
+- Example bonuses:
+  - Gain $3
   - Adjust any one stock price by ±1
+  - All cards you sell this round get +$1 bonus
+  - Gain the lowest value stock
+  - Buy any stock for $2 discount
 
 ## End of Game
 

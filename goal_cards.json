@@ -1,0 +1,314 @@
+[
+  {
+    "stock_change": "Orange -2",
+    "goal": "2 Yellow + 1 Purple",
+    "reward": "Look at another player's hand (see all their resource cards)",
+    "metadata": {
+      "goal_type": "pair_plus_specific",
+      "difficulty_points": 2,
+      "stock_change_penalty": -2,
+      "score": 0,
+      "reward_tier": "low"
+    }
+  },
+  {
+    "stock_change": "Yellow +2",
+    "goal": "2 Purple + 1 Blue",
+    "reward": "Look at another player's hand (see all their resource cards)",
+    "metadata": {
+      "goal_type": "pair_plus_specific",
+      "difficulty_points": 2,
+      "stock_change_penalty": -2,
+      "score": 0,
+      "reward_tier": "low"
+    }
+  },
+  {
+    "stock_change": "Yellow -2",
+    "goal": "1 Blue + 1 Orange + 1 Purple",
+    "reward": "Look at another player's hand (see all their resource cards)",
+    "metadata": {
+      "goal_type": "three_different",
+      "difficulty_points": 2,
+      "stock_change_penalty": -2,
+      "score": 0,
+      "reward_tier": "low"
+    }
+  },
+  {
+    "stock_change": "Yellow -2",
+    "goal": "0 Purple",
+    "reward": "Peek at top card, choose to put it on top or bottom of deck",
+    "metadata": {
+      "goal_type": "none_of",
+      "difficulty_points": 2,
+      "stock_change_penalty": -2,
+      "score": 0,
+      "reward_tier": "low"
+    }
+  },
+  {
+    "stock_change": "Yellow +1, Orange -1",
+    "goal": "2 Blue",
+    "reward": "Gain $1",
+    "metadata": {
+      "goal_type": "pair",
+      "difficulty_points": 1,
+      "stock_change_penalty": -1,
+      "score": 0,
+      "reward_tier": "low"
+    }
+  },
+  {
+    "stock_change": "Purple +2",
+    "goal": "0 Yellow",
+    "reward": "Look at another player's hand (see all their resource cards)",
+    "metadata": {
+      "goal_type": "none_of",
+      "difficulty_points": 2,
+      "stock_change_penalty": -2,
+      "score": 0,
+      "reward_tier": "low"
+    }
+  },
+  {
+    "stock_change": "Orange +1, Yellow +1",
+    "goal": "2 Yellow",
+    "reward": "Gain $1",
+    "metadata": {
+      "goal_type": "pair",
+      "difficulty_points": 1,
+      "stock_change_penalty": -1,
+      "score": 0,
+      "reward_tier": "low"
+    }
+  },
+  {
+    "stock_change": "Purple -1, Blue -1",
+    "goal": "2 Orange",
+    "reward": "Gain $1",
+    "metadata": {
+      "goal_type": "pair",
+      "difficulty_points": 1,
+      "stock_change_penalty": -1,
+      "score": 0,
+      "reward_tier": "low"
+    }
+  },
+  {
+    "stock_change": "Orange +1",
+    "goal": "2 Purple",
+    "reward": "Gain $2",
+    "metadata": {
+      "goal_type": "pair",
+      "difficulty_points": 1,
+      "stock_change_penalty": 0,
+      "score": 1,
+      "reward_tier": "medium"
+    }
+  },
+  {
+    "stock_change": "Yellow +1, Blue -1",
+    "goal": "0 Orange",
+    "reward": "Buy the lowest-priced stock for $1 discount",
+    "metadata": {
+      "goal_type": "none_of",
+      "difficulty_points": 2,
+      "stock_change_penalty": -1,
+      "score": 1,
+      "reward_tier": "medium"
+    }
+  },
+  {
+    "stock_change": "Blue +1, Yellow +1",
+    "goal": "1 Blue + 1 Orange + 1 Yellow",
+    "reward": "Steal $1 from another player",
+    "metadata": {
+      "goal_type": "three_different",
+      "difficulty_points": 2,
+      "stock_change_penalty": -1,
+      "score": 1,
+      "reward_tier": "medium"
+    }
+  },
+  {
+    "stock_change": "Blue +2",
+    "goal": "3 Yellow",
+    "reward": "Peek at top 5 cards of the resource deck, and rearrange them in any order",
+    "metadata": {
+      "goal_type": "three_of_a_kind",
+      "difficulty_points": 3,
+      "stock_change_penalty": -2,
+      "score": 1,
+      "reward_tier": "medium"
+    }
+  },
+  {
+    "stock_change": "Yellow +2",
+    "goal": "3 Blue",
+    "reward": "Peek at top 5 cards of the resource deck, and rearrange them in any order",
+    "metadata": {
+      "goal_type": "three_of_a_kind",
+      "difficulty_points": 3,
+      "stock_change_penalty": -2,
+      "score": 1,
+      "reward_tier": "medium"
+    }
+  },
+  {
+    "stock_change": "Orange +1, Yellow +1",
+    "goal": "1 Orange + 1 Yellow + 1 Purple",
+    "reward": "Swap 1 of your resource cards with the top card of the deck",
+    "metadata": {
+      "goal_type": "three_different",
+      "difficulty_points": 2,
+      "stock_change_penalty": -1,
+      "score": 1,
+      "reward_tier": "medium"
+    }
+  },
+  {
+    "stock_change": "Orange -1, Yellow -1",
+    "goal": "0 Blue",
+    "reward": "Gain $2",
+    "metadata": {
+      "goal_type": "none_of",
+      "difficulty_points": 2,
+      "stock_change_penalty": -1,
+      "score": 1,
+      "reward_tier": "medium"
+    }
+  },
+  {
+    "stock_change": "Purple -1",
+    "goal": "2 Orange + 1 Yellow",
+    "reward": "Gain $2",
+    "metadata": {
+      "goal_type": "pair_plus_specific",
+      "difficulty_points": 2,
+      "stock_change_penalty": 0,
+      "score": 2,
+      "reward_tier": "medium"
+    }
+  },
+  {
+    "stock_change": "Orange +1",
+    "goal": "1 Blue + 1 Yellow + 1 Purple",
+    "reward": "Swap 1 of your resource cards with the top card of the deck",
+    "metadata": {
+      "goal_type": "three_different",
+      "difficulty_points": 2,
+      "stock_change_penalty": 0,
+      "score": 2,
+      "reward_tier": "medium"
+    }
+  },
+  {
+    "stock_change": "Yellow -1, Orange -1",
+    "goal": "3 Purple",
+    "reward": "Take a random resource from another player and give them one of your choice",
+    "metadata": {
+      "goal_type": "three_of_a_kind",
+      "difficulty_points": 3,
+      "stock_change_penalty": -1,
+      "score": 2,
+      "reward_tier": "high"
+    }
+  },
+  {
+    "stock_change": "Yellow -2",
+    "goal": "2 Purple + 2 Blue",
+    "reward": "Buy any stock for $2 discount",
+    "metadata": {
+      "goal_type": "two_pair",
+      "difficulty_points": 4,
+      "stock_change_penalty": -2,
+      "score": 2,
+      "reward_tier": "high"
+    }
+  },
+  {
+    "stock_change": "Yellow -1",
+    "goal": "2 Blue + 1 Orange",
+    "reward": "Take a random resource from another player and give them one of your choice",
+    "metadata": {
+      "goal_type": "pair_plus_specific",
+      "difficulty_points": 2,
+      "stock_change_penalty": 0,
+      "score": 2,
+      "reward_tier": "high"
+    }
+  },
+  {
+    "stock_change": "Purple -1",
+    "goal": "3 Orange",
+    "reward": "Gain $3",
+    "metadata": {
+      "goal_type": "three_of_a_kind",
+      "difficulty_points": 3,
+      "stock_change_penalty": 0,
+      "score": 3,
+      "reward_tier": "high"
+    }
+  },
+  {
+    "stock_change": "Yellow -1, Purple -1",
+    "goal": "2 Blue + 2 Orange",
+    "reward": "Take a random resource from another player and give them one of your choice",
+    "metadata": {
+      "goal_type": "two_pair",
+      "difficulty_points": 4,
+      "stock_change_penalty": -1,
+      "score": 3,
+      "reward_tier": "high"
+    }
+  },
+  {
+    "stock_change": "Yellow +1, Purple +1",
+    "goal": "2 Yellow + 2 Purple",
+    "reward": "Gain $3",
+    "metadata": {
+      "goal_type": "two_pair",
+      "difficulty_points": 4,
+      "stock_change_penalty": -1,
+      "score": 3,
+      "reward_tier": "high"
+    }
+  },
+  {
+    "stock_change": "Orange +1",
+    "goal": "1 Blue + 1 Orange + 1 Yellow + 1 Purple",
+    "reward": "Gain $3",
+    "metadata": {
+      "goal_type": "one_of_every",
+      "difficulty_points": 4,
+      "stock_change_penalty": 0,
+      "score": 4,
+      "reward_tier": "high"
+    }
+  },
+  {
+    "stock_change": "Purple +1",
+    "goal": "1 Blue + 1 Orange + 1 Yellow + 1 Purple",
+    "reward": "Buy any stock for $2 discount",
+    "metadata": {
+      "goal_type": "one_of_every",
+      "difficulty_points": 4,
+      "stock_change_penalty": 0,
+      "score": 4,
+      "reward_tier": "high"
+    }
+  },
+  {
+    "stock_change": "Blue -1",
+    "goal": "2 Orange + 2 Yellow",
+    "reward": "Take a random resource from another player and give them one of your choice",
+    "metadata": {
+      "goal_type": "two_pair",
+      "difficulty_points": 4,
+      "stock_change_penalty": 0,
+      "score": 4,
+      "reward_tier": "high"
+    }
+  }
+]

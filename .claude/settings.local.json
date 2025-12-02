@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python3:*)",
+      "Bash(for seed in 1 2 3 5 7 11 13 17 19 23)",
+      "Bash(do)",
+      "Bash(echo:*)",
+      "Bash(break)",
+      "Bash(done)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

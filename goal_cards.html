@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Goal Cards</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: #f0f0f0;
+            padding: 20px;
+        }
+
+        .cards-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 20px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .card {
+            background: white;
+            border: 2px solid #333;
+            border-radius: 8px;
+            padding: 20px;
+            page-break-inside: avoid;
+            aspect-ratio: 2.5 / 3.5;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .stock-change {
+            font-size: 16px;
+            font-weight: bold;
+            color: #2c3e50;
+            text-align: center;
+            padding: 12px;
+            border-bottom: 1px solid #ddd;
+            margin-bottom: 15px;
+        }
+
+        .goal {
+            font-size: 18px;
+            color: #34495e;
+            text-align: center;
+            font-weight: 600;
+            padding: 15px 0;
+            flex-grow: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .card-symbol {
+            width: 40px;
+            height: 55px;
+            border-radius: 6px;
+            border: 2px solid;
+            display: inline-block;
+            position: relative;
+        }
+
+        .card-symbol.blue {
+            background-color: #3498db;
+            border-color: #2980b9;
+        }
+
+        .card-symbol.orange {
+            background-color: #e67e22;
+            border-color: #d35400;
+        }
+
+        .card-symbol.yellow {
+            background-color: #f1c40f;
+            border-color: #f39c12;
+        }
+
+        .card-symbol.purple {
+            background-color: #9b59b6;
+            border-color: #8e44ad;
+        }
+
+        .ban-symbol {
+            position: relative;
+            width: 40px;
+            height: 55px;
+            display: inline-block;
+        }
+
+        .ban-symbol .card-symbol {
+            position: relative;
+        }
+
+        .ban-symbol::after {
+            content: "";
+            position: absolute;
+            width: 60px;
+            height: 8px;
+            background: #e74c3c;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(-45deg);
+            z-index: 3;
+        }
+
+        .reward {
+            font-size: 13px;
+            color: #555;
+            background: #f8f9fa;
+            padding: 12px;
+            border-radius: 4px;
+            text-align: center;
+            border-top: 1px solid #ddd;
+            margin-top: 15px;
+        }
+
+        @media print {
+            @page {
+                size: portrait;
+                margin: 0.5in;
+            }
+
+            body {
+                background: white;
+                margin: 0;
+                padding: 0;
+            }
+
+            .cards-container {
+                display: grid;
+                grid-template-columns: repeat(4, 1fr);
+                gap: 8px;
+                width: 100%;
+                max-width: none;
+            }
+
+            .card {
+                width: 100%;
+                box-shadow: none;
+                page-break-inside: avoid;
+                padding: 14px;
+            }
+
+            .stock-change {
+                font-size: 13px;
+                padding: 8px;
+            }
+
+            .goal {
+                font-size: 15px;
+                padding: 12px 0;
+            }
+
+            .reward {
+                font-size: 11px;
+                padding: 8px;
+            }
+
+            .card-symbol {
+                width: 34px;
+                height: 46px;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+
+            .ban-symbol {
+                width: 34px;
+                height: 46px;
+            }
+
+            .ban-symbol::after {
+                width: 52px;
+                height: 7px;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+        }
+
+        /* Color coding for stock colors */
+        .color-blue { color: #3498db; font-weight: bold; }
+        .color-orange { color: #e67e22; font-weight: bold; }
+        .color-yellow { color: #f1c40f; font-weight: bold; }
+        .color-purple { color: #9b59b6; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="cards-container">
+        
+        <div class="card">
+            <div class="stock-change"><span class="color-orange">Orange</span> -2</div>
+            <div class="goal"><div class="card-symbol yellow"></div><div class="card-symbol yellow"></div><div class="card-symbol purple"></div></div>
+            <div class="reward">Look at another player's hand (see all their resource cards)</div>
+        </div>
+
+        <div class="card">
+            <div class="stock-change"><span class="color-yellow">Yellow</span> +2</div>
+            <div class="goal"><div class="card-symbol purple"></div><div class="card-symbol purple"></div><div class="card-symbol blue"></div></div>
+            <div class="reward">Look at another player's hand (see all their resource cards)</div>
+        </div>
+
+        <div class="card">
+            <div class="stock-change"><span class="color-yellow">Yellow</span> -2</div>
+            <div class="goal"><div class="card-symbol blue"></div><div class="card-symbol orange"></div><div class="card-symbol purple"></div></div>
+            <div class="reward">Look at another player's hand (see all their resource cards)</div>
+        </div>
+
+        <div class="card">
+            <div class="stock-change"><span class="color-yellow">Yellow</span> -2</div>
+            <div class="goal"><div class="ban-symbol"><div class="card-symbol purple"></div></div></div>
+            <div class="reward">Peek at top card, choose to put it on top or bottom of deck</div>
+        </div>
+
+        <div class="card">
+            <div class="stock-change"><span class="color-yellow">Yellow</span> +1, <span class="color-orange">Orange</span> -1</div>
+            <div class="goal"><div class="card-symbol blue"></div><div class="card-symbol blue"></div></div>
+            <div class="reward">Gain $1</div>
+        </div>
+
+        <div class="card">
+            <div class="stock-change"><span class="color-purple">Purple</span> +2</div>
+            <div class="goal"><div class="ban-symbol"><div class="card-symbol yellow"></div></div></div>
+            <div class="reward">Look at another player's hand (see all their resource cards)</div>
+        </div>
+
+        <div class="card">
+            <div class="stock-change"><span class="color-orange">Orange</span> +1, <span class="color-yellow">Yellow</span> +1</div>
+            <div class="goal"><div class="card-symbol yellow"></div><div class="card-symbol yellow"></div></div>
+            <div class="reward">Gain $1</div>
+        </div>
+
+        <div class="card">
+            <div class="stock-change"><span class="color-purple">Purple</span> -1, <span class="color-blue">Blue</span> -1</div>
+            <div class="goal"><div class="card-symbol orange"></div><div class="card-symbol orange"></div></div>
+            <div class="reward">Gain $1</div>
+        </div>
+
+        <div class="card">
+            <div class="stock-change"><span class="color-orange">Orange</span> +1</div>
+            <div class="goal"><div class="card-symbol purple"></div><div class="card-symbol purple"></div></div>
+            <div class="reward">Gain $2</div>
+        </div>
+
+        <div class="card">
+            <div class="stock-change"><span class="color-yellow">Yellow</span> +1, <span class="color-blue">Blue</span> -1</div>
+            <div class="goal"><div class="ban-symbol"><div class="card-symbol orange"></div></div></div>
+            <div class="reward">Buy the lowest-priced stock for $1 discount</div>
+        </div>
+
+        <div class="card">
+            <div class="stock-change"><span class="color-blue">Blue</span> +1, <span class="color-yellow">Yellow</span> +1</div>
+            <div class="goal"><div class="card-symbol blue"></div><div class="card-symbol orange"></div><div class="card-symbol yellow"></div></div>
+            <div class="reward">Steal $1 from another player</div>
+        </div>
+
+        <div class="card">
+            <div class="stock-change"><span class="color-blue">Blue</span> +2</div>
+            <div class="goal"><div class="card-symbol yellow"></div><div class="card-symbol yellow"></div><div class="card-symbol yellow"></div></div>
+            <div class="reward">Peek at top 5 cards of the resource deck, and rearrange them in any order</div>
+        </div>
+
+        <div class="card">
+            <div class="stock-change"><span class="color-yellow">Yellow</span> +2</div>
+            <div class="goal"><div class="card-symbol blue"></div><div class="card-symbol blue"></div><div class="card-symbol blue"></div></div>
+            <div class="reward">Peek at top 5 cards of the resource deck, and rearrange them in any order</div>
+        </div>
+
+        <div class="card">
+            <div class="stock-change"><span class="color-orange">Orange</span> +1, <span class="color-yellow">Yellow</span> +1</div>
+            <div class="goal"><div class="card-symbol orange"></div><div class="card-symbol yellow"></div><div class="card-symbol purple"></div></div>
+            <div class="reward">Swap 1 of your resource cards with the top card of the deck</div>
+        </div>
+
+        <div class="card">
+            <div class="stock-change"><span class="color-orange">Orange</span> -1, <span class="color-yellow">Yellow</span> -1</div>
+            <div class="goal"><div class="ban-symbol"><div class="card-symbol blue"></div></div></div>
+            <div class="reward">Gain $2</div>
+        </div>
+
+        <div class="card">
+            <div class="stock-change"><span class="color-purple">Purple</span> -1</div>
+            <div class="goal"><div class="card-symbol orange"></div><div class="card-symbol orange"></div><div class="card-symbol yellow"></div></div>
+            <div class="reward">Gain $2</div>
+        </div>
+
+        <div class="card">
+            <div class="stock-change"><span class="color-orange">Orange</span> +1</div>
+            <div class="goal"><div class="card-symbol blue"></div><div class="card-symbol yellow"></div><div class="card-symbol purple"></div></div>
+            <div class="reward">Swap 1 of your resource cards with the top card of the deck</div>
+        </div>
+
+        <div class="card">
+            <div class="stock-change"><span class="color-yellow">Yellow</span> -1, <span class="color-orange">Orange</span> -1</div>
+            <div class="goal"><div class="card-symbol purple"></div><div class="card-symbol purple"></div><div class="card-symbol purple"></div></div>
+            <div class="reward">Take a random resource from another player and give them one of your choice</div>
+        </div>
+
+        <div class="card">
+            <div class="stock-change"><span class="color-yellow">Yellow</span> -2</div>
+            <div class="goal"><div class="card-symbol purple"></div><div class="card-symbol purple"></div><div class="card-symbol blue"></div><div class="card-symbol blue"></div></div>
+            <div class="reward">Buy any stock for $2 discount</div>
+        </div>
+
+        <div class="card">
+            <div class="stock-change"><span class="color-yellow">Yellow</span> -1</div>
+            <div class="goal"><div class="card-symbol blue"></div><div class="card-symbol blue"></div><div class="card-symbol orange"></div></div>
+            <div class="reward">Take a random resource from another player and give them one of your choice</div>
+        </div>
+
+        <div class="card">
+            <div class="stock-change"><span class="color-purple">Purple</span> -1</div>
+            <div class="goal"><div class="card-symbol orange"></div><div class="card-symbol orange"></div><div class="card-symbol orange"></div></div>
+            <div class="reward">Gain $3</div>
+        </div>
+
+        <div class="card">
+            <div class="stock-change"><span class="color-yellow">Yellow</span> -1, <span class="color-purple">Purple</span> -1</div>
+            <div class="goal"><div class="card-symbol blue"></div><div class="card-symbol blue"></div><div class="card-symbol orange"></div><div class="card-symbol orange"></div></div>
+            <div class="reward">Take a random resource from another player and give them one of your choice</div>
+        </div>
+
+        <div class="card">
+            <div class="stock-change"><span class="color-yellow">Yellow</span> +1, <span class="color-purple">Purple</span> +1</div>
+            <div class="goal"><div class="card-symbol yellow"></div><div class="card-symbol yellow"></div><div class="card-symbol purple"></div><div class="card-symbol purple"></div></div>
+            <div class="reward">Gain $3</div>
+        </div>
+
+        <div class="card">
+            <div class="stock-change"><span class="color-orange">Orange</span> +1</div>
+            <div class="goal"><div class="card-symbol blue"></div><div class="card-symbol orange"></div><div class="card-symbol yellow"></div><div class="card-symbol purple"></div></div>
+            <div class="reward">Gain $3</div>
+        </div>
+
+        <div class="card">
+            <div class="stock-change"><span class="color-purple">Purple</span> +1</div>
+            <div class="goal"><div class="card-symbol blue"></div><div class="card-symbol orange"></div><div class="card-symbol yellow"></div><div class="card-symbol purple"></div></div>
+            <div class="reward">Buy any stock for $2 discount</div>
+        </div>
+
+        <div class="card">
+            <div class="stock-change"><span class="color-blue">Blue</span> -1</div>
+            <div class="goal"><div class="card-symbol orange"></div><div class="card-symbol orange"></div><div class="card-symbol yellow"></div><div class="card-symbol yellow"></div></div>
+            <div class="reward">Take a random resource from another player and give them one of your choice</div>
+        </div>
+
+    </div>
+</body>
+</html>
