@@ -410,18 +410,166 @@ def calculate_scores_and_assign_rewards(cards: List[Dict]) -> List[Dict]:
     return cards_sorted
 
 
-def create_final_card_format(card: Dict) -> Dict:
-    """Format card for final JSON output."""
+def parse_reward(reward_text: str, reward_tier: str) -> Dict:
+    """Parse reward text to determine type and requirements."""
+    reward_lower = reward_text.lower()
+
+    # Determine reward value from tier
+    tier_values = {"low": 1, "medium": 2, "high": 3}
+    value = tier_values.get(reward_tier, 1)
+
+    # Cash rewards
+    if "gain $" in reward_lower:
+        amount = int(reward_text.split("$")[1].split()[0])
+        return {
+            "type": "gain_cash",
+            "amount": amount,
+            "requiresTarget": False,
+            "requiresChoice": False,
+            "value": value
+        }
+
+    # Steal cash
+    if "steal" in reward_lower and "$" in reward_text:
+        amount = int(reward_text.split("$")[1].split()[0])
+        return {
+            "type": "steal_cash",
+            "amount": amount,
+            "requiresTarget": True,
+            "requiresChoice": False,
+            "value": value
+        }
+
+    # Adjust stock
+    if "adjust" in reward_lower and "stock" in reward_lower:
+        return {
+            "type": "adjust_stock",
+            "requiresTarget": False,
+            "requiresChoice": True,
+            "value": value
+        }
+
+    # Look at hand
+    if "look at" in reward_lower and "hand" in reward_lower:
+        return {
+            "type": "look_at_hand",
+            "requiresTarget": True,
+            "requiresChoice": False,
+            "value": value
+        }
+
+    # Peek and place
+    if "peek at top card" in reward_lower:
+        return {
+            "type": "peek_and_place",
+            "requiresTarget": False,
+            "requiresChoice": True,
+            "value": value
+        }
+
+    # Swap with deck
+    if "swap" in reward_lower and "deck" in reward_lower:
+        return {
+            "type": "swap_with_deck",
+            "requiresTarget": False,
+            "requiresChoice": True,
+            "value": value
+        }
+
+    # Rearrange top 5
+    if "peek at top 5" in reward_lower or "rearrange" in reward_lower:
+        return {
+            "type": "rearrange_top_5",
+            "requiresTarget": False,
+            "requiresChoice": True,
+            "value": value
+        }
+
+    # Take and give card
+    if "take" in reward_lower and "give" in reward_lower:
+        return {
+            "type": "take_and_give_card",
+            "requiresTarget": True,
+            "requiresChoice": True,
+            "multiStep": True,
+            "value": value
+        }
+
+    # Buy with discount
+    if "buy" in reward_lower and "discount" in reward_lower:
+        import re
+        discount_match = re.search(r'\$(\d+)\s+discount', reward_text)
+        discount = int(discount_match.group(1)) if discount_match else 1
+        return {
+            "type": "buy_with_discount",
+            "discount": discount,
+            "requiresTarget": False,
+            "requiresChoice": True,
+            "value": value
+        }
+
+    # Sell bonus
+    if "cards you sell" in reward_lower and "bonus" in reward_lower:
+        import re
+        bonus_match = re.search(r'\+\$(\d+)', reward_text)
+        bonus = int(bonus_match.group(1)) if bonus_match else 1
+        return {
+            "type": "sell_bonus",
+            "bonus": bonus,
+            "requiresTarget": False,
+            "requiresChoice": False,
+            "value": value
+        }
+
+    # Gain lowest stock
+    if "gain" in reward_lower and "lowest" in reward_lower:
+        return {
+            "type": "gain_lowest_stock",
+            "requiresTarget": False,
+            "requiresChoice": False,
+            "value": value
+        }
+
+    # Default unknown
     return {
-        "stock_change": card["stock_change"]["text"],
-        "goal": card["goal_text"],
-        "reward": card["reward"],
+        "type": "unknown",
+        "requiresTarget": False,
+        "requiresChoice": False,
+        "value": value
+    }
+
+
+def create_final_card_format(card: Dict) -> Dict:
+    """Format card for final JSON output with pre-parsed data."""
+    # Parse goal (handle none_of specially)
+    goal_parsed = {
+        "type": card["goal_type"],
+        "requirements": card.get("required_colors", {})
+    }
+
+    if card.get("avoided_color"):
+        goal_parsed["avoidColor"] = card["avoided_color"]
+
+    return {
+        "stockChange": {
+            "text": card["stock_change"]["text"],
+            "parsed": card["stock_change"]["changes"],
+            "type": card["stock_change"]["type"]
+        },
+        "goal": {
+            "text": card["goal_text"],
+            "parsed": goal_parsed
+        },
+        "reward": {
+            "text": card["reward"],
+            "parsed": parse_reward(card["reward"], card["reward_tier"])
+        },
         "metadata": {
-            "goal_type": card["goal_type"],
-            "difficulty_points": card["difficulty_points"],
-            "stock_change_penalty": card["stock_change_penalty"],
-            "score": card["score"],
-            "reward_tier": card["reward_tier"]
+            "goalType": card["goal_type"],
+            "rewardTier": card["reward_tier"],
+            "difficultyPoints": card["difficulty_points"],
+            "stockChangePenalty": card["stock_change_penalty"],
+            "score": card["score"]
         }
     }
 
@@ -450,14 +598,14 @@ def main():
     # Count by reward tier
     tiers = {}
     for card in final_cards:
-        tier = card["metadata"]["reward_tier"]
+        tier = card["metadata"]["rewardTier"]
         tiers[tier] = tiers.get(tier, 0) + 1
     print(f"Reward distribution: {tiers}", file=__import__('sys').stderr)
 
     # Count by goal type
     goal_types = {}
     for card in final_cards:
-        gt = card["metadata"]["goal_type"]
+        gt = card["metadata"]["goalType"]
         goal_types[gt] = goal_types.get(gt, 0) + 1
     print(f"Goal type distribution: {goal_types}", file=__import__('sys').stderr)
 
