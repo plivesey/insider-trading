@@ -228,9 +228,9 @@ def get_stock_change_penalty(changes: Dict[str, int]) -> float:
     Formula:
     - +1: -0.75
     - -1: -0.5
-    - +2: -1.5
+    - +2: -1.75
     - -2: -1.0
-    - +3: -2.25 (extrapolated)
+    - +3: -2.5 (extrapolated)
     - -3: -1.5 (extrapolated)
     """
     total_penalty = 0.0
@@ -240,11 +240,11 @@ def get_stock_change_penalty(changes: Dict[str, int]) -> float:
         elif change == -1:
             total_penalty += -0.5
         elif change == 2:
-            total_penalty += -1.5
+            total_penalty += -1.75
         elif change == -2:
             total_penalty += -1.0
         elif change == 3:
-            total_penalty += -2.25
+            total_penalty += -2.5
         elif change == -3:
             total_penalty += -1.5
     return total_penalty

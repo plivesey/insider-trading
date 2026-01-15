@@ -102,10 +102,13 @@ Score = Goal Difficulty Points + Stock Change Penalty
 ```
 
 **Difficulty Points**: 1-4 based on goal complexity
-**Stock Change Penalties**:
-- Single Up/Down: 0 penalty
-- Mixed/Double Up/Down: -1 penalty
-- Single Up/Down Twice: -2 penalty
+**Stock Change Penalties** (per color, summed for multi-color changes):
+- +1: -0.75
+- -1: -0.50
+- +2: -1.75
+- -2: -1.00
+- +3: -2.50
+- -3: -1.50
 
 After scoring all 26 cards:
 - Bottom ~9 cards → Low tier ($1 rewards)

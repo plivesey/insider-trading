@@ -104,6 +104,79 @@
   },
   {
     "stockChange": {
+      "text": "Purple +2",
+      "parsed": {
+        "Purple": 2
+      },
+      "type": "single_up_twice"
+    },
+    "goal": {
+      "text": "1 Blue + 1 Orange + 1 Yellow",
+      "parsed": {
+        "type": "three_different",
+        "requirements": {
+          "Blue": 1,
+          "Orange": 1,
+          "Yellow": 1
+        }
+      }
+    },
+    "reward": {
+      "text": "Gain $1",
+      "parsed": {
+        "type": "gain_cash",
+        "amount": 1,
+        "requiresTarget": false,
+        "requiresChoice": false,
+        "value": 1
+      }
+    },
+    "metadata": {
+      "goalType": "three_different",
+      "rewardTier": "low",
+      "difficultyPoints": 2,
+      "stockChangePenalty": -1.75,
+      "score": 0.25
+    }
+  },
+  {
+    "stockChange": {
+      "text": "Orange +2",
+      "parsed": {
+        "Orange": 2
+      },
+      "type": "single_up_twice"
+    },
+    "goal": {
+      "text": "2 Purple + 1 Blue",
+      "parsed": {
+        "type": "pair_plus_specific",
+        "requirements": {
+          "Purple": 2,
+          "Blue": 1
+        }
+      }
+    },
+    "reward": {
+      "text": "Gain $1",
+      "parsed": {
+        "type": "gain_cash",
+        "amount": 1,
+        "requiresTarget": false,
+        "requiresChoice": false,
+        "value": 1
+      }
+    },
+    "metadata": {
+      "goalType": "pair_plus_specific",
+      "rewardTier": "low",
+      "difficultyPoints": 2,
+      "stockChangePenalty": -1.75,
+      "score": 0.25
+    }
+  },
+  {
+    "stockChange": {
       "text": "Blue +1, Yellow +1",
       "parsed": {
         "Blue": 1,
@@ -279,79 +352,6 @@
     "metadata": {
       "goalType": "pair_plus_specific",
       "rewardTier": "medium",
-      "difficultyPoints": 2,
-      "stockChangePenalty": -1.5,
-      "score": 0.5
-    }
-  },
-  {
-    "stockChange": {
-      "text": "Purple +2",
-      "parsed": {
-        "Purple": 2
-      },
-      "type": "single_up_twice"
-    },
-    "goal": {
-      "text": "1 Blue + 1 Orange + 1 Yellow",
-      "parsed": {
-        "type": "three_different",
-        "requirements": {
-          "Blue": 1,
-          "Orange": 1,
-          "Yellow": 1
-        }
-      }
-    },
-    "reward": {
-      "text": "Gain $1",
-      "parsed": {
-        "type": "gain_cash",
-        "amount": 1,
-        "requiresTarget": false,
-        "requiresChoice": false,
-        "value": 1
-      }
-    },
-    "metadata": {
-      "goalType": "three_different",
-      "rewardTier": "low",
-      "difficultyPoints": 2,
-      "stockChangePenalty": -1.5,
-      "score": 0.5
-    }
-  },
-  {
-    "stockChange": {
-      "text": "Orange +2",
-      "parsed": {
-        "Orange": 2
-      },
-      "type": "single_up_twice"
-    },
-    "goal": {
-      "text": "2 Purple + 1 Blue",
-      "parsed": {
-        "type": "pair_plus_specific",
-        "requirements": {
-          "Purple": 2,
-          "Blue": 1
-        }
-      }
-    },
-    "reward": {
-      "text": "Gain $1",
-      "parsed": {
-        "type": "gain_cash",
-        "amount": 1,
-        "requiresTarget": false,
-        "requiresChoice": false,
-        "value": 1
-      }
-    },
-    "metadata": {
-      "goalType": "pair_plus_specific",
-      "rewardTier": "low",
       "difficultyPoints": 2,
       "stockChangePenalty": -1.5,
       "score": 0.5
@@ -601,8 +601,8 @@
       "goalType": "two_pair",
       "rewardTier": "high",
       "difficultyPoints": 4,
-      "stockChangePenalty": -1.5,
-      "score": 2.5
+      "stockChangePenalty": -1.75,
+      "score": 2.25
     }
   },
   {
@@ -944,8 +944,8 @@
       "goalType": "none",
       "rewardTier": null,
       "difficultyPoints": 0,
-      "stockChangePenalty": -2.25,
-      "score": -2.25,
+      "stockChangePenalty": -2.5,
+      "score": -2.5,
       "isMarketManipulation": true
     }
   },
@@ -964,8 +964,8 @@
       "goalType": "none",
       "rewardTier": null,
       "difficultyPoints": 0,
-      "stockChangePenalty": -2.25,
-      "score": -2.25,
+      "stockChangePenalty": -2.5,
+      "score": -2.5,
       "isMarketManipulation": true
     }
   },
@@ -984,8 +984,8 @@
       "goalType": "none",
       "rewardTier": null,
       "difficultyPoints": 0,
-      "stockChangePenalty": -2.25,
-      "score": -2.25,
+      "stockChangePenalty": -2.5,
+      "score": -2.5,
       "isMarketManipulation": true
     }
   },
@@ -1004,8 +1004,8 @@
       "goalType": "none",
       "rewardTier": null,
       "difficultyPoints": 0,
-      "stockChangePenalty": -2.25,
-      "score": -2.25,
+      "stockChangePenalty": -2.5,
+      "score": -2.5,
       "isMarketManipulation": true
     }
   },

@@ -1,8 +1,8 @@
 Score,Goal,Goal Type,Stock Change,Stock Type,Difficulty Points,Stock Penalty,Reward Tier,Reward,Is Market Manipulation
--2.25,None (Market Manipulation),none,"Blue +2, Orange +1",plus_two_plus_one,0,-2.25,N/A,N/A,True
--2.25,None (Market Manipulation),none,"Orange +2, Yellow +1",plus_two_plus_one,0,-2.25,N/A,N/A,True
--2.25,None (Market Manipulation),none,"Yellow +2, Purple +1",plus_two_plus_one,0,-2.25,N/A,N/A,True
--2.25,None (Market Manipulation),none,"Purple +2, Blue +1",plus_two_plus_one,0,-2.25,N/A,N/A,True
+-2.5,None (Market Manipulation),none,"Blue +2, Orange +1",plus_two_plus_one,0,-2.5,N/A,N/A,True
+-2.5,None (Market Manipulation),none,"Orange +2, Yellow +1",plus_two_plus_one,0,-2.5,N/A,N/A,True
+-2.5,None (Market Manipulation),none,"Yellow +2, Purple +1",plus_two_plus_one,0,-2.5,N/A,N/A,True
+-2.5,None (Market Manipulation),none,"Purple +2, Blue +1",plus_two_plus_one,0,-2.5,N/A,N/A,True
 -1.5,None (Market Manipulation),none,Blue -3,single_down_triple,0,-1.5,N/A,N/A,True
 -1.5,None (Market Manipulation),none,Orange -3,single_down_triple,0,-1.5,N/A,N/A,True
 -1.5,None (Market Manipulation),none,Yellow -3,single_down_triple,0,-1.5,N/A,N/A,True
@@ -10,20 +10,20 @@ Score,Goal,Goal Type,Stock Change,Stock Type,Difficulty Points,Stock Penalty,Rew
 0.0,2 Orange,pair,Blue -2,single_down_twice,1,-1.0,low,"Peek at top card, choose to put it on top or bottom of deck",False
 0.0,2 Yellow,pair,"Blue -1, Orange -1",double_down,1,-1.0,low,Look at random goal card from another player,False
 0.25,2 Purple,pair,Purple +1,single_up,1,-0.75,low,Look at random goal card from another player,False
+0.25,1 Blue + 1 Orange + 1 Yellow,three_different,Purple +2,single_up_twice,2,-1.75,low,Gain $1,False
+0.25,2 Purple + 1 Blue,pair_plus_specific,Orange +2,single_up_twice,2,-1.75,low,Gain $1,False
 0.5,1 Orange + 1 Yellow + 1 Purple,three_different,"Blue +1, Yellow +1",double_up,2,-1.5,low,Gain $1,False
 0.5,2 Orange + 1 Yellow,pair_plus_specific,"Blue +1, Purple +1",double_up,2,-1.5,medium,Gain $1,False
 0.5,2 Blue,pair,Orange -1,single_down,1,-0.5,medium,Buy the lowest-priced stock for $1 discount,False
 0.5,0 Blue,none_of,"Purple +1, Yellow +1",double_up,2,-1.5,medium,Buy the lowest-priced stock for $1 discount,False
 0.5,2 Blue + 1 Orange,pair_plus_specific,"Yellow +1, Blue +1",double_up,2,-1.5,medium,Gain $1,False
-0.5,1 Blue + 1 Orange + 1 Yellow,three_different,Purple +2,single_up_twice,2,-1.5,low,Gain $1,False
-0.5,2 Purple + 1 Blue,pair_plus_specific,Orange +2,single_up_twice,2,-1.5,low,Gain $1,False
 0.75,1 Blue + 1 Yellow + 1 Purple,three_different,"Blue +1, Orange -1",mixed,2,-1.25,medium,"Peek at top 5 cards of the resource deck, and rearrange them in any order",False
 1.0,0 Purple,none_of,"Orange -1, Yellow -1",double_down,2,-1.0,medium,Swap 1 of your resource cards with the top card of the deck,False
 1.0,0 Yellow,none_of,Purple -2,single_down_twice,2,-1.0,low,Swap 1 of your resource cards with the top card of the deck,False
 1.0,0 Orange,none_of,"Purple -1, Blue -1",double_down,2,-1.0,medium,Steal $1 from another player,False
 1.5,2 Yellow + 1 Purple,pair_plus_specific,Orange -1,single_down,2,-0.5,medium,Gain $2,False
 1.5,1 Blue + 1 Orange + 1 Purple,three_different,Yellow -1,single_down,2,-0.5,high,Gain $2,False
-2.5,2 Yellow + 2 Purple,two_pair,Orange +2,single_up_twice,4,-1.5,high,Take a random resource from another player and give them one of your choice,False
+2.25,2 Yellow + 2 Purple,two_pair,Orange +2,single_up_twice,4,-1.75,high,Take a random resource from another player and give them one of your choice,False
 2.75,1 Blue + 1 Orange + 1 Yellow + 1 Purple,one_of_every,Yellow +1,single_up,3.5,-0.75,high,Buy any stock for $2 discount,False
 2.75,1 Blue + 1 Orange + 1 Yellow + 1 Purple,one_of_every,Orange +1,single_up,3.5,-0.75,high,Buy any stock for $2 discount,False
 2.75,3 Yellow,three_of_a_kind,"Blue +1, Purple -1",mixed,4,-1.25,medium,All cards you sell this round get +$1 bonus,False
