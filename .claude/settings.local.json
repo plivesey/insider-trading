@@ -1,14 +1,18 @@
 {
   "permissions": {
     "allow": [
-      "Bash(python3:*)",
-      "Bash(for seed in 1 2 3 5 7 11 13 17 19 23)",
-      "Bash(do)",
-      "Bash(echo:*)",
-      "Bash(break)",
-      "Bash(done)",
-      "Bash(npm install:*)",
-      "Bash(npm test:*)"
+      "Bash",
+      "*",
+      "mcp__playwright__browser_navigate",
+      "mcp__playwright__browser_click",
+      "mcp__playwright__browser_handle_dialog",
+      "mcp__playwright__browser_run_code",
+      "mcp__playwright__browser_close",
+      "mcp__playwright__browser_console_messages",
+      "mcp__playwright__browser_snapshot",
+      "mcp__playwright__browser_wait_for",
+      "mcp__playwright__browser_evaluate",
+      "mcp__playwright__browser_type"
     ],
     "deny": [],
     "ask": []

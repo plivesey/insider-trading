@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Insider Trading - Board Game</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div id="app">
+    <!-- Sidebar -->
+    <div id="sidebar">
+      <div class="sidebar-section">
+        <h3>Stock Prices</h3>
+        <div id="stock-prices"></div>
+      </div>
+
+      <div class="sidebar-section">
+        <h3>Event Log</h3>
+        <div id="event-log"></div>
+      </div>
+
+      <div class="sidebar-section">
+        <h3>Your Goals</h3>
+        <div id="my-goals"></div>
+      </div>
+    </div>
+
+    <!-- Main Game Area -->
+    <div id="main-area">
+      <!-- Game Header -->
+      <div id="game-header">
+        <h1>Insider Trading</h1>
+        <div id="game-status">
+          <span class="status-item">Round: <span id="round">1</span></span>
+          <span class="status-item">Phase: <span id="phase">Not Started</span></span>
+        </div>
+      </div>
+
+      <!-- Players Area -->
+      <div id="players-area"></div>
+
+      <!-- Start Screen -->
+      <div id="start-screen" class="screen">
+        <h2>Welcome to Insider Trading!</h2>
+        <p>A strategic trading and market manipulation board game</p>
+        <p class="game-info">3 players • 3 rounds • Collect resources, trade, and maximize your wealth!</p>
+        <button id="start-game-btn" class="primary-btn">Start Game</button>
+      </div>
+
+      <!-- Phase Panel (dynamic content based on current phase) -->
+      <div id="phase-panel"></div>
+
+      <!-- Game Over Screen -->
+      <div id="game-over-screen" class="screen hidden">
+        <h2>Game Over!</h2>
+        <div id="final-scores"></div>
+        <button id="new-game-btn" class="primary-btn">New Game</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Import game engine and application as ES modules -->
+  <script type="module" src="app.js?v=20251204c"></script>
+</body>
+</html>

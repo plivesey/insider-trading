@@ -28,7 +28,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
         .cards-container {{
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-            gap: 20px;
+            gap: 40px;
             max-width: 1400px;
             margin: 0 auto;
         }}
@@ -46,17 +46,17 @@ HTML_TEMPLATE = """<!DOCTYPE html>
         }}
 
         .stock-change {{
-            font-size: 16px;
+            font-size: 22px;
             font-weight: bold;
             color: #2c3e50;
             text-align: center;
-            padding: 12px;
+            padding: 20px;
             border-bottom: 1px solid #ddd;
             margin-bottom: 15px;
         }}
 
         .goal {{
-            font-size: 18px;
+            font-size: 24px;
             color: #34495e;
             text-align: center;
             font-weight: 600;
@@ -65,13 +65,13 @@ HTML_TEMPLATE = """<!DOCTYPE html>
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 8px;
+            gap: 10px;
             flex-wrap: wrap;
         }}
 
         .card-symbol {{
-            width: 40px;
-            height: 55px;
+            width: 48px;
+            height: 66px;
             border-radius: 6px;
             border: 2px solid;
             display: inline-block;
@@ -100,8 +100,8 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 
         .ban-symbol {{
             position: relative;
-            width: 40px;
-            height: 55px;
+            width: 48px;
+            height: 66px;
             display: inline-block;
         }}
 
@@ -112,7 +112,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
         .ban-symbol::after {{
             content: "";
             position: absolute;
-            width: 60px;
+            width: 72px;
             height: 8px;
             background: #e74c3c;
             top: 50%;
@@ -122,7 +122,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
         }}
 
         .reward {{
-            font-size: 13px;
+            font-size: 18px;
             color: #555;
             background: #f8f9fa;
             padding: 12px;
@@ -135,7 +135,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
         @media print {{
             @page {{
                 size: portrait;
-                margin: 0.5in;
+                margin: 0.3in;
             }}
 
             body {{
@@ -146,8 +146,8 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 
             .cards-container {{
                 display: grid;
-                grid-template-columns: repeat(4, 1fr);
-                gap: 8px;
+                grid-template-columns: repeat(3, 1fr);
+                gap: 24px;
                 width: 100%;
                 max-width: none;
             }}
@@ -156,39 +156,41 @@ HTML_TEMPLATE = """<!DOCTYPE html>
                 width: 100%;
                 box-shadow: none;
                 page-break-inside: avoid;
-                padding: 14px;
+                padding: 12px;
+                aspect-ratio: 2.2 / 2.85;
             }}
 
             .stock-change {{
-                font-size: 13px;
-                padding: 8px;
+                font-size: 18px;
+                padding: 12px;
+                margin-bottom: 8px;
             }}
 
             .goal {{
-                font-size: 15px;
-                padding: 12px 0;
+                font-size: 20px;
+                padding: 8px 0;
             }}
 
             .reward {{
-                font-size: 11px;
+                font-size: 14px;
                 padding: 8px;
+                margin-top: 8px;
             }}
 
             .card-symbol {{
-                width: 34px;
-                height: 46px;
+                width: 38px;
+                height: 52px;
                 -webkit-print-color-adjust: exact;
                 print-color-adjust: exact;
             }}
 
             .ban-symbol {{
-                width: 34px;
-                height: 46px;
+                width: 38px;
+                height: 52px;
             }}
 
             .ban-symbol::after {{
-                width: 52px;
-                height: 7px;
+                width: 58px;
                 -webkit-print-color-adjust: exact;
                 print-color-adjust: exact;
             }}
@@ -199,6 +201,34 @@ HTML_TEMPLATE = """<!DOCTYPE html>
         .color-orange {{ color: #e67e22; font-weight: bold; }}
         .color-yellow {{ color: #f1c40f; font-weight: bold; }}
         .color-purple {{ color: #9b59b6; font-weight: bold; }}
+
+        /* Market manipulation cards */
+        .card.market-manipulation {{
+            background: white;
+            border-color: #333;
+        }}
+
+        .card.market-manipulation .stock-change {{
+            color: #2c3e50;
+            border-bottom-color: #ddd;
+        }}
+
+        .card.market-manipulation .stock-change.large {{
+            font-size: 22px;
+            padding: 20px;
+        }}
+
+        .card.market-manipulation .goal.market-label {{
+            color: #34495e;
+            font-size: 16px;
+            font-style: italic;
+        }}
+
+        .card.market-manipulation .reward {{
+            background: #f8f9fa;
+            color: #555;
+            border-top-color: #ddd;
+        }}
     </style>
 </head>
 <body>
@@ -214,6 +244,14 @@ CARD_TEMPLATE = """
             <div class="stock-change">{stock_change}</div>
             <div class="goal">{goal}</div>
             <div class="reward">{reward}</div>
+        </div>
+"""
+
+MARKET_MANIPULATION_CARD_TEMPLATE = """
+        <div class="card market-manipulation">
+            <div class="stock-change large">{stock_change}</div>
+            <div class="goal market-label">Market Manipulation</div>
+            <div class="reward">No goal - play for stock effect only</div>
         </div>
 """
 
@@ -268,11 +306,17 @@ def generate_html(cards_data):
     cards_html = []
 
     for card in cards_data:
-        card_html = CARD_TEMPLATE.format(
-            stock_change=colorize_text(card['stock_change']),
-            goal=goal_to_symbols(card['goal']),
-            reward=card['reward']
-        )
+        # Check if this is a market manipulation card (no goal)
+        if card.get('goal') is None:
+            card_html = MARKET_MANIPULATION_CARD_TEMPLATE.format(
+                stock_change=colorize_text(card['stockChange']['text'])
+            )
+        else:
+            card_html = CARD_TEMPLATE.format(
+                stock_change=colorize_text(card['stockChange']['text']),
+                goal=goal_to_symbols(card['goal']['text']),
+                reward=card['reward']['text']
+            )
         cards_html.append(card_html)
 
     html = HTML_TEMPLATE.format(

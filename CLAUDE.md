@@ -119,10 +119,55 @@ insider-trading/
 ├── generate_goal_cards.py    # Main card generation script
 ├── visualize_cards.py         # HTML visualization generator
 ├── goal_cards.json            # Generated 26-card deck (output)
+├── resource_deck.json         # Resource card deck (40 cards)
 ├── goal_cards.html            # Visual card layout for printing (output)
 ├── rules.md                   # Complete game rules
 ├── goal_generation.md         # Design documentation and generation system
-└── CLAUDE.md                  # This file - project context
+├── example.js                 # Example usage of game engine
+├── CLAUDE.md                  # This file - project context
+│
+├── src/                       # Game engine source code
+│   ├── core/
+│   │   ├── GameEngine.js          # Main orchestrator
+│   │   ├── GameState.js           # State management
+│   │   └── EventEmitter.js        # Event system
+│   │
+│   ├── models/
+│   │   ├── Card.js                # Base card model
+│   │   ├── ResourceCard.js        # Resource card
+│   │   └── GoalCard.js            # Goal card
+│   │
+│   ├── managers/
+│   │   ├── AuctionManager.js      # Auction logic
+│   │   ├── TradingManager.js      # Trade management
+│   │   ├── GoalResolutionManager.js # Goal reveal/resolution
+│   │   ├── SellManager.js         # Sell phase
+│   │   └── DeckManager.js         # Deck operations
+│   │
+│   ├── systems/
+│   │   ├── StockPriceSystem.js    # Price calculations
+│   │   ├── RewardSystem.js        # Interactive rewards
+│   │   ├── ValidationSystem.js    # Action validation
+│   │   └── TurnSystem.js          # Phase transitions
+│   │
+│   ├── parsers/
+│   │   ├── StockChangeParser.js   # Stock change utilities
+│   │   └── GoalParser.js          # Goal checking
+│   │
+│   ├── utils/
+│   │   ├── CardLoader.js          # Load cards from JSON
+│   │   ├── Constants.js           # Game constants
+│   │   └── uuid.js                # UUID generator
+│   │
+│   └── index.js                   # Main exports
+│
+└── tests/                     # Comprehensive test suite
+    ├── helpers/
+    │   ├── builders.js            # Test data factories
+    │   └── mocks.js               # Mock objects
+    ├── unit/                      # Unit tests (113 tests)
+    ├── integration/               # Integration tests (13 tests)
+    └── e2e/                       # End-to-end tests (14 tests)
 ```
 
 ## Key Implementation Details
@@ -175,6 +220,215 @@ Balanced: True
 
 This ensures fair gameplay - no color is systematically advantaged or disadvantaged.
 
+## Game Engine Implementation
+
+### Overview
+
+The game engine is a complete JavaScript implementation of the Insider Trading board game, designed to be:
+- **UI-Agnostic**: Core logic separated from presentation
+- **Event-Driven**: Subscribe to game events for reactive UIs
+- **AI-Ready**: Clean API with hidden information filtering
+- **Well-Tested**: 140 tests across unit, integration, and E2E layers
+
+### Pre-Parsed JSON Format (Performance Optimization)
+
+**Key Innovation**: Goal cards use pre-parsed data structures to eliminate runtime parsing overhead.
+
+**Before** (Runtime Parsing):
+```javascript
+// JavaScript had to parse strings on every card load
+"Orange -2" → parse() → { Orange: -2 }
+"2 Yellow + 1 Purple" → parse() → { Yellow: 2, Purple: 1 }
+```
+
+**After** (Pre-Parsed):
+```json
+{
+  "stockChange": {
+    "text": "Orange -2",
+    "parsed": { "Orange": -2 },
+    "type": "single_down_twice"
+  },
+  "goal": {
+    "text": "2 Yellow + 1 Purple",
+    "parsed": {
+      "type": "pair_plus_specific",
+      "requirements": { "Yellow": 2, "Purple": 1 }
+    }
+  },
+  "reward": {
+    "text": "Look at another player's hand",
+    "parsed": {
+      "type": "look_at_hand",
+      "requiresTarget": true,
+      "requiresChoice": false,
+      "value": 1
+    }
+  }
+}
+```
+
+**Benefits**:
+- ✅ Faster card loading (no parsing needed)
+- ✅ Simpler JavaScript code (300+ lines removed)
+- ✅ Human-readable text preserved for UI display
+- ✅ Easier validation (done in Python)
+
+### Quick Start
+
+```javascript
+import { GameEngine, CardLoader } from './src/index.js';
+
+// Load card decks
+const resourceCards = await CardLoader.loadFromFile('./resource_deck.json', 'resource');
+const goalCards = await CardLoader.loadFromFile('./goal_cards.json', 'goal');
+
+// Create game engine
+const engine = new GameEngine();
+
+// Set up players
+const players = [
+  { id: 'alice', name: 'Alice' },
+  { id: 'bob', name: 'Bob' },
+  { id: 'charlie', name: 'Charlie' }
+];
+
+// Initialize and start game
+await engine.initialize(players, resourceCards, goalCards);
+engine.start();
+
+// Subscribe to events
+engine.on('BID_PLACED', (data) => {
+  console.log(`${data.playerId} bid $${data.amount}`);
+});
+
+// Execute actions
+engine.executeAction({
+  type: 'PLACE_BID',
+  playerId: 'alice',
+  amount: 3
+});
+```
+
+### Core API
+
+**GameEngine Methods**:
+- `initialize(players, resourceCards, goalCards)` - Initialize a new game
+- `start()` - Start the game
+- `executeAction(action)` - Execute a player action (validated)
+- `on(eventType, handler)` - Subscribe to events
+- `getState()` - Get current game state
+- `getVisibleState(playerId)` - Get filtered state (hides hidden info)
+- `getAvailableActions(playerId)` - Get available actions for a player
+- `getFinalScores()` - Get final scores (after game ends)
+
+**Action Types**:
+```javascript
+// Auction Phase
+{ type: 'PLACE_BID', playerId: 'alice', amount: 5 }
+{ type: 'PASS', playerId: 'alice' }
+
+// Trading Phase
+{
+  type: 'PROPOSE_TRADE',
+  playerId: 'alice',
+  offering: { cards: ['card-id'], cash: 2 },
+  requesting: { cards: [{ color: 'Blue', count: 1 }], cash: 0 }
+}
+{ type: 'ACCEPT_TRADE', playerId: 'bob', offerId: 'offer-id' }
+{ type: 'CANCEL_TRADE', playerId: 'alice', offerId: 'offer-id' }
+
+// Goal Resolution Phase
+{ type: 'REVEAL_GOAL', playerId: 'alice', goalCardId: 'goal-id' }
+{
+  type: 'EXECUTE_REWARD',
+  playerId: 'alice',
+  choices: { targetPlayerId: 'bob' } // Varies by reward
+}
+
+// Sell Phase
+{ type: 'SELECT_CARDS_TO_SELL', playerId: 'alice', cardIds: ['card-1'] }
+{ type: 'COMMIT_SELL', playerId: 'alice' }
+```
+
+**Event Types** (26+ events):
+- `GAME_STARTED`, `GAME_ENDED`
+- `PHASE_CHANGED`, `ROUND_STARTED`
+- `AUCTION_STARTED`, `BID_PLACED`, `PLAYER_PASSED`, `AUCTION_WON`
+- `TRADE_PROPOSED`, `TRADE_ACCEPTED`, `TRADE_CANCELLED`
+- `GOAL_REVEALED`, `GOAL_CHECKED`, `STOCK_PRICES_UPDATED`
+- `REWARD_EXECUTED`, `CARD_REVEALED`
+- And more... (see src/utils/Constants.js)
+
+### Architecture
+
+**Design Principles**:
+1. **Event-Driven**: All state changes emit events for reactive UIs
+2. **Validation-First**: All actions validated before execution
+3. **Immutable State**: State mutations through helper methods
+4. **AI-Agnostic**: Engine provides API, AI logic is separate
+5. **Modular Design**: Clear separation between managers and systems
+
+**Key Components**:
+- **GameEngine**: Main orchestrator, ties everything together
+- **Managers**: Handle specific game phases (Auction, Trading, Goals, Sell)
+- **Systems**: Handle cross-cutting concerns (Validation, Stock Prices, Rewards)
+- **Models**: Represent game entities (Cards, Players)
+- **Parsers**: Utility functions (no runtime parsing needed)
+
+### Testing
+
+**Test Coverage**: 140 tests across 3 layers
+
+**Unit Tests** (113 tests):
+- `StockPriceSystem.test.js`: 41 tests - price calculations, constraints, accumulation
+- `ValidationSystem.test.js`: 32 tests - all action validations with edge cases
+- `DeckManager.test.js`: 40 tests - shuffle, draw, peek, rearrange operations
+
+**Integration Tests** (13 tests):
+- `AuctionManager.test.js`: Complete auction flow with real dependencies
+
+**E2E Tests** (14 tests):
+- `FullGame.test.js`: Full game simulation using actual JSON card files
+
+**Run Tests**:
+```bash
+npm test                  # Run all tests
+npm test:watch            # Watch mode
+npm test:coverage         # Coverage report
+```
+
+**Test Results**:
+```
+Test Suites: 5 passed, 5 total
+Tests:       140 passed, 140 total
+Time:        0.421s
+```
+
+### AI Integration
+
+The engine is designed for AI players:
+
+```javascript
+// Get filtered state (hides other players' cards)
+const visibleState = engine.getVisibleState('alice');
+
+// Get available actions
+const actions = engine.getAvailableActions('alice');
+
+// AI decides which action to take
+const action = myAI.chooseAction(visibleState, actions);
+
+// Execute action
+engine.executeAction(action);
+```
+
+**Hidden Information**:
+- Other players' hands show card count but color is `"hidden"`
+- Other players' goal cards show count but details are hidden
+- Own cards are fully visible
+- Stock prices, cash, and public info visible to all
+
 ## Usage
 
 ### Generate New Card Deck
@@ -183,7 +437,7 @@ python3 generate_goal_cards.py > goal_cards.json
 ```
 
 **Output includes**:
-- JSON array of 26 goal cards
+- JSON array of 26 goal cards with pre-parsed data
 - Statistics on goal type distribution
 - Reward tier distribution
 - Balance validation results
@@ -195,9 +449,60 @@ python3 visualize_cards.py > goal_cards.html
 
 Creates an HTML page with all 26 cards in a grid layout suitable for printing.
 
+### Run Example Game
+```bash
+node example.js
+```
+
+Demonstrates game engine usage with simulated gameplay.
+
+### Run Tests
+```bash
+npm install              # Install dependencies (Jest)
+npm test                 # Run all 140 tests
+npm test:watch           # Run tests in watch mode
+npm test:coverage        # Generate coverage report
+```
+
 ## Development History
 
-### Recent Changes (Latest Update)
+### Recent Changes (Latest Update - Game Engine)
+
+**January 2025 - JavaScript Game Engine Implementation**
+
+1. **Implemented Complete Game Engine**
+   - Full JavaScript implementation of all game rules
+   - 18+ source files organized into core, managers, systems, models
+   - Event-driven architecture with 26+ event types
+   - Validation system ensures all actions are legal before execution
+   - State management with immutable state helpers
+
+2. **Pre-Parsed JSON Format Optimization**
+   - Modified `generate_goal_cards.py` to output pre-parsed data structures
+   - Eliminated runtime parsing overhead (300+ lines of JavaScript removed)
+   - Goal cards now include both human-readable text AND parsed data
+   - Faster card loading and simpler JavaScript code
+
+3. **Comprehensive Test Suite**
+   - **140 tests** across 3 layers (unit, integration, E2E)
+   - **Unit tests** (113): StockPriceSystem, ValidationSystem, DeckManager
+   - **Integration tests** (13): AuctionManager with real dependencies
+   - **E2E tests** (14): Full game simulation with actual JSON files
+   - All tests passing with Jest test framework
+
+4. **AI-Ready Design**
+   - `getVisibleState(playerId)` filters hidden information
+   - `getAvailableActions(playerId)` returns legal actions
+   - Clean API for AI integration
+   - Example AI vs AI simulation support
+
+5. **Documentation**
+   - Complete API documentation in CLAUDE.md
+   - Code examples in example.js
+   - Test helpers and builders for easy test writing
+
+### Earlier Changes (Card Generation)
+
 1. **Expanded deck from 20 to 26 cards**
    - Added 4 "Two Pair" goals (adjacent color pairs pattern)
    - Added 2 "One of Every" goals
@@ -262,14 +567,29 @@ Every generated deck is validated to ensure:
 
 ## Future Considerations
 
-Potential expansions or modifications:
+### Immediate Next Steps
+- **Build Web UI**: Create a web interface using the game engine's event system
+- **Implement AI Players**: Use the `getVisibleState()` and `getAvailableActions()` APIs
+- **AI vs AI Simulations**: Run thousands of games to test balance
+- **Performance Metrics**: Add timing and statistics to track game flow
+
+### Potential Expansions
 - Add more goal types (5-card goals?)
 - Variant rules for different player counts
 - Expansion packs with new reward types
-- Digital implementation for online play
+- Online multiplayer (WebSocket integration)
 - Alternative scoring systems
+- Tournament mode with rankings
+- Replay system (save/load game states)
 
 ## Credits
 
-Card generation system with anti-synergy rules and balanced distribution.
-Designed for strategic depth while maintaining accessibility.
+**Card Generation System**: Python-based generator with anti-synergy rules and balanced distribution. Designed for strategic depth while maintaining accessibility.
+
+**Game Engine**: Complete JavaScript implementation with event-driven architecture, comprehensive test coverage (140 tests), and AI-ready design. Features pre-parsed JSON format for optimal performance.
+
+**Built With**:
+- Python 3 (card generation)
+- JavaScript ES6+ (game engine)
+- Jest (testing framework)
+- Node.js (runtime)

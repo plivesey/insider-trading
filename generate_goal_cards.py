@@ -6,7 +6,8 @@ Outputs 20 cards in JSON format following all anti-synergy rules.
 
 import json
 import random
-from typing import List, Dict, Set, Tuple
+from typing import List, Dict, Set, Tuple, Optional
+from collections import Counter
 
 COLORS = ["Blue", "Orange", "Yellow", "Purple"]
 
@@ -25,18 +26,23 @@ STOCK_CHANGES = [
 LOW_REWARDS = [
     "Gain $1",
     "Peek at top card, choose to put it on top or bottom of deck",
-    "Look at another player's hand (see all their resource cards)"
+    "Look at random goal card from another player",
+    "Swap 1 of your resource cards with the top card of the deck",
+    "Gain $3"
 ]
 
 MEDIUM_REWARDS = [
+    "Gain $1",
     "Gain $2",
     "Swap 1 of your resource cards with the top card of the deck",
     "Buy the lowest-priced stock for $1 discount",
     "Steal $1 from another player",
-    "Peek at top 5 cards of the resource deck, and rearrange them in any order"
+    "Peek at top 5 cards of the resource deck, and rearrange them in any order",
+    "All cards you sell this round get +$1 bonus"
 ]
 
 HIGH_REWARDS = [
+    "Gain $2",
     "Gain $3",
     "Adjust any one stock price by ±1 (before selling phase)",
     "All cards you sell this round get +$1 bonus",
@@ -44,6 +50,92 @@ HIGH_REWARDS = [
     "Buy any stock for $2 discount",
     "Gain the lowest value stock"
 ]
+
+# Specific reward assignments based on (goal_text, stock_change_text)
+REWARD_MAPPING = {
+    ("2 Orange", "Blue -2"): ("low", "Peek at top card, choose to put it on top or bottom of deck"),
+    ("2 Yellow", "Blue -1, Orange -1"): ("low", "Look at random goal card from another player"),
+    ("2 Purple", "Purple +1"): ("low", "Look at random goal card from another player"),
+    ("0 Blue", "Purple +1, Yellow +1"): ("medium", "Buy the lowest-priced stock for $1 discount"),
+    ("2 Blue", "Orange -1"): ("medium", "Buy the lowest-priced stock for $1 discount"),
+    ("2 Purple + 1 Blue", "Orange +2"): ("low", "Gain $1"),
+    ("2 Orange + 1 Yellow", "Blue +1, Purple +1"): ("medium", "Gain $1"),
+    ("2 Blue + 1 Orange", "Yellow +1, Blue +1"): ("medium", "Gain $1"),
+    ("1 Blue + 1 Orange + 1 Yellow", "Purple +2"): ("low", "Gain $1"),
+    ("1 Orange + 1 Yellow + 1 Purple", "Blue +1, Yellow +1"): ("low", "Gain $1"),
+    ("1 Blue + 1 Yellow + 1 Purple", "Blue +1, Orange -1"): ("medium", "Peek at top 5 cards of the resource deck, and rearrange them in any order"),
+    ("0 Yellow", "Purple -2"): ("low", "Swap 1 of your resource cards with the top card of the deck"),
+    ("0 Purple", "Orange -1, Yellow -1"): ("medium", "Swap 1 of your resource cards with the top card of the deck"),
+    ("0 Orange", "Purple -1, Blue -1"): ("medium", "Steal $1 from another player"),
+    ("2 Yellow + 1 Purple", "Orange -1"): ("medium", "Gain $2"),
+    ("1 Blue + 1 Orange + 1 Purple", "Yellow -1"): ("high", "Gain $2"),
+    ("2 Yellow + 2 Purple", "Orange +2"): ("high", "Take a random resource from another player and give them one of your choice"),
+    ("2 Purple + 2 Blue", "Blue +1, Orange -1"): ("high", "Take a random resource from another player and give them one of your choice"),
+    ("1 Blue + 1 Orange + 1 Yellow + 1 Purple", "Yellow +1"): ("high", "Buy any stock for $2 discount"),
+    ("1 Blue + 1 Orange + 1 Yellow + 1 Purple", "Orange +1"): ("high", "Buy any stock for $2 discount"),
+    ("2 Blue + 2 Orange", "Purple -2"): ("high", "Adjust any one stock price by ±1 (before selling phase)"),
+    ("2 Orange + 2 Yellow", "Orange +1"): ("high", "Adjust any one stock price by ±1 (before selling phase)"),
+    ("3 Yellow", "Blue +1, Purple -1"): ("medium", "All cards you sell this round get +$1 bonus"),
+    ("3 Blue", "Purple +1, Yellow -1"): ("high", "Gain the lowest value stock"),
+    ("3 Orange", "Blue -2"): ("low", "Gain $3"),
+    ("3 Purple", "Yellow -1"): ("high", "Gain $3"),
+}
+
+
+def create_market_manipulation_cards() -> List[Dict]:
+    """Create 8 market manipulation cards with no goal requirements.
+
+    These cards are powerful stock manipulation effects:
+    - 4 cards with +2/+1 (total +3 each, evenly distributed)
+    - 4 cards with -3 (one per color)
+
+    Since they have no goals, the stock changes are their main value.
+    """
+    cards = []
+
+    # +2/+1 cards - each color gets +2 once and +1 once
+    # Pattern: Blue+2/Orange+1, Orange+2/Yellow+1, Yellow+2/Purple+1, Purple+2/Blue+1
+    plus_patterns = [
+        ("Blue", "Orange"),
+        ("Orange", "Yellow"),
+        ("Yellow", "Purple"),
+        ("Purple", "Blue")
+    ]
+
+    for primary, secondary in plus_patterns:
+        changes = {primary: 2, secondary: 1}
+        cards.append({
+            "goal_type": "none",
+            "goal_text": "",
+            "required_colors": {},
+            "difficulty_points": 0,
+            "stock_change": {
+                "type": "plus_two_plus_one",
+                "text": f"{primary} +2, {secondary} +1",
+                "changes": changes
+            },
+            "stock_change_penalty": get_stock_change_penalty(changes),
+            "is_market_manipulation": True
+        })
+
+    # -3 cards - one per color
+    for color in COLORS:
+        changes = {color: -3}
+        cards.append({
+            "goal_type": "none",
+            "goal_text": "",
+            "required_colors": {},
+            "difficulty_points": 0,
+            "stock_change": {
+                "type": "single_down_triple",
+                "text": f"{color} -3",
+                "changes": changes
+            },
+            "stock_change_penalty": get_stock_change_penalty(changes),
+            "is_market_manipulation": True
+        })
+
+    return cards
 
 
 def create_goal_cards() -> List[Dict]:
@@ -56,7 +148,7 @@ def create_goal_cards() -> List[Dict]:
             "goal_type": "three_of_a_kind",
             "goal_text": f"3 {color}",
             "required_colors": {color: 3},
-            "difficulty_points": 3
+            "difficulty_points": 4
         })
 
     # Pair - 4 cards (one per color)
@@ -124,72 +216,129 @@ def create_goal_cards() -> List[Dict]:
             "goal_type": "one_of_every",
             "goal_text": "1 Blue + 1 Orange + 1 Yellow + 1 Purple",
             "required_colors": {color: 1 for color in COLORS},
-            "difficulty_points": 4
+            "difficulty_points": 3.5
         })
 
     return cards
 
 
-def get_stock_change_penalty(change_type: str) -> int:
-    """Get the penalty (negative points) for a stock change type."""
-    penalties = {
-        "single_up": 0,
-        "single_down": 0,
-        "single_up_twice": -2,
-        "single_down_twice": -2,
-        "double_up": -1,
-        "double_down": -1,
-        "mixed": -1
-    }
-    return penalties[change_type]
+def get_stock_change_penalty(changes: Dict[str, int]) -> float:
+    """Get the penalty (negative points) based on individual stock changes.
+
+    Formula:
+    - +1: -0.75
+    - -1: -0.5
+    - +2: -1.5
+    - -2: -1.0
+    - +3: -2.25 (extrapolated)
+    - -3: -1.5 (extrapolated)
+    """
+    total_penalty = 0.0
+    for color, change in changes.items():
+        if change == 1:
+            total_penalty += -0.75
+        elif change == -1:
+            total_penalty += -0.5
+        elif change == 2:
+            total_penalty += -1.5
+        elif change == -2:
+            total_penalty += -1.0
+        elif change == 3:
+            total_penalty += -2.25
+        elif change == -3:
+            total_penalty += -1.5
+    return total_penalty
 
 
-def generate_stock_change(change_type: str, colors: List[str]) -> Dict:
-    """Generate a stock change specification of the given type."""
+def weighted_choice(colors: List[str], color_frequency: Optional[Counter] = None) -> str:
+    """Choose a color with weighting based on frequency (lower frequency = higher weight)."""
+    if color_frequency is None or not color_frequency:
+        return random.choice(colors)
+
+    # Calculate weights: lower frequency = higher weight
+    max_freq = max(color_frequency[c] for c in colors) if colors else 1
+    weights = [(max_freq - color_frequency[c] + 1) for c in colors]
+
+    # If all weights are 0, use equal weights
+    if sum(weights) == 0:
+        return random.choice(colors)
+
+    # Use weighted random choice
+    return random.choices(colors, weights=weights, k=1)[0]
+
+
+def weighted_sample(colors: List[str], k: int, color_frequency: Optional[Counter] = None) -> List[str]:
+    """Sample k colors with weighting based on frequency (lower frequency = higher weight)."""
+    if color_frequency is None or not color_frequency or k >= len(colors):
+        return random.sample(colors, k)
+
+    # Sort colors by frequency and pick the k least used, with some randomness
+    sorted_colors = sorted(colors, key=lambda c: color_frequency[c])
+
+    # Pick from the k*2 least-used colors (or all if fewer)
+    pool_size = min(len(sorted_colors), max(k * 2, k + 2))
+    pool = sorted_colors[:pool_size]
+
+    # Now do weighted selection from this pool
+    selected = []
+    remaining = pool.copy()
+
+    for _ in range(k):
+        if not remaining:
+            break
+        color = weighted_choice(remaining, color_frequency)
+        selected.append(color)
+        remaining.remove(color)
+
+    return selected
+
+
+def generate_stock_change(change_type: str, colors: List[str], color_frequency: Optional[Counter] = None) -> Dict:
+    """Generate a stock change specification of the given type, with optional color frequency balancing."""
     if change_type == "single_up":
-        color = random.choice(colors)
+        color = weighted_choice(colors, color_frequency)
         return {
             "type": change_type,
             "text": f"{color} +1",
             "changes": {color: 1}
         }
     elif change_type == "single_down":
-        color = random.choice(colors)
+        color = weighted_choice(colors, color_frequency)
         return {
             "type": change_type,
             "text": f"{color} -1",
             "changes": {color: -1}
         }
     elif change_type == "single_up_twice":
-        color = random.choice(colors)
+        color = weighted_choice(colors, color_frequency)
         return {
             "type": change_type,
             "text": f"{color} +2",
             "changes": {color: 2}
         }
     elif change_type == "single_down_twice":
-        color = random.choice(colors)
+        color = weighted_choice(colors, color_frequency)
         return {
             "type": change_type,
             "text": f"{color} -2",
             "changes": {color: -2}
         }
     elif change_type == "double_up":
-        colors_chosen = random.sample(colors, 2)
+        colors_chosen = weighted_sample(colors, 2, color_frequency)
         return {
             "type": change_type,
             "text": f"{colors_chosen[0]} +1, {colors_chosen[1]} +1",
             "changes": {colors_chosen[0]: 1, colors_chosen[1]: 1}
         }
     elif change_type == "double_down":
-        colors_chosen = random.sample(colors, 2)
+        colors_chosen = weighted_sample(colors, 2, color_frequency)
         return {
             "type": change_type,
             "text": f"{colors_chosen[0]} -1, {colors_chosen[1]} -1",
             "changes": {colors_chosen[0]: -1, colors_chosen[1]: -1}
         }
     elif change_type == "mixed":
-        colors_chosen = random.sample(colors, 2)
+        colors_chosen = weighted_sample(colors, 2, color_frequency)
         return {
             "type": change_type,
             "text": f"{colors_chosen[0]} +1, {colors_chosen[1]} -1",
@@ -214,6 +363,30 @@ def validate_balance(cards: List[Dict]) -> bool:
     """Validate that all colors have net zero change."""
     net_changes = calculate_net_changes(cards)
     return all(change == 0 for change in net_changes.values())
+
+
+def calculate_color_frequency(cards: List[Dict]) -> Dict[str, int]:
+    """Calculate how many times each color appears in stock changes."""
+    from collections import Counter
+    color_freq = Counter()
+    for card in cards:
+        if "stock_change" in card:
+            for color in COLORS:
+                if color in card["stock_change"]["text"]:
+                    color_freq[color] += 1
+    return dict(color_freq)
+
+
+def validate_color_frequency_balance(cards: List[Dict], max_difference: int = 2) -> bool:
+    """Validate that color frequencies are within acceptable range."""
+    color_freq = calculate_color_frequency(cards)
+
+    if not color_freq:
+        return True
+
+    max_freq = max(color_freq.values())
+    min_freq = min(color_freq.values())
+    return (max_freq - min_freq) <= max_difference
 
 
 def is_valid_combination(card: Dict, stock_change: Dict) -> bool:
@@ -272,6 +445,9 @@ def assign_stock_changes(cards: List[Dict], seed: int = None) -> List[Dict]:
         # Track current net changes
         current_net = {color: 0 for color in COLORS}
 
+        # Track color frequency (how many times each color appears)
+        color_frequency = Counter({color: 0 for color in COLORS})
+
         # Assign stock changes
         assigned_cards = []
 
@@ -284,20 +460,36 @@ def assign_stock_changes(cards: List[Dict], seed: int = None) -> List[Dict]:
                     continue
 
                 for _ in range(50):
-                    stock_change = generate_stock_change(change_type, COLORS)
+                    stock_change = generate_stock_change(change_type, COLORS, color_frequency)
                     if is_valid_combination(card, stock_change):
                         valid_attempts.append((change_type, stock_change))
 
             if valid_attempts:
-                # Score each option by how much it helps balance
-                def balance_score(stock_change):
-                    score = 0
+                # Score each option by how much it helps balance (both net and frequency)
+                def combined_score(stock_change):
+                    # Net balance score (lower is better)
+                    net_score = 0
                     for color, change in stock_change["changes"].items():
                         new_value = current_net[color] + change
-                        score += abs(new_value)
-                    return score
+                        net_score += abs(new_value)
 
-                valid_attempts.sort(key=lambda x: balance_score(x[1]))
+                    # Frequency balance score (lower is better)
+                    # Simulate adding this stock change and calculate frequency imbalance
+                    simulated_freq = color_frequency.copy()
+                    for color in COLORS:
+                        if color in stock_change["text"]:
+                            simulated_freq[color] += 1
+
+                    if simulated_freq:
+                        max_freq = max(simulated_freq.values())
+                        min_freq = min(simulated_freq.values())
+                        freq_score = (max_freq - min_freq) * 10  # Weight frequency balance highly
+                    else:
+                        freq_score = 0
+
+                    return net_score + freq_score
+
+                valid_attempts.sort(key=lambda x: combined_score(x[1]))
                 top_choices = max(1, len(valid_attempts) // 3)
                 change_type, stock_change = random.choice(valid_attempts[:top_choices])
 
@@ -305,9 +497,14 @@ def assign_stock_changes(cards: List[Dict], seed: int = None) -> List[Dict]:
                 for color, change in stock_change["changes"].items():
                     current_net[color] += change
 
+                # Update color frequency
+                for color in COLORS:
+                    if color in stock_change["text"]:
+                        color_frequency[color] += 1
+
                 complete_card = card.copy()
                 complete_card["stock_change"] = stock_change
-                complete_card["stock_change_penalty"] = get_stock_change_penalty(change_type)
+                complete_card["stock_change_penalty"] = get_stock_change_penalty(stock_change["changes"])
                 assigned_cards.append(complete_card)
 
         # Now assign unconstrained cards
@@ -323,7 +520,7 @@ def assign_stock_changes(cards: List[Dict], seed: int = None) -> List[Dict]:
                 # Try to generate a valid stock change of this type multiple times
                 max_color_attempts = 50
                 for _ in range(max_color_attempts):
-                    stock_change = generate_stock_change(change_type, COLORS)
+                    stock_change = generate_stock_change(change_type, COLORS, color_frequency)
                     if is_valid_combination(card, stock_change):
                         valid_attempts.append((change_type, stock_change))
 
@@ -333,7 +530,7 @@ def assign_stock_changes(cards: List[Dict], seed: int = None) -> List[Dict]:
                     if used_counts[change_type] >= stock_change_counts[change_type]:
                         continue
                     for _ in range(20):
-                        stock_change = generate_stock_change(change_type, COLORS)
+                        stock_change = generate_stock_change(change_type, COLORS, color_frequency)
                         if is_valid_combination(card, stock_change):
                             valid_attempts.append((change_type, stock_change))
                             break
@@ -341,20 +538,36 @@ def assign_stock_changes(cards: List[Dict], seed: int = None) -> List[Dict]:
                         break
 
             if valid_attempts:
-                # Score each option by how much it helps balance
-                def balance_score(stock_change):
-                    score = 0
+                # Score each option by how much it helps balance (both net and frequency)
+                def combined_score(stock_change):
+                    # Net balance score (lower is better)
+                    net_score = 0
                     for color, change in stock_change["changes"].items():
                         # Prefer changes that move towards 0
                         new_value = current_net[color] + change
                         old_distance = abs(current_net[color])
                         new_distance = abs(new_value)
                         # Lower score is better (closer to balanced)
-                        score += new_distance
-                    return score
+                        net_score += new_distance
+
+                    # Frequency balance score (lower is better)
+                    # Simulate adding this stock change and calculate frequency imbalance
+                    simulated_freq = color_frequency.copy()
+                    for color in COLORS:
+                        if color in stock_change["text"]:
+                            simulated_freq[color] += 1
+
+                    if simulated_freq:
+                        max_freq = max(simulated_freq.values())
+                        min_freq = min(simulated_freq.values())
+                        freq_score = (max_freq - min_freq) * 10  # Weight frequency balance highly
+                    else:
+                        freq_score = 0
+
+                    return net_score + freq_score
 
                 # Sort by balance score and pick from the best options
-                valid_attempts.sort(key=lambda x: balance_score(x[1]))
+                valid_attempts.sort(key=lambda x: combined_score(x[1]))
                 # Pick from top 30% to maintain some randomness
                 top_choices = max(1, len(valid_attempts) // 3)
                 change_type, stock_change = random.choice(valid_attempts[:top_choices])
@@ -365,47 +578,52 @@ def assign_stock_changes(cards: List[Dict], seed: int = None) -> List[Dict]:
                 for color, change in stock_change["changes"].items():
                     current_net[color] += change
 
+                # Update color frequency
+                for color in COLORS:
+                    if color in stock_change["text"]:
+                        color_frequency[color] += 1
+
                 # Create the complete card
                 complete_card = card.copy()
                 complete_card["stock_change"] = stock_change
-                complete_card["stock_change_penalty"] = get_stock_change_penalty(change_type)
+                complete_card["stock_change_penalty"] = get_stock_change_penalty(stock_change["changes"])
                 assigned_cards.append(complete_card)
 
-        # Check if balanced
-        if validate_balance(assigned_cards):
+        # Check if balanced (both net balance AND color frequency balance)
+        if validate_balance(assigned_cards) and validate_color_frequency_balance(assigned_cards):
             return assigned_cards
 
     # If we couldn't achieve balance, return the best attempt
     print(f"Warning: Could not achieve perfect balance after {max_attempts} attempts", file=__import__('sys').stderr)
     print(f"Final net changes: {calculate_net_changes(assigned_cards)}", file=__import__('sys').stderr)
+    color_freq = calculate_color_frequency(assigned_cards)
+    print(f"Final color frequency: {color_freq}", file=__import__('sys').stderr)
+    if color_freq:
+        freq_range = max(color_freq.values()) - min(color_freq.values())
+        print(f"Color frequency range: {freq_range}", file=__import__('sys').stderr)
     return assigned_cards
 
 
 def calculate_scores_and_assign_rewards(cards: List[Dict]) -> List[Dict]:
-    """Calculate scores and assign rewards to cards."""
-    # Calculate scores
+    """Calculate scores and assign rewards to cards using the mapping."""
+    # Calculate scores and assign rewards from mapping
     for card in cards:
         card["score"] = card["difficulty_points"] + card["stock_change_penalty"]
 
-    # Sort by score (ascending - lowest scores get lowest rewards)
-    cards_sorted = sorted(cards, key=lambda x: x["score"])
-
-    # Split into thirds
-    total = len(cards_sorted)
-    low_end = total // 3
-    medium_end = 2 * total // 3
-
-    # Assign rewards
-    for i, card in enumerate(cards_sorted):
-        if i < low_end:
-            card["reward_tier"] = "low"
-            card["reward"] = random.choice(LOW_REWARDS)
-        elif i < medium_end:
+        # Look up reward in mapping
+        key = (card["goal_text"], card["stock_change"]["text"])
+        if key in REWARD_MAPPING:
+            tier, reward = REWARD_MAPPING[key]
+            card["reward_tier"] = tier
+            card["reward"] = reward
+        else:
+            # Fallback to random assignment based on score
+            print(f"Warning: No mapping for {key}", file=__import__('sys').stderr)
             card["reward_tier"] = "medium"
             card["reward"] = random.choice(MEDIUM_REWARDS)
-        else:
-            card["reward_tier"] = "high"
-            card["reward"] = random.choice(HIGH_REWARDS)
+
+    # Sort by score (ascending - lowest scores get lowest rewards)
+    cards_sorted = sorted(cards, key=lambda x: x["score"])
 
     return cards_sorted
 
@@ -453,6 +671,15 @@ def parse_reward(reward_text: str, reward_tier: str) -> Dict:
     if "look at" in reward_lower and "hand" in reward_lower:
         return {
             "type": "look_at_hand",
+            "requiresTarget": True,
+            "requiresChoice": False,
+            "value": value
+        }
+
+    # Look at random goal card
+    if "look at" in reward_lower and "goal card" in reward_lower:
+        return {
+            "type": "look_at_goal_card",
             "requiresTarget": True,
             "requiresChoice": False,
             "value": value
@@ -541,6 +768,30 @@ def parse_reward(reward_text: str, reward_tier: str) -> Dict:
 
 def create_final_card_format(card: Dict) -> Dict:
     """Format card for final JSON output with pre-parsed data."""
+    # Check if this is a market manipulation card (no goal)
+    is_market_manipulation = card.get("is_market_manipulation", False)
+
+    if is_market_manipulation:
+        penalty = card.get("stock_change_penalty", 0)
+        difficulty = card.get("difficulty_points", 0)
+        return {
+            "stockChange": {
+                "text": card["stock_change"]["text"],
+                "parsed": card["stock_change"]["changes"],
+                "type": card["stock_change"]["type"]
+            },
+            "goal": None,
+            "reward": None,
+            "metadata": {
+                "goalType": "none",
+                "rewardTier": None,
+                "difficultyPoints": difficulty,
+                "stockChangePenalty": penalty,
+                "score": difficulty + penalty,
+                "isMarketManipulation": True
+            }
+        }
+
     # Parse goal (handle none_of specially)
     goal_parsed = {
         "type": card["goal_type"],
@@ -575,18 +826,24 @@ def create_final_card_format(card: Dict) -> Dict:
 
 
 def main():
-    """Generate and output 26 goal cards."""
-    # Create base cards
-    cards = create_goal_cards()
+    """Generate and output 34 goal cards (26 standard + 8 market manipulation)."""
+    # Create base goal cards
+    goal_cards = create_goal_cards()
 
-    # Assign stock changes
-    cards = assign_stock_changes(cards, seed=42)
+    # Assign stock changes to goal cards
+    goal_cards = assign_stock_changes(goal_cards, seed=42)
 
-    # Calculate scores and assign rewards
-    cards = calculate_scores_and_assign_rewards(cards)
+    # Calculate scores and assign rewards to goal cards
+    goal_cards = calculate_scores_and_assign_rewards(goal_cards)
+
+    # Create market manipulation cards (already have stock changes assigned)
+    market_cards = create_market_manipulation_cards()
+
+    # Combine all cards
+    all_cards = goal_cards + market_cards
 
     # Format for output
-    final_cards = [create_final_card_format(card) for card in cards]
+    final_cards = [create_final_card_format(card) for card in all_cards]
 
     # Output JSON
     print(json.dumps(final_cards, indent=2))
@@ -594,13 +851,16 @@ def main():
     # Print statistics
     print("\n# Statistics:", file=__import__('sys').stderr)
     print(f"Total cards: {len(final_cards)}", file=__import__('sys').stderr)
+    print(f"  Goal cards: {len(goal_cards)}", file=__import__('sys').stderr)
+    print(f"  Market manipulation cards: {len(market_cards)}", file=__import__('sys').stderr)
 
-    # Count by reward tier
+    # Count by reward tier (only for goal cards)
     tiers = {}
     for card in final_cards:
         tier = card["metadata"]["rewardTier"]
-        tiers[tier] = tiers.get(tier, 0) + 1
-    print(f"Reward distribution: {tiers}", file=__import__('sys').stderr)
+        if tier is not None:
+            tiers[tier] = tiers.get(tier, 0) + 1
+    print(f"Reward distribution (goal cards only): {tiers}", file=__import__('sys').stderr)
 
     # Count by goal type
     goal_types = {}
@@ -609,12 +869,33 @@ def main():
         goal_types[gt] = goal_types.get(gt, 0) + 1
     print(f"Goal type distribution: {goal_types}", file=__import__('sys').stderr)
 
-    # Validate and display balance
-    net_changes = calculate_net_changes(cards)
-    is_balanced = validate_balance(cards)
-    print(f"\n# Balance Validation:", file=__import__('sys').stderr)
+    # Validate and display balance for goal cards
+    net_changes = calculate_net_changes(goal_cards)
+    is_balanced = validate_balance(goal_cards)
+    print(f"\n# Balance Validation (goal cards):", file=__import__('sys').stderr)
     print(f"Net changes by color: {net_changes}", file=__import__('sys').stderr)
     print(f"Balanced (all colors net to 0): {is_balanced}", file=__import__('sys').stderr)
+
+    # Validate balance for market manipulation cards
+    # +2/+1 cards: each color gets +2 and +1 = +3
+    # -3 cards: each color gets -3
+    # Net: +3 - 3 = 0 per color
+    market_net = calculate_net_changes(market_cards)
+    market_balanced = all(v == 0 for v in market_net.values())
+    print(f"\n# Balance Validation (market manipulation cards):", file=__import__('sys').stderr)
+    print(f"Net changes by color: {market_net}", file=__import__('sys').stderr)
+    print(f"Balanced (all colors net to 0): {market_balanced}", file=__import__('sys').stderr)
+
+    # Display color frequency for goal cards
+    color_freq = calculate_color_frequency(goal_cards)
+    is_freq_balanced = validate_color_frequency_balance(goal_cards)
+    print(f"\n# Color Frequency in Stock Changes (goal cards):", file=__import__('sys').stderr)
+    for color in sorted(COLORS):
+        print(f"{color}: {color_freq.get(color, 0)}", file=__import__('sys').stderr)
+    if color_freq:
+        freq_range = max(color_freq.values()) - min(color_freq.values())
+        print(f"Range: {freq_range} (target: ≤2)", file=__import__('sys').stderr)
+        print(f"Frequency balanced: {is_freq_balanced}", file=__import__('sys').stderr)
 
 
 if __name__ == "__main__":

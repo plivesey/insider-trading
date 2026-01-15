@@ -127,7 +127,7 @@
         @media print {
             @page {
                 size: portrait;
-                margin: 0.3in;
+                margin: 0.5in;
             }
 
             body {
@@ -138,8 +138,8 @@
 
             .cards-container {
                 display: grid;
-                grid-template-columns: repeat(3, 1fr);
-                gap: 24px;
+                grid-template-columns: repeat(4, 1fr);
+                gap: 16px;
                 width: 100%;
                 max-width: none;
             }
@@ -148,41 +148,39 @@
                 width: 100%;
                 box-shadow: none;
                 page-break-inside: avoid;
-                padding: 12px;
-                aspect-ratio: 2.2 / 2.85;
+                padding: 14px;
             }
 
             .stock-change {
-                font-size: 18px;
-                padding: 12px;
-                margin-bottom: 8px;
+                font-size: 13px;
+                padding: 8px;
             }
 
             .goal {
-                font-size: 20px;
-                padding: 8px 0;
+                font-size: 15px;
+                padding: 12px 0;
             }
 
             .reward {
-                font-size: 14px;
+                font-size: 11px;
                 padding: 8px;
-                margin-top: 8px;
             }
 
             .card-symbol {
-                width: 38px;
-                height: 52px;
+                width: 34px;
+                height: 46px;
                 -webkit-print-color-adjust: exact;
                 print-color-adjust: exact;
             }
 
             .ban-symbol {
-                width: 38px;
-                height: 52px;
+                width: 34px;
+                height: 46px;
             }
 
             .ban-symbol::after {
-                width: 58px;
+                width: 52px;
+                height: 7px;
                 -webkit-print-color-adjust: exact;
                 print-color-adjust: exact;
             }
@@ -220,6 +218,12 @@
             background: #f8f9fa;
             color: #555;
             border-top-color: #ddd;
+        }
+
+        @media print {
+            .card.market-manipulation .stock-change.large {
+                font-size: 18px;
+            }
         }
     </style>
 </head>
