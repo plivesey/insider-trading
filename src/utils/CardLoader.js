@@ -37,7 +37,7 @@ export class CardLoader {
    * @param {number} cardsPerColor - Number of cards per color (default 10)
    * @returns {Array<ResourceCard>} Array of ResourceCard instances
    */
-  static createStandardResourceDeck(cardsPerColor = 10) {
+  static createStandardResourceDeck(cardsPerColor = 8) {
     const cards = [];
 
     for (const color of COLORS) {
@@ -56,8 +56,10 @@ export class CardLoader {
    */
   static fromSimpleJSON(jsonData) {
     return jsonData.map(item => {
-      const color = typeof item === 'string' ? item : item.color;
-      return new ResourceCard(color);
+      if (typeof item === 'string') {
+        return new ResourceCard(item);
+      }
+      return new ResourceCard(item.color, { hot: item.hot || false });
     });
   }
 
@@ -70,7 +72,17 @@ export class CardLoader {
    * @returns {Promise<Array>} Array of card instances
    */
   static async loadFromFile(filePath, type = 'resource') {
-    throw new Error('loadFromFile() is not available in browsers. Use fetch() to load JSON files.');
+    // Dynamic import for Node.js environment
+    const fs = await import('fs/promises');
+    const data = await fs.readFile(filePath, 'utf-8');
+    const jsonData = JSON.parse(data);
+
+    if (type === 'resource') {
+      return CardLoader.loadResourceCards(jsonData);
+    } else if (type === 'goal') {
+      return CardLoader.loadGoalCards(jsonData);
+    }
+    throw new Error(`Unknown card type: ${type}`);
   }
 
   /**

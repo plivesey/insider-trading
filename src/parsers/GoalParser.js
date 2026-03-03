@@ -22,12 +22,6 @@ export class GoalParser {
       return false;
     }
 
-    // Handle none_of goals
-    if (parsed.type === GOAL_TYPES.NONE_OF) {
-      const avoidColor = parsed.avoidColor;
-      return !playerHand.some(card => card.color === avoidColor);
-    }
-
     // Count cards by color in player's hand
     const colorCounts = {};
     for (const color of COLORS) {
@@ -53,14 +47,9 @@ export class GoalParser {
   /**
    * Format requirements back to string representation
    * @param {Object} requirements - Requirements object
-   * @param {string} [avoidColor] - Optional avoid color for none_of goals
    * @returns {string} Formatted string
    */
-  static format(requirements, avoidColor = null) {
-    if (avoidColor) {
-      return `0 ${avoidColor}`;
-    }
-
+  static format(requirements) {
     const parts = [];
     for (const [color, count] of Object.entries(requirements)) {
       parts.push(`${count} ${color}`);
@@ -85,13 +74,12 @@ export class GoalParser {
       [GOAL_TYPES.PAIR_PLUS_SPECIFIC]: 'Pair Plus Specific',
       [GOAL_TYPES.THREE_OF_A_KIND]: 'Three of a Kind',
       [GOAL_TYPES.THREE_DIFFERENT]: 'Three Different',
-      [GOAL_TYPES.NONE_OF]: 'None Of',
       [GOAL_TYPES.TWO_PAIR]: 'Two Pair',
       [GOAL_TYPES.ONE_OF_EVERY]: 'One of Every'
     };
 
     const typeName = typeNames[parsed.type] || 'Unknown';
-    const goalText = goalCard.goal || this.format(parsed.requirements, parsed.avoidColor);
+    const goalText = goalCard.goal || this.format(parsed.requirements);
 
     return `${typeName}: ${goalText}`;
   }

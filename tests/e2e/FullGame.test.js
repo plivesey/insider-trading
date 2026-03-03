@@ -57,7 +57,7 @@ describe('Full Game E2E', () => {
     expect(state.players).toHaveLength(3);
 
     // Verify initial setup
-    expect(state.players[0].cash).toBe(5);
+    expect(state.players[0].cash).toBe(6);
     expect(state.players[0].hand).toHaveLength(2); // Starting resource cards
     expect(state.players[0].goalCards).toHaveLength(3); // Starting goal cards
     expect(state.stockPrices.Blue).toBe(4);
@@ -93,7 +93,7 @@ describe('Full Game E2E', () => {
       // Alice should have won
       const alice = state.players.find(p => p.id === 'alice');
       expect(alice.hand.length).toBeGreaterThan(2); // Started with 2, won 1
-      expect(alice.cash).toBe(3); // 5 - 2
+      expect(alice.cash).toBe(4); // 6 - 2
 
       // Verify auction moved to next card
       const auctionWonEvents = events.filter(e => e.type === EVENT_TYPES.AUCTION_WON);
@@ -176,9 +176,9 @@ describe('Full Game E2E', () => {
 
     // Stock prices should start at $4
     expect(initialPrices.Blue).toBe(4);
-    expect(initialPrices.Orange).toBe(4);
+    expect(initialPrices.Red).toBe(4);
     expect(initialPrices.Yellow).toBe(4);
-    expect(initialPrices.Purple).toBe(4);
+    expect(initialPrices.Black).toBe(4);
 
     // Prices should not change during auction (only during goal resolution)
     expect(state.stockPrices).toEqual(initialPrices);
@@ -219,7 +219,7 @@ describe('Full Game E2E', () => {
 
     // Remaining cards should be in deck
     const deckCards = state.resourceDeck.drawPile.length;
-    expect(deckCards + totalPlayerResourceCards).toBe(40); // Total is 40
+    expect(deckCards + totalPlayerResourceCards).toBe(32); // Total is 32 (8 per color)
   });
 
   test('should properly parse goal cards with new format', async () => {

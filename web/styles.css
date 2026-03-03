@@ -64,16 +64,16 @@ body {
   border-left-color: #3498db;
 }
 
-.stock-price-item.Orange {
-  border-left-color: #e67e22;
+.stock-price-item.Red {
+  border-left-color: #cc3333;
 }
 
 .stock-price-item.Yellow {
   border-left-color: #f1c40f;
 }
 
-.stock-price-item.Purple {
-  border-left-color: #9b59b6;
+.stock-price-item.Black {
+  border-left-color: #888;
 }
 
 .stock-color {
@@ -274,8 +274,8 @@ body {
   background: #3498db;
 }
 
-.mini-card.Orange {
-  background: #e67e22;
+.mini-card.Red {
+  background: #cc3333;
 }
 
 .mini-card.Yellow {
@@ -283,8 +283,9 @@ body {
   color: #333;
 }
 
-.mini-card.Purple {
-  background: #9b59b6;
+.mini-card.Black {
+  background: #3d3d3d;
+  border: 1px solid #888;
 }
 
 .mini-card.hidden {
@@ -405,8 +406,8 @@ body {
   background: linear-gradient(135deg, #3498db, #2980b9);
 }
 
-.resource-card.Orange {
-  background: linear-gradient(135deg, #e67e22, #d35400);
+.resource-card.Red {
+  background: linear-gradient(135deg, #cc3333, #a82828);
 }
 
 .resource-card.Yellow {
@@ -414,8 +415,9 @@ body {
   color: #333;
 }
 
-.resource-card.Purple {
-  background: linear-gradient(135deg, #9b59b6, #8e44ad);
+.resource-card.Black {
+  background: linear-gradient(135deg, #3d3d3d, #2a2a2a);
+  border: 2px solid #888;
 }
 
 .resource-card:hover {

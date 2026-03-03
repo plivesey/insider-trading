@@ -13,6 +13,7 @@ export class ResourceCard extends Card {
     }
 
     this.color = color;
+    this.hot = data.hot || false;
   }
 
   /**
@@ -22,7 +23,8 @@ export class ResourceCard extends Card {
   toJSON() {
     return {
       ...super.toJSON(),
-      color: this.color
+      color: this.color,
+      hot: this.hot
     };
   }
 
@@ -44,6 +46,6 @@ export class ResourceCard extends Card {
     if (!data.color) {
       throw new Error('Resource card must have a color');
     }
-    return new ResourceCard(data.color);
+    return new ResourceCard(data.color, { hot: data.hot });
   }
 }

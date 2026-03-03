@@ -35,31 +35,33 @@ export class RewardSystem {
         return this.executeStealCash(state, playerId, choices.targetPlayerId, rewardParsed.amount || 1);
 
       case REWARD_TYPES.ADJUST_STOCK:
-        return this.executeAdjustStock(state, choices.color, choices.direction);
+        return this.executeAdjustStock(state, choices.color, choices.direction, 1);
 
-      case REWARD_TYPES.LOOK_AT_HAND:
-        return this.executeLookAtHand(state, playerId, choices.targetPlayerId);
+      case REWARD_TYPES.LOOK_AT_GOAL_CARD:
+        return this.executeLookAtGoalCard(state, playerId, choices.targetPlayerId);
 
-      case REWARD_TYPES.PEEK_AND_PLACE:
-        return this.executePeekAndPlace(state, playerId, choices.placement);
+      case REWARD_TYPES.CHOOSE_INVESTIGATION:
+        // TODO: Implement choose_investigation - player chooses which investigation to perform
+        return this.executeChooseInvestigation(state, playerId, choices);
 
-      case REWARD_TYPES.SWAP_WITH_DECK:
-        return this.executeSwapWithDeck(state, playerId, choices.cardId);
+      case REWARD_TYPES.NEXT_AUCTION_DISCOUNT:
+        // TODO: Implement next_auction_discount - player gets discount on next auction purchase
+        return this.executeNextAuctionDiscount(state, playerId, rewardParsed);
 
-      case REWARD_TYPES.REARRANGE_TOP_5:
-        return this.executeRearrangeTop5(state, choices.newOrder);
+      case REWARD_TYPES.EXTRA_TURN:
+        // TODO: Implement extra_turn - player gets an extra turn
+        return this.executeExtraTurn(state, playerId);
 
-      case REWARD_TYPES.TAKE_AND_GIVE_CARD:
-        return this.executeTakeAndGiveCard(state, playerId, choices);
+      case REWARD_TYPES.SWAP_WITH_FACE_UP:
+        // TODO: Implement swap_with_face_up - swap a card with a face-up card
+        return this.executeSwapWithFaceUp(state, playerId, choices);
 
-      case REWARD_TYPES.BUY_WITH_DISCOUNT:
-        return this.executeBuyWithDiscount(state, playerId, choices.color, rewardParsed.discount || 1);
+      case REWARD_TYPES.ADJUST_STOCK_2:
+        return this.executeAdjustStock(state, choices.color, choices.direction, 2);
 
-      case REWARD_TYPES.SELL_BONUS:
-        return this.executeSellBonus(state, playerId, rewardParsed.bonus || 1);
-
-      case REWARD_TYPES.GAIN_LOWEST_STOCK:
-        return this.executeGainLowestStock(state, playerId);
+      case REWARD_TYPES.PEEK_AND_REARRANGE_5:
+        // TODO: Implement peek_and_rearrange_5 - peek at top 5 and rearrange
+        return this.executePeekAndRearrange5(state, playerId, choices);
 
       default:
         console.warn(`Unknown reward type: ${rewardType}`);
@@ -108,10 +110,11 @@ export class RewardSystem {
   }
 
   /**
-   * Adjust any stock by ±1
+   * Adjust any stock by ±amount
    */
-  executeAdjustStock(state, color, direction) {
-    const changes = { [color]: direction };
+  executeAdjustStock(state, color, direction, amount = 1) {
+    const change = direction * amount;
+    const changes = { [color]: change };
     state.stockPrices = this.stockPriceSystem.applyChanges(state.stockPrices, changes);
 
     this.eventEmitter.emit(EVENT_TYPES.STOCK_PRICES_UPDATED, {
@@ -124,170 +127,86 @@ export class RewardSystem {
   }
 
   /**
-   * Look at another player's hand (UI-only, no state change)
+   * Look at another player's goal card
    */
-  executeLookAtHand(state, playerId, targetPlayerId) {
+  executeLookAtGoalCard(state, playerId, targetPlayerId) {
     const target = GameState.getPlayer(state, targetPlayerId);
 
-    // This is handled by the UI - just emit event with hand info
     this.eventEmitter.emit(EVENT_TYPES.REWARD_EXECUTED, {
-      type: 'look_at_hand',
+      type: 'look_at_goal_card',
       playerId,
       targetPlayerId,
-      hand: target.hand
+      goalCards: target.goalCards
     });
 
     return true;
   }
 
   /**
-   * Peek at top card and place on top or bottom
+   * Choose investigation reward
+   * TODO: Full implementation needed
    */
-  executePeekAndPlace(state, playerId, placement) {
-    const topCard = this.deckManager.peekTop(state.resourceDeck, 1)[0];
-
-    if (!topCard) {
-      return true; // Deck empty, nothing to do
-    }
-
-    if (placement === 'bottom') {
-      const card = this.deckManager.draw(state.resourceDeck, 1)[0];
-      this.deckManager.placeOnBottom(state.resourceDeck, card);
-    }
-
-    // If 'top', do nothing (card stays on top)
+  executeChooseInvestigation(state, playerId, choices) {
+    this.eventEmitter.emit(EVENT_TYPES.REWARD_EXECUTED, {
+      type: 'choose_investigation',
+      playerId
+    });
 
     return true;
   }
 
   /**
-   * Swap one of your cards with top of deck
+   * Next auction discount reward
+   * TODO: Full implementation needed
    */
-  executeSwapWithDeck(state, playerId, cardId) {
-    const cardFromHand = GameState.removeCardFromHand(state, playerId, cardId);
-
-    if (!cardFromHand) {
-      return true; // Card not found, skip
-    }
-
-    try {
-      const topCard = this.deckManager.swapWithTop(state.resourceDeck, cardFromHand);
-      GameState.addCardToHand(state, playerId, topCard);
-    } catch (error) {
-      // Deck empty, just put card back
-      GameState.addCardToHand(state, playerId, cardFromHand);
-    }
-
-    return true;
-  }
-
-  /**
-   * Rearrange top 5 cards
-   */
-  executeRearrangeTop5(state, newOrder) {
-    try {
-      this.deckManager.rearrangeTop(state.resourceDeck, newOrder);
-    } catch (error) {
-      console.warn('Failed to rearrange cards:', error.message);
-    }
-
-    return true;
-  }
-
-  /**
-   * Take random card from another player and give them one of your choice
-   */
-  executeTakeAndGiveCard(state, playerId, choices) {
-    const { targetPlayerId, cardIdToGive } = choices;
-
-    const target = GameState.getPlayer(state, targetPlayerId);
-    if (!target || target.hand.length === 0) {
-      return true; // No cards to take
-    }
-
-    // Take random card from target
-    const randomIndex = Math.floor(Math.random() * target.hand.length);
-    const takenCard = target.hand[randomIndex];
-    GameState.removeCardFromHand(state, targetPlayerId, takenCard.id);
-    GameState.addCardToHand(state, playerId, takenCard);
-
-    // Give card to target
-    const cardToGive = GameState.removeCardFromHand(state, playerId, cardIdToGive);
-    if (cardToGive) {
-      GameState.addCardToHand(state, targetPlayerId, cardToGive);
-    }
-
-    return true;
-  }
-
-  /**
-   * Buy a stock for discounted price
-   */
-  executeBuyWithDiscount(state, playerId, color, discount) {
-    const price = state.stockPrices[color];
-    const discountedPrice = Math.max(0, price - discount);
-
+  executeNextAuctionDiscount(state, playerId, rewardParsed) {
     const player = GameState.getPlayer(state, playerId);
-    if (player.cash < discountedPrice) {
-      // Can't afford even with discount
-      return true;
-    }
+    player.nextAuctionDiscount = rewardParsed.amount || 1;
 
-    // Draw a card of the specified color from deck
-    const colorCards = state.resourceDeck.drawPile.filter(c => c.color === color);
-
-    if (colorCards.length > 0) {
-      const card = colorCards[0];
-      const cardIndex = state.resourceDeck.drawPile.indexOf(card);
-      state.resourceDeck.drawPile.splice(cardIndex, 1);
-
-      GameState.addCardToHand(state, playerId, card);
-      GameState.adjustPlayerCash(state, playerId, -discountedPrice);
-
-      this.eventEmitter.emit(EVENT_TYPES.PLAYER_CASH_CHANGED, {
-        playerId,
-        newCash: player.cash,
-        reason: 'buy_with_discount'
-      });
-    }
+    this.eventEmitter.emit(EVENT_TYPES.REWARD_EXECUTED, {
+      type: 'next_auction_discount',
+      playerId,
+      discount: player.nextAuctionDiscount
+    });
 
     return true;
   }
 
   /**
-   * All cards sold this round get +$1 bonus
+   * Extra turn reward
+   * TODO: Full implementation needed
    */
-  executeSellBonus(state, playerId, bonus) {
-    const player = GameState.getPlayer(state, playerId);
-    player.sellBonus = bonus;
+  executeExtraTurn(state, playerId) {
+    this.eventEmitter.emit(EVENT_TYPES.REWARD_EXECUTED, {
+      type: 'extra_turn',
+      playerId
+    });
 
     return true;
   }
 
   /**
-   * Gain a card of the lowest value stock
+   * Swap with face-up card reward
+   * TODO: Full implementation needed
    */
-  executeGainLowestStock(state, playerId) {
-    const lowestColors = this.stockPriceSystem.getLowestPriceColors(state.stockPrices);
+  executeSwapWithFaceUp(state, playerId, choices) {
+    this.eventEmitter.emit(EVENT_TYPES.REWARD_EXECUTED, {
+      type: 'swap_with_face_up',
+      playerId
+    });
 
-    // Pick random color from lowest
-    const color = lowestColors[Math.floor(Math.random() * lowestColors.length)];
+    return true;
+  }
 
-    // Find card of that color in deck
-    const colorCards = state.resourceDeck.drawPile.filter(c => c.color === color);
-
-    if (colorCards.length > 0) {
-      const card = colorCards[0];
-      const cardIndex = state.resourceDeck.drawPile.indexOf(card);
-      state.resourceDeck.drawPile.splice(cardIndex, 1);
-
-      GameState.addCardToHand(state, playerId, card);
-
-      this.eventEmitter.emit(EVENT_TYPES.PLAYER_RECEIVED_CARD, {
-        playerId,
-        cardCount: 1
-      });
-    }
+  /**
+   * Peek at top 5 cards and rearrange them
+   * TODO: Full implementation needed
+   */
+  executePeekAndRearrange5(state, playerId, choices) {
+    this.eventEmitter.emit(EVENT_TYPES.REWARD_EXECUTED, {
+      type: 'peek_and_rearrange_5',
+      playerId
+    });
 
     return true;
   }

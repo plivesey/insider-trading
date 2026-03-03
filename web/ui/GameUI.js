@@ -523,7 +523,7 @@ export class GameUI {
 
           <div style="margin-bottom: 20px;">
             <h4 style="margin-bottom: 10px; color: #ff6b6b;">You Request:</h4>
-            ${['Blue', 'Orange', 'Yellow', 'Purple'].map(color => `
+            ${['Blue', 'Red', 'Yellow', 'Black'].map(color => `
               <div style="margin: 5px 0;">
                 <label style="display: inline-flex; align-items: center; min-width: 120px;">
                   <span class="mini-card ${color}" style="display: inline-block; width: 60px; text-align: center; padding: 5px; border-radius: 3px; margin-right: 10px;">${color}</span>
@@ -746,9 +746,9 @@ export class GameUI {
             <label style="display: block; margin-bottom: 8px; font-weight: bold;">Select a stock to adjust:</label>
             <select id="reward-stock-color" style="width: 100%; padding: 10px; border-radius: 5px; background-color: rgba(255,255,255,0.1); color: white; border: 1px solid rgba(255,255,255,0.2); margin-bottom: 10px;">
               <option value="Blue">Blue ($${state.stockPrices.Blue})</option>
-              <option value="Orange">Orange ($${state.stockPrices.Orange})</option>
+              <option value="Red">Red ($${state.stockPrices.Red})</option>
               <option value="Yellow">Yellow ($${state.stockPrices.Yellow})</option>
-              <option value="Purple">Purple ($${state.stockPrices.Purple})</option>
+              <option value="Black">Black ($${state.stockPrices.Black})</option>
             </select>
             <label style="display: block; margin-bottom: 8px; font-weight: bold;">Direction:</label>
             <select id="reward-stock-direction" style="width: 100%; padding: 10px; border-radius: 5px; background-color: rgba(255,255,255,0.1); color: white; border: 1px solid rgba(255,255,255,0.2);">
@@ -1303,7 +1303,7 @@ export class GameUI {
 
     // Collect requested cards
     const requestedCards = [];
-    ['Blue', 'Orange', 'Yellow', 'Purple'].forEach(color => {
+    ['Blue', 'Red', 'Yellow', 'Black'].forEach(color => {
       const count = parseInt(document.getElementById(`request-${color}`).value) || 0;
       if (count > 0) {
         requestedCards.push({ color, count });
@@ -1353,7 +1353,7 @@ export class GameUI {
         if (checkbox) checkbox.checked = false;
       });
       document.getElementById('offer-cash').value = '0';
-      ['Blue', 'Orange', 'Yellow', 'Purple'].forEach(color => {
+      ['Blue', 'Red', 'Yellow', 'Black'].forEach(color => {
         document.getElementById(`request-${color}`).value = '0';
       });
       document.getElementById('request-cash').value = '0';
@@ -1377,7 +1377,7 @@ export class GameUI {
 
     // Calculate value of what we're requesting
     let requestValue = parseInt(document.getElementById('request-cash').value) || 0;
-    ['Blue', 'Orange', 'Yellow', 'Purple'].forEach(color => {
+    ['Blue', 'Red', 'Yellow', 'Black'].forEach(color => {
       const count = parseInt(document.getElementById(`request-${color}`).value) || 0;
       requestValue += state.stockPrices[color] * count;
     });

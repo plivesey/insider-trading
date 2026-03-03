@@ -119,7 +119,6 @@ export class BaseAI {
     for (const goal of goalCards) {
       const parsed = goal.metadata.goalParsed;
       const requirements = parsed.requirements || {};
-      const avoidColor = parsed.avoidColor;
 
       // Check if card helps with goal
       if (requirements[color]) {
@@ -133,11 +132,6 @@ export class BaseAI {
         } else if (have === needed) {
           synergy += 0.5; // Goal already met, but keeping extras is useful
         }
-      }
-
-      // Penalty for "none_of" goals
-      if (avoidColor === color) {
-        synergy -= 2;
       }
     }
 
@@ -326,7 +320,6 @@ export class BaseAI {
       if (this.isGoalMet(goal, hand)) continue; // Already met
 
       const requirements = goal.metadata.goalParsed.requirements || {};
-      const avoidColor = goal.metadata.goalParsed.avoidColor;
 
       for (const [color, count] of Object.entries(requirements)) {
         const have = this.getCardCountByColor(hand, color);
@@ -334,11 +327,6 @@ export class BaseAI {
         if (need > 0) {
           needed[color] += need;
         }
-      }
-
-      // Negative priority for avoid colors
-      if (avoidColor) {
-        needed[avoidColor] -= 10;
       }
     }
 

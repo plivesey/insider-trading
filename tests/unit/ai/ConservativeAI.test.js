@@ -71,7 +71,7 @@ describe('ConservativeAI', () => {
           id: 'player2',
           name: 'Player 2',
           cash: 5,
-          hand: [createResourceCard('Orange')],
+          hand: [createResourceCard('Red')],
           goalCards: []
         }),
         createPlayer({
@@ -132,7 +132,7 @@ describe('ConservativeAI', () => {
 
     test('should pass on cards that do not help with goals', () => {
       // Change current card to one not needed
-      state.phaseState.auction.currentCard = createResourceCard('Purple');
+      state.phaseState.auction.currentCard = createResourceCard('Black');
       state.phaseState.auction.currentBid = 3;
 
       const action = ai.decideAuction(null, state);
@@ -174,7 +174,7 @@ describe('ConservativeAI', () => {
           offerId: 'offer-1',
           offeringPlayer: 'player2',
           offering: {
-            cards: [createResourceCard('Orange')],
+            cards: [createResourceCard('Red')],
             cash: 2
           },
           requesting: {
@@ -214,46 +214,11 @@ describe('ConservativeAI', () => {
       expect(action.type).toBe(ACTION_TYPES.END_TRADING);
     });
 
-    test('should propose trades to complete goals', () => {
-      // AI needs Orange to complete a goal
-      state.players[0].goalCards = [
-        createGoalCard({
-          goal: {
-            text: '2 Blue + 1 Orange',
-            parsed: {
-              type: 'pair_plus_specific',
-              requirements: { Blue: 2, Orange: 1 }
-            }
-          },
-          metadata: {
-            goalParsed: {
-              type: 'pair_plus_specific',
-              requirements: { Blue: 2, Orange: 1 }
-            },
-            rewardParsed: {
-              type: 'gain_cash',
-              amount: 2,
-              requiresTarget: false,
-              requiresChoice: false,
-              value: 2
-            }
-          }
-        })
-      ];
-
-      // Give AI some duplicate cards to offer
-      state.players[0].hand = [
-        createResourceCard('Blue'),
-        createResourceCard('Blue'),
-        createResourceCard('Yellow'),
-        createResourceCard('Yellow'),
-        createResourceCard('Yellow')
-      ];
-
+    test('should handle trading phase (trading removed from game)', () => {
+      // Trading has been removed from the game. AI should end trading.
       const action = ai.decideTrading(null, state);
 
-      expect(action.type).toBe(ACTION_TYPES.PROPOSE_TRADE);
-      expect(action.playerId).toBe('ai-conservative');
+      expect(action.type).toBe(ACTION_TYPES.END_TRADING);
     });
 
     test('should not propose more than maxTradesPerPhase', () => {
@@ -307,11 +272,11 @@ describe('ConservativeAI', () => {
         createGoalCard({
           id: 'goal-2',
           goal: {
-            text: '0 Purple',
-            parsed: { type: 'none_of', avoidColor: 'Purple' }
+            text: '1 Blue + 1 Red + 1 Yellow',
+            parsed: { type: 'three_different', requirements: { Blue: 1, Red: 1, Yellow: 1 } }
           },
           metadata: {
-            goalParsed: { type: 'none_of', requirements: {}, avoidColor: 'Purple' },
+            goalParsed: { type: 'three_different', requirements: { Blue: 1, Red: 1, Yellow: 1 } },
             rewardParsed: { type: 'gain_cash', amount: 2, value: 2 }
           }
         })
@@ -441,22 +406,22 @@ describe('ConservativeAI', () => {
       expect(synergy).toBe(2); // Completes goal
     });
 
-    test('calculateGoalSynergy should give penalty for avoid colors', () => {
+    test('calculateGoalSynergy should give low synergy for unneeded colors', () => {
       state.players[0].goalCards = [
         createGoalCard({
           goal: {
-            text: '0 Purple',
-            parsed: { type: 'none_of', avoidColor: 'Purple' }
+            text: '3 Blue',
+            parsed: { type: 'three_of_a_kind', requirements: { Blue: 3 } }
           },
           metadata: {
-            goalParsed: { type: 'none_of', requirements: {}, avoidColor: 'Purple' }
+            goalParsed: { type: 'three_of_a_kind', requirements: { Blue: 3 } }
           }
         })
       ];
 
-      const synergy = ai.calculateGoalSynergy('Purple', state);
+      const synergy = ai.calculateGoalSynergy('Black', state);
 
-      expect(synergy).toBeLessThan(0); // Penalty
+      expect(synergy).toBeLessThanOrEqual(0); // No benefit for unneeded color
     });
 
     test('getNeededCards should return cards needed for goals', () => {
@@ -464,16 +429,16 @@ describe('ConservativeAI', () => {
       state.players[0].goalCards = [
         createGoalCard({
           goal: {
-            text: '2 Blue + 1 Orange',
+            text: '2 Blue + 1 Red',
             parsed: {
               type: 'pair_plus_specific',
-              requirements: { Blue: 2, Orange: 1 }
+              requirements: { Blue: 2, Red: 1 }
             }
           },
           metadata: {
             goalParsed: {
               type: 'pair_plus_specific',
-              requirements: { Blue: 2, Orange: 1 }
+              requirements: { Blue: 2, Red: 1 }
             }
           }
         })
@@ -482,7 +447,7 @@ describe('ConservativeAI', () => {
       const needed = ai.getNeededCards(state);
 
       expect(needed.Blue).toBe(1); // Need 1 more Blue
-      expect(needed.Orange).toBe(1); // Need 1 Orange
+      expect(needed.Red).toBe(1); // Need 1 Red
     });
   });
 });

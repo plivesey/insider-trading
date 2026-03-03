@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Generate goal cards for the Stock Trading Board Game.
-Outputs 20 cards in JSON format following all anti-synergy rules.
+Outputs 32 cards (24 goal + 8 market manipulation) in JSON format.
 """
 
 import json
@@ -9,7 +9,7 @@ import random
 from typing import List, Dict, Set, Tuple, Optional
 from collections import Counter
 
-COLORS = ["Blue", "Orange", "Yellow", "Purple"]
+COLORS = ["Blue", "Red", "Yellow", "Black"]
 
 # Stock change types
 STOCK_CHANGES = [
@@ -22,65 +22,52 @@ STOCK_CHANGES = [
     "mixed"           # +1 to one, -1 to another
 ]
 
-# Rewards by tier
-LOW_REWARDS = [
-    "Gain $1",
-    "Peek at top card, choose to put it on top or bottom of deck",
-    "Look at random goal card from another player",
-    "Swap 1 of your resource cards with the top card of the deck",
-    "Gain $3"
+# Rewards with estimated dollar values
+# Each reward can be used multiple times (no fixed count requirement)
+REWARDS_WITH_VALUES = [
+    ("Choose investigation increase (0-3) when playing this card", 0.75),
+    ("Peek at top 5 cards of the resource deck, and rearrange them in any order", 0.75),
+    ("Extra turn: take another action immediately", 1.00),
+    ("Look at a random goal card from another player", 1.00),
+    ("Gain $1", 1.00),
+    ("Adjust any one stock price by ±1", 1.00),
+    ("Steal $1 from another player", 1.50),
+    ("Your next auction costs $2 less", 1.75),
+    ("Gain $2", 2.00),
+    ("Adjust any one stock price by ±2", 2.00),
+    ("Gain $3", 3.00),
+    ("Swap one of your resource cards with a face-up auction card", 3.00),
+    ("Gain $4", 4.00),
 ]
 
-MEDIUM_REWARDS = [
-    "Gain $1",
-    "Gain $2",
-    "Swap 1 of your resource cards with the top card of the deck",
-    "Buy the lowest-priced stock for $1 discount",
-    "Steal $1 from another player",
-    "Peek at top 5 cards of the resource deck, and rearrange them in any order",
-    "All cards you sell this round get +$1 bonus"
-]
+# Derived list for backwards compatibility
+ORDERED_REWARDS = [r[0] for r in REWARDS_WITH_VALUES]
+REWARD_VALUES = {r[0]: r[1] for r in REWARDS_WITH_VALUES}
 
-HIGH_REWARDS = [
-    "Gain $2",
-    "Gain $3",
-    "Adjust any one stock price by ±1 (before selling phase)",
-    "All cards you sell this round get +$1 bonus",
-    "Take a random resource from another player and give them one of your choice",
-    "Buy any stock for $2 discount",
-    "Gain the lowest value stock"
-]
+# Target total EV for all cards (matching market manipulation baseline)
+TARGET_EV = 3.0
 
-# Specific reward assignments based on (goal_text, stock_change_text)
-REWARD_MAPPING = {
-    ("2 Orange", "Blue -2"): ("low", "Peek at top card, choose to put it on top or bottom of deck"),
-    ("2 Yellow", "Blue -1, Orange -1"): ("low", "Look at random goal card from another player"),
-    ("2 Purple", "Purple +1"): ("low", "Look at random goal card from another player"),
-    ("0 Blue", "Purple +1, Yellow +1"): ("medium", "Buy the lowest-priced stock for $1 discount"),
-    ("2 Blue", "Orange -1"): ("medium", "Buy the lowest-priced stock for $1 discount"),
-    ("2 Purple + 1 Blue", "Orange +2"): ("low", "Gain $1"),
-    ("2 Orange + 1 Yellow", "Blue +1, Purple +1"): ("medium", "Gain $1"),
-    ("2 Blue + 1 Orange", "Yellow +1, Blue +1"): ("medium", "Gain $1"),
-    ("1 Blue + 1 Orange + 1 Yellow", "Purple +2"): ("low", "Gain $1"),
-    ("1 Orange + 1 Yellow + 1 Purple", "Blue +1, Yellow +1"): ("low", "Gain $1"),
-    ("1 Blue + 1 Yellow + 1 Purple", "Blue +1, Orange -1"): ("medium", "Peek at top 5 cards of the resource deck, and rearrange them in any order"),
-    ("0 Yellow", "Purple -2"): ("low", "Swap 1 of your resource cards with the top card of the deck"),
-    ("0 Purple", "Orange -1, Yellow -1"): ("medium", "Swap 1 of your resource cards with the top card of the deck"),
-    ("0 Orange", "Purple -1, Blue -1"): ("medium", "Steal $1 from another player"),
-    ("2 Yellow + 1 Purple", "Orange -1"): ("medium", "Gain $2"),
-    ("1 Blue + 1 Orange + 1 Purple", "Yellow -1"): ("high", "Gain $2"),
-    ("2 Yellow + 2 Purple", "Orange +2"): ("high", "Take a random resource from another player and give them one of your choice"),
-    ("2 Purple + 2 Blue", "Blue +1, Orange -1"): ("high", "Take a random resource from another player and give them one of your choice"),
-    ("1 Blue + 1 Orange + 1 Yellow + 1 Purple", "Yellow +1"): ("high", "Buy any stock for $2 discount"),
-    ("1 Blue + 1 Orange + 1 Yellow + 1 Purple", "Orange +1"): ("high", "Buy any stock for $2 discount"),
-    ("2 Blue + 2 Orange", "Purple -2"): ("high", "Adjust any one stock price by ±1 (before selling phase)"),
-    ("2 Orange + 2 Yellow", "Orange +1"): ("high", "Adjust any one stock price by ±1 (before selling phase)"),
-    ("3 Yellow", "Blue +1, Purple -1"): ("medium", "All cards you sell this round get +$1 bonus"),
-    ("3 Blue", "Purple +1, Yellow -1"): ("high", "Gain the lowest value stock"),
-    ("3 Orange", "Blue -2"): ("low", "Gain $3"),
-    ("3 Purple", "Yellow -1"): ("high", "Gain $3"),
+# Goal completion probabilities (with ~3.5 cards in hand)
+COMPLETION_PROBS = {
+    "pair": 0.80,
+    "pair_plus_specific": 0.60,
+    "three_different": 0.70,
+    "three_of_a_kind": 0.40,
+    "two_pair": 0.35,
+    "one_of_every": 0.60,
 }
 
+# Cards required by each goal type
+CARDS_REQUIRED = {
+    "pair": 2,
+    "pair_plus_specific": 3,
+    "three_different": 3,
+    "three_of_a_kind": 3,
+    "two_pair": 4,
+    "one_of_every": 4,
+}
+
+HAND_SIZE = 4.0
 
 def create_market_manipulation_cards() -> List[Dict]:
     """Create 8 market manipulation cards with no goal requirements.
@@ -94,52 +81,54 @@ def create_market_manipulation_cards() -> List[Dict]:
     cards = []
 
     # +2/+1 cards - each color gets +2 once and +1 once
-    # Pattern: Blue+2/Orange+1, Orange+2/Yellow+1, Yellow+2/Purple+1, Purple+2/Blue+1
+    # Pattern: Blue+2/Red+1, Red+2/Yellow+1, Yellow+2/Black+1, Black+2/Blue+1
     plus_patterns = [
-        ("Blue", "Orange"),
-        ("Orange", "Yellow"),
-        ("Yellow", "Purple"),
-        ("Purple", "Blue")
+        ("Blue", "Red"),
+        ("Red", "Yellow"),
+        ("Yellow", "Black"),
+        ("Black", "Blue")
     ]
 
     for primary, secondary in plus_patterns:
         changes = {primary: 2, secondary: 1}
-        cards.append({
+        stock_change = {
+            "type": "plus_two_plus_one",
+            "text": f"{primary} +2 / {secondary} +1",
+            "changes": changes
+        }
+        card = {
             "goal_type": "none",
             "goal_text": "",
             "required_colors": {},
-            "difficulty_points": 0,
-            "stock_change": {
-                "type": "plus_two_plus_one",
-                "text": f"{primary} +2, {secondary} +1",
-                "changes": changes
-            },
-            "stock_change_penalty": get_stock_change_penalty(changes),
+            "stock_change": stock_change,
             "is_market_manipulation": True
-        })
+        }
+        card["stock_ev"] = calculate_stock_change_ev(card, stock_change)
+        cards.append(card)
 
     # -3 cards - one per color
     for color in COLORS:
         changes = {color: -3}
-        cards.append({
+        stock_change = {
+            "type": "single_down_triple",
+            "text": f"{color} -3",
+            "changes": changes
+        }
+        card = {
             "goal_type": "none",
             "goal_text": "",
             "required_colors": {},
-            "difficulty_points": 0,
-            "stock_change": {
-                "type": "single_down_triple",
-                "text": f"{color} -3",
-                "changes": changes
-            },
-            "stock_change_penalty": get_stock_change_penalty(changes),
+            "stock_change": stock_change,
             "is_market_manipulation": True
-        })
+        }
+        card["stock_ev"] = calculate_stock_change_ev(card, stock_change)
+        cards.append(card)
 
     return cards
 
 
 def create_goal_cards() -> List[Dict]:
-    """Create all 26 base goal cards (without stock changes assigned yet)."""
+    """Create all 24 base goal cards (without stock changes assigned yet)."""
     cards = []
 
     # Three of a kind - 4 cards (one per color)
@@ -148,7 +137,6 @@ def create_goal_cards() -> List[Dict]:
             "goal_type": "three_of_a_kind",
             "goal_text": f"3 {color}",
             "required_colors": {color: 3},
-            "difficulty_points": 4
         })
 
     # Pair - 4 cards (one per color)
@@ -157,22 +145,20 @@ def create_goal_cards() -> List[Dict]:
             "goal_type": "pair",
             "goal_text": f"2 {color}",
             "required_colors": {color: 2},
-            "difficulty_points": 1
         })
 
     # Pair + Specific - 4 cards (various combinations)
     pair_specific_combos = [
-        ("Blue", "Orange"),
-        ("Orange", "Yellow"),
-        ("Yellow", "Purple"),
-        ("Purple", "Blue")
+        ("Blue", "Red"),
+        ("Red", "Yellow"),
+        ("Yellow", "Black"),
+        ("Black", "Blue")
     ]
     for color1, color2 in pair_specific_combos:
         cards.append({
             "goal_type": "pair_plus_specific",
             "goal_text": f"2 {color1} + 1 {color2}",
             "required_colors": {color1: 2, color2: 1},
-            "difficulty_points": 2
         })
 
     # Three Different - 4 cards (all combinations of 3 colors)
@@ -182,72 +168,101 @@ def create_goal_cards() -> List[Dict]:
             "goal_type": "three_different",
             "goal_text": f"1 {combo[0]} + 1 {combo[1]} + 1 {combo[2]}",
             "required_colors": {combo[0]: 1, combo[1]: 1, combo[2]: 1},
-            "difficulty_points": 2
-        })
-
-    # None of - 4 cards (one per color)
-    for color in COLORS:
-        cards.append({
-            "goal_type": "none_of",
-            "goal_text": f"0 {color}",
-            "avoided_color": color,
-            "required_colors": {},
-            "difficulty_points": 2
         })
 
     # Two Pair - 4 cards (adjacent color pairs)
     two_pair_combos = [
-        ("Blue", "Orange"),
-        ("Orange", "Yellow"),
-        ("Yellow", "Purple"),
-        ("Purple", "Blue")
+        ("Blue", "Red"),
+        ("Red", "Yellow"),
+        ("Yellow", "Black"),
+        ("Black", "Blue")
     ]
     for color1, color2 in two_pair_combos:
         cards.append({
             "goal_type": "two_pair",
             "goal_text": f"2 {color1} + 2 {color2}",
             "required_colors": {color1: 2, color2: 2},
-            "difficulty_points": 4
         })
 
-    # One of Every - 2 cards (all 4 colors)
-    for _ in range(2):
+    # One of Every - 4 cards (all 4 colors)
+    for _ in range(4):
         cards.append({
             "goal_type": "one_of_every",
-            "goal_text": "1 Blue + 1 Orange + 1 Yellow + 1 Purple",
+            "goal_text": "1 Blue + 1 Red + 1 Yellow + 1 Black",
             "required_colors": {color: 1 for color in COLORS},
-            "difficulty_points": 3.5
         })
 
     return cards
 
 
-def get_stock_change_penalty(changes: Dict[str, int]) -> float:
-    """Get the penalty (negative points) based on individual stock changes.
+def calculate_stock_change_ev(card: Dict, stock_change: Dict) -> float:
+    """Calculate the relative-advantage EV of a stock change.
 
-    Formula:
-    - +1: -0.75
-    - -1: -0.5
-    - +2: -1.75
-    - -2: -1.0
-    - +3: -2.5 (extrapolated)
-    - -3: -1.5 (extrapolated)
+    Uses the principle: value = my wealth change - opponent wealth change.
+    What matters for winning is wealth *relative* to opponents.
+
+    For market manipulation cards (no goal constraints):
+    - Positive: I accumulate ~2.0 cards, opponents hold ~1.0 → $1.00/point
+    - Negative: I dump to ~0 cards, opponents hold ~1.0 → $1.00/point
+
+    For goal cards (hand constrained by goal requirements):
+    - Required color (count=1): I hold 1, opponents hold ~1 → $0.00/point (wash)
+    - Required color (count>=2): blocked by anti-synergy, won't happen
+    - Non-goal positive, spare slots > 0: I hold ~1.5, opponents ~1.0 → $0.50/point
+    - Non-goal positive, spare slots = 0: can't hold extras → $0.00/point
+    - Non-goal negative: I dump to 0, opponents hold ~1.0 → $1.00/point
     """
-    total_penalty = 0.0
+    goal_type = card.get("goal_type", "none")
+    required_colors = card.get("required_colors", {})
+    changes = stock_change["changes"]
+    is_market = card.get("is_market_manipulation", False)
+
+    ev = 0.0
+
+    if is_market or goal_type == "none":
+        # Market manipulation: $1.00 per point in both directions
+        for color, change in changes.items():
+            ev += abs(change) * 1.0
+        return ev
+
+    # Goal cards: relative advantage with hand constraints
+    cards_required = CARDS_REQUIRED.get(goal_type, 3)
+    spare_slots = max(0, HAND_SIZE - cards_required)
+
+    # Calculate goal-strategy EV (playing the card to complete the goal)
+    goal_ev = 0.0
     for color, change in changes.items():
-        if change == 1:
-            total_penalty += -0.75
-        elif change == -1:
-            total_penalty += -0.5
-        elif change == 2:
-            total_penalty += -1.75
-        elif change == -2:
-            total_penalty += -1.0
-        elif change == 3:
-            total_penalty += -2.5
-        elif change == -3:
-            total_penalty += -1.5
-    return total_penalty
+        if color in required_colors:
+            # Required color (count=1 only, count>=2 blocked by anti-synergy)
+            # I hold same as opponents (~1 each) → no relative advantage
+            goal_ev += 0.0
+        else:
+            # Non-goal color
+            if change > 0:
+                # Positive on non-goal: benefit only with spare hand slots
+                if spare_slots > 0:
+                    # I can hold ~1.5, opponents hold ~1.0 → $0.50/point
+                    goal_ev += change * 0.50
+                # else: hand full → $0
+            else:
+                # Negative on non-goal: I dump (~0.25 remaining), opponents hold ~1.0
+                # Not quite $1/point because you can't always perfectly dump
+                goal_ev += abs(change) * 0.75
+
+    # Calculate market-manipulation-strategy EV (ignore goal, just use stock change)
+    # Same as market manipulation: $1.00 per point in either direction
+    market_ev = sum(abs(change) for change in changes.values()) * 1.0
+
+    # The card is worth at least as much as its best strategy
+    # Goal strategy gets the reward on top; market strategy doesn't
+    # We return goal_ev here (reward is added separately), but ensure the
+    # total card value accounts for the market-play floor
+    ev = goal_ev
+
+    # Store the market play value for use in reward assignment
+    card["_market_play_ev"] = market_ev
+
+    return ev
 
 
 def weighted_choice(colors: List[str], color_frequency: Optional[Counter] = None) -> str:
@@ -327,21 +342,21 @@ def generate_stock_change(change_type: str, colors: List[str], color_frequency: 
         colors_chosen = weighted_sample(colors, 2, color_frequency)
         return {
             "type": change_type,
-            "text": f"{colors_chosen[0]} +1, {colors_chosen[1]} +1",
+            "text": f"{colors_chosen[0]} +1 / {colors_chosen[1]} +1",
             "changes": {colors_chosen[0]: 1, colors_chosen[1]: 1}
         }
     elif change_type == "double_down":
         colors_chosen = weighted_sample(colors, 2, color_frequency)
         return {
             "type": change_type,
-            "text": f"{colors_chosen[0]} -1, {colors_chosen[1]} -1",
+            "text": f"{colors_chosen[0]} -1 / {colors_chosen[1]} -1",
             "changes": {colors_chosen[0]: -1, colors_chosen[1]: -1}
         }
     elif change_type == "mixed":
         colors_chosen = weighted_sample(colors, 2, color_frequency)
         return {
             "type": change_type,
-            "text": f"{colors_chosen[0]} +1, {colors_chosen[1]} -1",
+            "text": f"{colors_chosen[0]} +1 / {colors_chosen[1]} -1",
             "changes": {colors_chosen[0]: 1, colors_chosen[1]: -1}
         }
 
@@ -389,31 +404,72 @@ def validate_color_frequency_balance(cards: List[Dict], max_difference: int = 2)
     return (max_freq - min_freq) <= max_difference
 
 
-def is_valid_combination(card: Dict, stock_change: Dict) -> bool:
-    """Check if a stock change is valid for a goal card (anti-synergy rules)."""
-    required_colors = set(card.get("required_colors", {}).keys())
-    avoided_color = card.get("avoided_color")
-    changes = stock_change["changes"]
+def validate_plus_minus_two_balance(cards: List[Dict]) -> bool:
+    """Validate that each color has at least one +2 and one -2."""
+    plus2_colors = set()
+    minus2_colors = set()
 
-    # Rule 2: Don't penalize what you're collecting
-    for color in required_colors:
-        if color in changes and changes[color] < 0:
+    for card in cards:
+        if "stock_change" not in card:
+            continue
+        if card.get("is_market_manipulation"):
+            continue
+        changes = card["stock_change"]["changes"]
+        for color, val in changes.items():
+            if val == 2:
+                plus2_colors.add(color)
+            elif val == -2:
+                minus2_colors.add(color)
+
+    all_colors = set(COLORS)
+    return plus2_colors == all_colors and minus2_colors == all_colors
+
+
+def is_valid_combination(card: Dict, stock_change: Dict) -> bool:
+    """Check if a stock change is valid for a goal card (anti-synergy rules).
+
+    Rules:
+    - Pair: No positive changes on the collected color (too synergistic)
+    - Two Pair: No negative changes on either collected color (too punishing)
+    - General: No +2 on any collected color
+    - General: No -2 on any collected color
+    - General: Don't allow 3+ synergy matches of same sign
+    - One of Every: Only positive changes allowed (handled by type restriction)
+    """
+    required_colors_dict = card.get("required_colors", {})
+    required_colors = set(required_colors_dict.keys())
+    changes = stock_change["changes"]
+    goal_type = card.get("goal_type", "")
+
+    # 2+ of a color rule: If collecting 2+ of any color, that color cannot
+    # appear in stock changes at all (no positive or negative).
+    # Applies to: pair, pair_plus_specific (the pair color), three_of_a_kind, two_pair
+    for color, count in required_colors_dict.items():
+        if count >= 2 and color in changes:
             return False
 
-    # Rule 1: Don't strongly boost (+2) what you're collecting
+    # General: Don't strongly penalize (-2) what you're collecting (even singles)
+    for color in required_colors:
+        if color in changes and changes[color] <= -2:
+            return False
+
+    # General: Don't strongly boost (+2) what you're collecting (even singles)
     for color in required_colors:
         if color in changes and changes[color] == 2:
             return False
 
-    # For "None of" goals
-    if avoided_color:
-        # Rule 3: Don't penalize what you're avoiding
-        if avoided_color in changes and changes[avoided_color] < 0:
-            return False
+    # Don't allow 3+ synergy matches of same sign
+    positive_synergy_count = 0
+    negative_synergy_count = 0
+    for color, count in required_colors_dict.items():
+        if color in changes:
+            if changes[color] == 1:
+                positive_synergy_count += count
+            elif changes[color] == -1:
+                negative_synergy_count += count
 
-        # Rule 4: Don't strongly boost (+2) what you're avoiding
-        if avoided_color in changes and changes[avoided_color] == 2:
-            return False
+    if positive_synergy_count >= 3 or negative_synergy_count >= 3:
+        return False
 
     return True
 
@@ -423,21 +479,32 @@ def assign_stock_changes(cards: List[Dict], seed: int = None) -> List[Dict]:
     if seed is not None:
         random.seed(seed)
 
-    max_attempts = 5000
+    max_attempts = 20000
     for attempt in range(max_attempts):
-        # We need: 4 types × 4 + 2 types × 5 = 26
-        # single_down and double_down get 5 (to balance the positive bias from one_of_every)
-        # single_up and double_up get 4 each (still enough for 2 one_of_every cards)
-        # Other 3 types get 4 each
-        stock_change_counts = {change: 4 for change in STOCK_CHANGES}
-        stock_change_counts["single_down"] = 5
-        stock_change_counts["double_down"] = 5
+        # Distribution balanced to net 0:
+        # Positive: su(2×+1) + sut(3×+2) + du(6×+2) + mixed(3×+1)
+        #         = 2 + 6 + 12 + 3 = 23
+        # Negative: sd(2×-1) + sdt(3×-2) + dd(5×-2) + mixed(3×-1)
+        #         = 2 + 6 + 10 + 3 = 21... need adjustment
+        # Let's balance: su=2,sd=2,sut=3,sdt=3,du=5,dd=5,mixed=4
+        # Positive: 2 + 6 + 10 + 4 = 22
+        # Negative: 2 + 6 + 10 + 4 = 22 ✓
+        stock_change_counts = {
+            "single_up": 2,
+            "single_down": 2,
+            "single_up_twice": 3,
+            "single_down_twice": 3,
+            "double_up": 5,
+            "double_down": 5,
+            "mixed": 4,
+        }
 
-        # Separate constrained and unconstrained cards
+        # Separate cards by type
         # one_of_every cards can only use single_up or double_up
-        constrained_cards = [c for c in cards if c.get("goal_type") == "one_of_every"]
-        unconstrained_cards = [c for c in cards if c.get("goal_type") != "one_of_every"]
-        random.shuffle(unconstrained_cards)
+        # All other cards (including pair) use general assignment
+        one_of_every_cards = [c for c in cards if c.get("goal_type") == "one_of_every"]
+        other_cards = [c for c in cards if c.get("goal_type") != "one_of_every"]
+        random.shuffle(other_cards)
 
         # Track how many of each type we've used
         used_counts = {change: 0 for change in STOCK_CHANGES}
@@ -451,9 +518,31 @@ def assign_stock_changes(cards: List[Dict], seed: int = None) -> List[Dict]:
         # Assign stock changes
         assigned_cards = []
 
-        # Assign constrained cards FIRST
-        for card in constrained_cards:
-            # one_of_every can only use single_up or double_up
+        # Helper function for scoring balance
+        def combined_score(stock_change):
+            # Net balance score (lower is better)
+            net_score = 0
+            for color, change in stock_change["changes"].items():
+                new_value = current_net[color] + change
+                net_score += abs(new_value)
+
+            # Frequency balance score (lower is better)
+            simulated_freq = color_frequency.copy()
+            for color in COLORS:
+                if color in stock_change["text"]:
+                    simulated_freq[color] += 1
+
+            if simulated_freq:
+                max_freq = max(simulated_freq.values())
+                min_freq = min(simulated_freq.values())
+                freq_score = (max_freq - min_freq) * 10
+            else:
+                freq_score = 0
+
+            return net_score + freq_score
+
+        # 1. Assign one_of_every cards FIRST (only positive changes allowed)
+        for card in one_of_every_cards:
             valid_attempts = []
             for change_type in ["single_up", "double_up"]:
                 if used_counts[change_type] >= stock_change_counts[change_type]:
@@ -465,30 +554,6 @@ def assign_stock_changes(cards: List[Dict], seed: int = None) -> List[Dict]:
                         valid_attempts.append((change_type, stock_change))
 
             if valid_attempts:
-                # Score each option by how much it helps balance (both net and frequency)
-                def combined_score(stock_change):
-                    # Net balance score (lower is better)
-                    net_score = 0
-                    for color, change in stock_change["changes"].items():
-                        new_value = current_net[color] + change
-                        net_score += abs(new_value)
-
-                    # Frequency balance score (lower is better)
-                    # Simulate adding this stock change and calculate frequency imbalance
-                    simulated_freq = color_frequency.copy()
-                    for color in COLORS:
-                        if color in stock_change["text"]:
-                            simulated_freq[color] += 1
-
-                    if simulated_freq:
-                        max_freq = max(simulated_freq.values())
-                        min_freq = min(simulated_freq.values())
-                        freq_score = (max_freq - min_freq) * 10  # Weight frequency balance highly
-                    else:
-                        freq_score = 0
-
-                    return net_score + freq_score
-
                 valid_attempts.sort(key=lambda x: combined_score(x[1]))
                 top_choices = max(1, len(valid_attempts) // 3)
                 change_type, stock_change = random.choice(valid_attempts[:top_choices])
@@ -497,19 +562,26 @@ def assign_stock_changes(cards: List[Dict], seed: int = None) -> List[Dict]:
                 for color, change in stock_change["changes"].items():
                     current_net[color] += change
 
-                # Update color frequency
                 for color in COLORS:
                     if color in stock_change["text"]:
                         color_frequency[color] += 1
 
                 complete_card = card.copy()
                 complete_card["stock_change"] = stock_change
-                complete_card["stock_change_penalty"] = get_stock_change_penalty(stock_change["changes"])
+                complete_card["stock_ev"] = calculate_stock_change_ev(complete_card, stock_change)
                 assigned_cards.append(complete_card)
 
-        # Now assign unconstrained cards
-        for card in unconstrained_cards:
+        # Track which stock change types have been used per goal type (for diversity)
+        goal_type_sc_types = {}  # goal_type -> set of stock change types used
+
+        # 2. Assign all other cards (use regular stock change types)
+        for card in other_cards:
+            goal_type = card.get("goal_type", "unknown")
+            used_sc_types = goal_type_sc_types.get(goal_type, set())
+
             # Find valid stock change types for this card
+            prob = COMPLETION_PROBS.get(goal_type, 0.5)
+            max_reward = max(rv for _, rv in REWARDS_WITH_VALUES)
             valid_attempts = []
 
             # Try each stock change type that still has quota
@@ -521,8 +593,18 @@ def assign_stock_changes(cards: List[Dict], seed: int = None) -> List[Dict]:
                 max_color_attempts = 50
                 for _ in range(max_color_attempts):
                     stock_change = generate_stock_change(change_type, COLORS, color_frequency)
-                    if is_valid_combination(card, stock_change):
-                        valid_attempts.append((change_type, stock_change))
+                    # Check anti-synergy rules
+                    if not is_valid_combination(card, stock_change):
+                        continue
+                    # Check that max possible EV can reach $2.70
+                    # (gives reward system room to work)
+                    temp_card = card.copy()
+                    sev = calculate_stock_change_ev(temp_card, stock_change)
+                    mev = sum(abs(v) for v in stock_change["changes"].values())
+                    max_ev = sev + prob * max_reward + (1 - prob) * mev
+                    if max_ev < 2.70:
+                        continue
+                    valid_attempts.append((change_type, stock_change))
 
             if not valid_attempts:
                 # Fallback: try any remaining type
@@ -538,41 +620,33 @@ def assign_stock_changes(cards: List[Dict], seed: int = None) -> List[Dict]:
                         break
 
             if valid_attempts:
-                # Score each option by how much it helps balance (both net and frequency)
-                def combined_score(stock_change):
-                    # Net balance score (lower is better)
-                    net_score = 0
-                    for color, change in stock_change["changes"].items():
-                        # Prefer changes that move towards 0
-                        new_value = current_net[color] + change
-                        old_distance = abs(current_net[color])
-                        new_distance = abs(new_value)
-                        # Lower score is better (closer to balanced)
-                        net_score += new_distance
+                # Score each attempt: balance + diversity within goal type
+                def diversity_score(attempt):
+                    change_type, sc = attempt
+                    base = combined_score(sc)
+                    # Penalize reusing the same stock change type within a goal type
+                    if change_type in used_sc_types:
+                        base += 5
+                    # Penalize same net direction (all positive or all negative)
+                    net = sum(sc["changes"].values())
+                    same_sign_cards = [c for c in assigned_cards
+                                      if c.get("goal_type") == goal_type
+                                      and sum(c["stock_change"]["changes"].values()) * net > 0]
+                    if same_sign_cards:
+                        base += 3
+                    return base
 
-                    # Frequency balance score (lower is better)
-                    # Simulate adding this stock change and calculate frequency imbalance
-                    simulated_freq = color_frequency.copy()
-                    for color in COLORS:
-                        if color in stock_change["text"]:
-                            simulated_freq[color] += 1
-
-                    if simulated_freq:
-                        max_freq = max(simulated_freq.values())
-                        min_freq = min(simulated_freq.values())
-                        freq_score = (max_freq - min_freq) * 10  # Weight frequency balance highly
-                    else:
-                        freq_score = 0
-
-                    return net_score + freq_score
-
-                # Sort by balance score and pick from the best options
-                valid_attempts.sort(key=lambda x: combined_score(x[1]))
+                valid_attempts.sort(key=diversity_score)
                 # Pick from top 30% to maintain some randomness
                 top_choices = max(1, len(valid_attempts) // 3)
                 change_type, stock_change = random.choice(valid_attempts[:top_choices])
 
                 used_counts[change_type] += 1
+
+                # Track stock change type per goal type for diversity
+                if goal_type not in goal_type_sc_types:
+                    goal_type_sc_types[goal_type] = set()
+                goal_type_sc_types[goal_type].add(change_type)
 
                 # Update current net
                 for color, change in stock_change["changes"].items():
@@ -586,11 +660,12 @@ def assign_stock_changes(cards: List[Dict], seed: int = None) -> List[Dict]:
                 # Create the complete card
                 complete_card = card.copy()
                 complete_card["stock_change"] = stock_change
-                complete_card["stock_change_penalty"] = get_stock_change_penalty(stock_change["changes"])
+                complete_card["stock_ev"] = calculate_stock_change_ev(complete_card, stock_change)
                 assigned_cards.append(complete_card)
 
-        # Check if balanced (both net balance AND color frequency balance)
-        if validate_balance(assigned_cards) and validate_color_frequency_balance(assigned_cards):
+        # Check if balanced (net balance and color frequency)
+        if (validate_balance(assigned_cards) and
+            validate_color_frequency_balance(assigned_cards)):
             return assigned_cards
 
     # If we couldn't achieve balance, return the best attempt
@@ -601,40 +676,153 @@ def assign_stock_changes(cards: List[Dict], seed: int = None) -> List[Dict]:
     if color_freq:
         freq_range = max(color_freq.values()) - min(color_freq.values())
         print(f"Color frequency range: {freq_range}", file=__import__('sys').stderr)
+    print(f"±2 balance: {validate_plus_minus_two_balance(assigned_cards)}", file=__import__('sys').stderr)
     return assigned_cards
 
 
 def calculate_scores_and_assign_rewards(cards: List[Dict]) -> List[Dict]:
-    """Calculate scores and assign rewards to cards using the mapping."""
-    # Calculate scores and assign rewards from mapping
+    """Assign rewards to hit TARGET_EV (~$3.00) for each card.
+
+    For each card, calculates the ideal reward value:
+        needed_reward = (TARGET_EV - stock_ev) / completion_prob
+
+    Then assigns rewards by matching cards to their closest-value reward,
+    with a diversity constraint (no two cards of same goal type share a reward).
+    """
+    num_rewards = len(REWARDS_WITH_VALUES)
+
+    # Ensure all cards have stock_ev and completion_prob
     for card in cards:
-        card["score"] = card["difficulty_points"] + card["stock_change_penalty"]
+        if "stock_ev" not in card:
+            card["stock_ev"] = calculate_stock_change_ev(card, card["stock_change"])
+        card["completion_prob"] = COMPLETION_PROBS.get(card.get("goal_type", ""), 0.5)
+        market_ev = card.get("_market_play_ev", 0)
 
-        # Look up reward in mapping
-        key = (card["goal_text"], card["stock_change"]["text"])
-        if key in REWARD_MAPPING:
-            tier, reward = REWARD_MAPPING[key]
-            card["reward_tier"] = tier
-            card["reward"] = reward
-        else:
-            # Fallback to random assignment based on score
-            print(f"Warning: No mapping for {key}", file=__import__('sys').stderr)
+        # Blended formula: total = stock_ev + prob*reward + (1-prob)*market_ev
+        # Solve for reward: reward = (TARGET - stock_ev - (1-prob)*market_ev) / prob
+        fallback_ev = (1 - card["completion_prob"]) * market_ev
+        card["needed_reward"] = (TARGET_EV - card["stock_ev"] - fallback_ev) / card["completion_prob"]
+
+    # Max times any single reward can be used (allows flexibility but ensures variety)
+    MAX_REWARD_USES = 3
+
+    # Track usage counts per reward
+    reward_usage = {i: 0 for i in range(num_rewards)}
+
+    # Sort by needed_reward descending: neediest cards get first pick
+    cards_sorted = sorted(cards, key=lambda c: -c["needed_reward"])
+
+    # Track which goal types have been assigned to each reward
+    reward_goal_types = {i: [] for i in range(num_rewards)}
+
+    for card in cards_sorted:
+        goal_type = card.get("goal_type", "unknown")
+        needed = card["needed_reward"]
+        best_idx = None
+        best_score = float('inf')
+
+        for reward_idx in range(num_rewards):
+            if reward_usage[reward_idx] >= MAX_REWARD_USES:
+                continue
+
+            reward_text, reward_value = REWARDS_WITH_VALUES[reward_idx]
+
+            # Primary score: distance from needed reward value
+            distance = abs(reward_value - needed)
+
+            # Diversity penalty: same goal type already using this reward
+            # Keep it small (0.5) so it prefers diversity without forcing
+            # neediest cards into terrible mismatches
+            if goal_type in reward_goal_types[reward_idx]:
+                distance += 0.5
+
+            if distance < best_score:
+                best_score = distance
+                best_idx = reward_idx
+
+        if best_idx is not None:
+            reward_text, reward_value = REWARDS_WITH_VALUES[best_idx]
+            card["reward"] = reward_text
+            card["reward_value"] = reward_value
+            reward_usage[best_idx] += 1
+            reward_goal_types[best_idx].append(goal_type)
+
+    # Swap optimization: try pairwise swaps to reduce total deviation from target
+    improved = True
+    while improved:
+        improved = False
+        for i in range(len(cards)):
+            for j in range(i + 1, len(cards)):
+                c1, c2 = cards[i], cards[j]
+                r1, r2 = c1["reward_value"], c2["reward_value"]
+                p1, p2 = c1["completion_prob"], c2["completion_prob"]
+                m1, m2 = c1.get("_market_play_ev", 0), c2.get("_market_play_ev", 0)
+                s1, s2 = c1["stock_ev"], c2["stock_ev"]
+
+                # Current total EVs
+                ev1 = s1 + p1 * r1 + (1 - p1) * m1
+                ev2 = s2 + p2 * r2 + (1 - p2) * m2
+                current_dev = abs(ev1 - TARGET_EV) + abs(ev2 - TARGET_EV)
+
+                # Swapped total EVs
+                ev1_swap = s1 + p1 * r2 + (1 - p1) * m1
+                ev2_swap = s2 + p2 * r1 + (1 - p2) * m2
+                swap_dev = abs(ev1_swap - TARGET_EV) + abs(ev2_swap - TARGET_EV)
+
+                if swap_dev < current_dev - 0.01:
+                    # Don't swap if it would push either card below $2.50
+                    if ev1_swap < 2.50 or ev2_swap < 2.50:
+                        continue
+                    c1["reward"], c2["reward"] = c2["reward"], c1["reward"]
+                    c1["reward_value"], c2["reward_value"] = r2, r1
+                    improved = True
+
+    # Assign tiers based on reward value
+    for card in cards:
+        rv = card.get("reward_value", 1.0)
+        if rv >= 2.5:
+            card["reward_tier"] = "high"
+        elif rv >= 1.5:
             card["reward_tier"] = "medium"
-            card["reward"] = random.choice(MEDIUM_REWARDS)
+        else:
+            card["reward_tier"] = "low"
 
-    # Sort by score (ascending - lowest scores get lowest rewards)
-    cards_sorted = sorted(cards, key=lambda x: x["score"])
+    # Calculate total EV using blended formula
+    for card in cards:
+        rv = card.get("reward_value", 1.0)
+        prob = card["completion_prob"]
+        market_ev = card.get("_market_play_ev", 0)
+        # Blended: goal strategy when completing + market fallback when not
+        card["total_ev"] = card["stock_ev"] + prob * rv + (1 - prob) * market_ev
+        card["score"] = card["total_ev"]
 
-    return cards_sorted
+    return cards
 
 
 def parse_reward(reward_text: str, reward_tier: str) -> Dict:
     """Parse reward text to determine type and requirements."""
     reward_lower = reward_text.lower()
 
-    # Determine reward value from tier
-    tier_values = {"low": 1, "medium": 2, "high": 3}
-    value = tier_values.get(reward_tier, 1)
+    # Use fixed dollar value from REWARD_VALUES, fall back to tier
+    value = REWARD_VALUES.get(reward_text, {"low": 1, "medium": 2, "high": 3}.get(reward_tier, 1))
+
+    # Choose investigation
+    if "choose investigation" in reward_lower:
+        return {
+            "type": "choose_investigation",
+            "requiresTarget": False,
+            "requiresChoice": True,
+            "value": value
+        }
+
+    # Look at random goal card
+    if "look at" in reward_lower and "goal card" in reward_lower:
+        return {
+            "type": "look_at_goal_card",
+            "requiresTarget": True,
+            "requiresChoice": False,
+            "value": value
+        }
 
     # Cash rewards
     if "gain $" in reward_lower:
@@ -658,102 +846,60 @@ def parse_reward(reward_text: str, reward_tier: str) -> Dict:
             "value": value
         }
 
-    # Adjust stock
-    if "adjust" in reward_lower and "stock" in reward_lower:
-        return {
-            "type": "adjust_stock",
-            "requiresTarget": False,
-            "requiresChoice": True,
-            "value": value
-        }
-
-    # Look at hand
-    if "look at" in reward_lower and "hand" in reward_lower:
-        return {
-            "type": "look_at_hand",
-            "requiresTarget": True,
-            "requiresChoice": False,
-            "value": value
-        }
-
-    # Look at random goal card
-    if "look at" in reward_lower and "goal card" in reward_lower:
-        return {
-            "type": "look_at_goal_card",
-            "requiresTarget": True,
-            "requiresChoice": False,
-            "value": value
-        }
-
-    # Peek and place
-    if "peek at top card" in reward_lower:
-        return {
-            "type": "peek_and_place",
-            "requiresTarget": False,
-            "requiresChoice": True,
-            "value": value
-        }
-
-    # Swap with deck
-    if "swap" in reward_lower and "deck" in reward_lower:
-        return {
-            "type": "swap_with_deck",
-            "requiresTarget": False,
-            "requiresChoice": True,
-            "value": value
-        }
-
-    # Rearrange top 5
+    # Peek at top 5 and rearrange
     if "peek at top 5" in reward_lower or "rearrange" in reward_lower:
         return {
-            "type": "rearrange_top_5",
+            "type": "peek_and_rearrange_5",
             "requiresTarget": False,
             "requiresChoice": True,
             "value": value
         }
 
-    # Take and give card
-    if "take" in reward_lower and "give" in reward_lower:
+    # Next auction discount
+    if "next auction" in reward_lower and "$2 less" in reward_lower:
         return {
-            "type": "take_and_give_card",
-            "requiresTarget": True,
-            "requiresChoice": True,
-            "multiStep": True,
-            "value": value
-        }
-
-    # Buy with discount
-    if "buy" in reward_lower and "discount" in reward_lower:
-        import re
-        discount_match = re.search(r'\$(\d+)\s+discount', reward_text)
-        discount = int(discount_match.group(1)) if discount_match else 1
-        return {
-            "type": "buy_with_discount",
-            "discount": discount,
-            "requiresTarget": False,
-            "requiresChoice": True,
-            "value": value
-        }
-
-    # Sell bonus
-    if "cards you sell" in reward_lower and "bonus" in reward_lower:
-        import re
-        bonus_match = re.search(r'\+\$(\d+)', reward_text)
-        bonus = int(bonus_match.group(1)) if bonus_match else 1
-        return {
-            "type": "sell_bonus",
-            "bonus": bonus,
+            "type": "next_auction_discount",
+            "discount": 2,
             "requiresTarget": False,
             "requiresChoice": False,
             "value": value
         }
 
-    # Gain lowest stock
-    if "gain" in reward_lower and "lowest" in reward_lower:
+    # Extra turn
+    if "extra turn" in reward_lower:
         return {
-            "type": "gain_lowest_stock",
+            "type": "extra_turn",
             "requiresTarget": False,
             "requiresChoice": False,
+            "value": value
+        }
+
+    # Adjust stock ±2 (check before ±1 since both contain "adjust")
+    if "adjust" in reward_lower and "±2" in reward_text:
+        return {
+            "type": "adjust_stock_2",
+            "amount": 2,
+            "requiresTarget": False,
+            "requiresChoice": True,
+            "value": value
+        }
+
+    # Adjust stock ±1
+    if "adjust" in reward_lower and "±1" in reward_text:
+        return {
+            "type": "adjust_stock",
+            "amount": 1,
+            "requiresTarget": False,
+            "requiresChoice": True,
+            "value": value
+        }
+
+    # Swap with face-up card
+    if "swap" in reward_lower and "face-up" in reward_lower:
+        return {
+            "type": "swap_with_face_up",
+            "requiresTarget": False,
+            "requiresChoice": True,
             "value": value
         }
 
@@ -768,12 +914,9 @@ def parse_reward(reward_text: str, reward_tier: str) -> Dict:
 
 def create_final_card_format(card: Dict) -> Dict:
     """Format card for final JSON output with pre-parsed data."""
-    # Check if this is a market manipulation card (no goal)
     is_market_manipulation = card.get("is_market_manipulation", False)
 
     if is_market_manipulation:
-        penalty = card.get("stock_change_penalty", 0)
-        difficulty = card.get("difficulty_points", 0)
         return {
             "stockChange": {
                 "text": card["stock_change"]["text"],
@@ -785,21 +928,16 @@ def create_final_card_format(card: Dict) -> Dict:
             "metadata": {
                 "goalType": "none",
                 "rewardTier": None,
-                "difficultyPoints": difficulty,
-                "stockChangePenalty": penalty,
-                "score": difficulty + penalty,
+                "stockEV": card.get("stock_ev", 0.0),
+                "totalEV": card.get("stock_ev", 0.0),
                 "isMarketManipulation": True
             }
         }
 
-    # Parse goal (handle none_of specially)
     goal_parsed = {
         "type": card["goal_type"],
         "requirements": card.get("required_colors", {})
     }
-
-    if card.get("avoided_color"):
-        goal_parsed["avoidColor"] = card["avoided_color"]
 
     return {
         "stockChange": {
@@ -818,15 +956,16 @@ def create_final_card_format(card: Dict) -> Dict:
         "metadata": {
             "goalType": card["goal_type"],
             "rewardTier": card["reward_tier"],
-            "difficultyPoints": card["difficulty_points"],
-            "stockChangePenalty": card["stock_change_penalty"],
-            "score": card["score"]
+            "completionProbability": card.get("completion_prob", 0.5),
+            "stockEV": card.get("stock_ev", 0.0),
+            "totalEV": card.get("total_ev", 0.0),
+            "score": card.get("score", 0.0)
         }
     }
 
 
 def main():
-    """Generate and output 34 goal cards (26 standard + 8 market manipulation)."""
+    """Generate and output 32 cards (24 goal + 8 market manipulation)."""
     # Create base goal cards
     goal_cards = create_goal_cards()
 

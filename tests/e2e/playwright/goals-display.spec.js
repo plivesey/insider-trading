@@ -58,8 +58,8 @@ test.describe('Goals Display', () => {
     const firstGoalCard = page.locator('#my-goals .goal-card-mini').first();
     const cardText = await firstGoalCard.textContent();
 
-    // Should contain a color name (Blue, Orange, Yellow, or Purple)
-    const hasColor = /Blue|Orange|Yellow|Purple/.test(cardText);
+    // Should contain a color name (Blue, Red, Yellow, or Black)
+    const hasColor = /Blue|Red|Yellow|Black/.test(cardText);
     expect(hasColor).toBe(true);
 
     // Should contain a number or direction indicator
@@ -78,7 +78,7 @@ test.describe('Goals Display', () => {
     const cardText = await firstGoalCard.textContent();
 
     // Should contain a color name for the requirement
-    const hasColor = /Blue|Orange|Yellow|Purple/.test(cardText);
+    const hasColor = /Blue|Red|Yellow|Black/.test(cardText);
     expect(hasColor).toBe(true);
   });
 

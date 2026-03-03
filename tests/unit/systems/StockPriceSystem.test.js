@@ -41,17 +41,17 @@ describe('StockPriceSystem', () => {
     test('should create prices for all four colors', () => {
       const prices = system.createInitialPrices();
       expect(prices).toHaveProperty('Blue');
-      expect(prices).toHaveProperty('Orange');
+      expect(prices).toHaveProperty('Red');
       expect(prices).toHaveProperty('Yellow');
-      expect(prices).toHaveProperty('Purple');
+      expect(prices).toHaveProperty('Black');
     });
 
     test('should set all prices to initial price', () => {
       const prices = system.createInitialPrices();
       expect(prices.Blue).toBe(4);
-      expect(prices.Orange).toBe(4);
+      expect(prices.Red).toBe(4);
       expect(prices.Yellow).toBe(4);
-      expect(prices.Purple).toBe(4);
+      expect(prices.Black).toBe(4);
     });
 
     test('should use custom initial price', () => {
@@ -64,31 +64,31 @@ describe('StockPriceSystem', () => {
   describe('applyChanges', () => {
     test('should apply positive price changes', () => {
       const prices = createStockPrices(4);
-      const changes = { Blue: 2, Orange: 1 };
+      const changes = { Blue: 2, Red: 1 };
       const newPrices = system.applyChanges(prices, changes);
 
       expect(newPrices.Blue).toBe(6);
-      expect(newPrices.Orange).toBe(5);
+      expect(newPrices.Red).toBe(5);
       expect(newPrices.Yellow).toBe(4);
-      expect(newPrices.Purple).toBe(4);
+      expect(newPrices.Black).toBe(4);
     });
 
     test('should apply negative price changes', () => {
       const prices = createStockPrices(4);
-      const changes = { Blue: -2, Orange: -1 };
+      const changes = { Blue: -2, Red: -1 };
       const newPrices = system.applyChanges(prices, changes);
 
       expect(newPrices.Blue).toBe(2);
-      expect(newPrices.Orange).toBe(3);
+      expect(newPrices.Red).toBe(3);
     });
 
     test('should apply mixed price changes', () => {
       const prices = createStockPrices(4);
-      const changes = { Blue: 2, Orange: -2 };
+      const changes = { Blue: 2, Red: -2 };
       const newPrices = system.applyChanges(prices, changes);
 
       expect(newPrices.Blue).toBe(6);
-      expect(newPrices.Orange).toBe(2);
+      expect(newPrices.Red).toBe(2);
     });
 
     test('should not mutate original prices', () => {
@@ -157,24 +157,24 @@ describe('StockPriceSystem', () => {
 
   describe('accumulateChanges', () => {
     test('should accumulate single change set', () => {
-      const changes1 = { Blue: 2, Orange: -1 };
+      const changes1 = { Blue: 2, Red: -1 };
       const result = system.accumulateChanges(changes1);
 
       expect(result.Blue).toBe(2);
-      expect(result.Orange).toBe(-1);
+      expect(result.Red).toBe(-1);
       expect(result.Yellow).toBe(0);
-      expect(result.Purple).toBe(0);
+      expect(result.Black).toBe(0);
     });
 
     test('should accumulate multiple change sets', () => {
-      const changes1 = { Blue: 2, Orange: -1 };
+      const changes1 = { Blue: 2, Red: -1 };
       const changes2 = { Blue: 1, Yellow: 2 };
       const result = system.accumulateChanges(changes1, changes2);
 
       expect(result.Blue).toBe(3);
-      expect(result.Orange).toBe(-1);
+      expect(result.Red).toBe(-1);
       expect(result.Yellow).toBe(2);
-      expect(result.Purple).toBe(0);
+      expect(result.Black).toBe(0);
     });
 
     test('should handle overlapping changes', () => {
@@ -190,36 +190,36 @@ describe('StockPriceSystem', () => {
       const result = system.accumulateChanges({}, {});
 
       expect(result.Blue).toBe(0);
-      expect(result.Orange).toBe(0);
+      expect(result.Red).toBe(0);
       expect(result.Yellow).toBe(0);
-      expect(result.Purple).toBe(0);
+      expect(result.Black).toBe(0);
     });
 
     test('should initialize all colors to zero', () => {
       const result = system.accumulateChanges();
 
       expect(result).toHaveProperty('Blue', 0);
-      expect(result).toHaveProperty('Orange', 0);
+      expect(result).toHaveProperty('Red', 0);
       expect(result).toHaveProperty('Yellow', 0);
-      expect(result).toHaveProperty('Purple', 0);
+      expect(result).toHaveProperty('Black', 0);
     });
   });
 
   describe('getLowestPriceColors', () => {
     test('should return color with lowest price', () => {
-      const prices = { Blue: 4, Orange: 2, Yellow: 5, Purple: 3 };
+      const prices = { Blue: 4, Red: 2, Yellow: 5, Black: 3 };
       const result = system.getLowestPriceColors(prices);
 
-      expect(result).toEqual(['Orange']);
+      expect(result).toEqual(['Red']);
     });
 
     test('should return multiple colors when tied', () => {
-      const prices = { Blue: 2, Orange: 2, Yellow: 5, Purple: 3 };
+      const prices = { Blue: 2, Red: 2, Yellow: 5, Black: 3 };
       const result = system.getLowestPriceColors(prices);
 
       expect(result).toHaveLength(2);
       expect(result).toContain('Blue');
-      expect(result).toContain('Orange');
+      expect(result).toContain('Red');
     });
 
     test('should return all colors when all prices equal', () => {
@@ -232,14 +232,14 @@ describe('StockPriceSystem', () => {
 
   describe('getHighestPriceColors', () => {
     test('should return color with highest price', () => {
-      const prices = { Blue: 4, Orange: 2, Yellow: 5, Purple: 3 };
+      const prices = { Blue: 4, Red: 2, Yellow: 5, Black: 3 };
       const result = system.getHighestPriceColors(prices);
 
       expect(result).toEqual(['Yellow']);
     });
 
     test('should return multiple colors when tied', () => {
-      const prices = { Blue: 5, Orange: 2, Yellow: 5, Purple: 3 };
+      const prices = { Blue: 5, Red: 2, Yellow: 5, Black: 3 };
       const result = system.getHighestPriceColors(prices);
 
       expect(result).toHaveLength(2);
@@ -258,7 +258,7 @@ describe('StockPriceSystem', () => {
   describe('calculateCardValue', () => {
     test('should calculate value of single card', () => {
       const cards = [createResourceCard('Blue')];
-      const prices = { Blue: 5, Orange: 4, Yellow: 3, Purple: 2 };
+      const prices = { Blue: 5, Red: 4, Yellow: 3, Black: 2 };
       const value = system.calculateCardValue(cards, prices);
 
       expect(value).toBe(5);
@@ -268,9 +268,9 @@ describe('StockPriceSystem', () => {
       const cards = [
         createResourceCard('Blue'),
         createResourceCard('Blue'),
-        createResourceCard('Orange')
+        createResourceCard('Red')
       ];
-      const prices = { Blue: 5, Orange: 4, Yellow: 3, Purple: 2 };
+      const prices = { Blue: 5, Red: 4, Yellow: 3, Black: 2 };
       const value = system.calculateCardValue(cards, prices);
 
       expect(value).toBe(14); // 5 + 5 + 4
@@ -279,11 +279,11 @@ describe('StockPriceSystem', () => {
     test('should calculate value of mixed colors', () => {
       const cards = [
         createResourceCard('Blue'),
-        createResourceCard('Orange'),
+        createResourceCard('Red'),
         createResourceCard('Yellow'),
-        createResourceCard('Purple')
+        createResourceCard('Black')
       ];
-      const prices = { Blue: 5, Orange: 4, Yellow: 3, Purple: 2 };
+      const prices = { Blue: 5, Red: 4, Yellow: 3, Black: 2 };
       const value = system.calculateCardValue(cards, prices);
 
       expect(value).toBe(14); // 5 + 4 + 3 + 2
@@ -299,7 +299,7 @@ describe('StockPriceSystem', () => {
         createResourceCard('Blue'),
         { color: 'UnknownColor' }
       ];
-      const prices = { Blue: 5, Orange: 4, Yellow: 3, Purple: 2 };
+      const prices = { Blue: 5, Red: 4, Yellow: 3, Black: 2 };
       const value = system.calculateCardValue(cards, prices);
 
       expect(value).toBe(5);
@@ -309,13 +309,13 @@ describe('StockPriceSystem', () => {
   describe('getDiff', () => {
     test('should calculate diff between prices', () => {
       const oldPrices = createStockPrices(4);
-      const newPrices = { Blue: 6, Orange: 3, Yellow: 4, Purple: 5 };
+      const newPrices = { Blue: 6, Red: 3, Yellow: 4, Black: 5 };
       const diff = system.getDiff(oldPrices, newPrices);
 
       expect(diff).toEqual({
         Blue: 2,
-        Orange: -1,
-        Purple: 1
+        Red: -1,
+        Black: 1
       });
     });
 
@@ -325,7 +325,7 @@ describe('StockPriceSystem', () => {
       const diff = system.getDiff(oldPrices, newPrices);
 
       expect(diff).toEqual({ Blue: 2 });
-      expect(diff).not.toHaveProperty('Orange');
+      expect(diff).not.toHaveProperty('Red');
     });
 
     test('should return empty object when no changes', () => {
@@ -338,13 +338,13 @@ describe('StockPriceSystem', () => {
 
   describe('format', () => {
     test('should format prices as string', () => {
-      const prices = { Blue: 5, Orange: 4, Yellow: 3, Purple: 2 };
+      const prices = { Blue: 5, Red: 4, Yellow: 3, Black: 2 };
       const formatted = system.format(prices);
 
       expect(formatted).toContain('Blue: $5');
-      expect(formatted).toContain('Orange: $4');
+      expect(formatted).toContain('Red: $4');
       expect(formatted).toContain('Yellow: $3');
-      expect(formatted).toContain('Purple: $2');
+      expect(formatted).toContain('Black: $2');
     });
 
     test('should separate prices with commas', () => {
@@ -362,42 +362,42 @@ describe('StockPriceSystem', () => {
       expect(prices.Blue).toBe(4);
 
       // Apply changes
-      const changes = { Blue: 2, Orange: -2 };
+      const changes = { Blue: 2, Red: -2 };
       const newPrices = system.applyChanges(prices, changes);
       expect(newPrices.Blue).toBe(6);
-      expect(newPrices.Orange).toBe(2);
+      expect(newPrices.Red).toBe(2);
 
       // Get diff
       const diff = system.getDiff(prices, newPrices);
-      expect(diff).toEqual({ Blue: 2, Orange: -2 });
+      expect(diff).toEqual({ Blue: 2, Red: -2 });
 
       // Find lowest
       const lowest = system.getLowestPriceColors(newPrices);
-      expect(lowest).toContain('Orange');
+      expect(lowest).toContain('Red');
     });
 
     test('should handle multiple goal card reveals', () => {
       const prices = createStockPrices(4);
 
       // Accumulate changes from multiple goal cards
-      const change1 = { Blue: 1, Orange: -1 };
+      const change1 = { Blue: 1, Red: -1 };
       const change2 = { Blue: 1, Yellow: 1 };
-      const change3 = { Orange: -1, Purple: 2 };
+      const change3 = { Red: -1, Black: 2 };
 
       const accumulated = system.accumulateChanges(change1, change2, change3);
       expect(accumulated).toEqual({
         Blue: 2,
-        Orange: -2,
+        Red: -2,
         Yellow: 1,
-        Purple: 2
+        Black: 2
       });
 
       // Apply accumulated changes
       const newPrices = system.applyChanges(prices, accumulated);
       expect(newPrices.Blue).toBe(6);
-      expect(newPrices.Orange).toBe(2);
+      expect(newPrices.Red).toBe(2);
       expect(newPrices.Yellow).toBe(5);
-      expect(newPrices.Purple).toBe(6);
+      expect(newPrices.Black).toBe(6);
     });
 
     test('should handle card valuation with updated prices', () => {
@@ -405,7 +405,7 @@ describe('StockPriceSystem', () => {
       const cards = [
         createResourceCard('Blue'),
         createResourceCard('Blue'),
-        createResourceCard('Orange')
+        createResourceCard('Red')
       ];
 
       // Initial value
@@ -413,7 +413,7 @@ describe('StockPriceSystem', () => {
       expect(initialValue).toBe(12); // 4 + 4 + 4
 
       // Update prices
-      const changes = { Blue: 2, Orange: -2 };
+      const changes = { Blue: 2, Red: -2 };
       const newPrices = system.applyChanges(prices, changes);
 
       // New value

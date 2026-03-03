@@ -83,9 +83,9 @@ HTML_TEMPLATE = """<!DOCTYPE html>
             border-color: #2980b9;
         }}
 
-        .card-symbol.orange {{
-            background-color: #e67e22;
-            border-color: #d35400;
+        .card-symbol.red {{
+            background-color: #e74c3c;
+            border-color: #c0392b;
         }}
 
         .card-symbol.yellow {{
@@ -93,32 +93,9 @@ HTML_TEMPLATE = """<!DOCTYPE html>
             border-color: #f39c12;
         }}
 
-        .card-symbol.purple {{
-            background-color: #9b59b6;
-            border-color: #8e44ad;
-        }}
-
-        .ban-symbol {{
-            position: relative;
-            width: 48px;
-            height: 66px;
-            display: inline-block;
-        }}
-
-        .ban-symbol .card-symbol {{
-            position: relative;
-        }}
-
-        .ban-symbol::after {{
-            content: "";
-            position: absolute;
-            width: 72px;
-            height: 8px;
-            background: #e74c3c;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%) rotate(-45deg);
-            z-index: 3;
+        .card-symbol.black {{
+            background-color: #2c3e50;
+            border-color: #1a252f;
         }}
 
         .reward {{
@@ -184,23 +161,13 @@ HTML_TEMPLATE = """<!DOCTYPE html>
                 print-color-adjust: exact;
             }}
 
-            .ban-symbol {{
-                width: 38px;
-                height: 52px;
-            }}
-
-            .ban-symbol::after {{
-                width: 58px;
-                -webkit-print-color-adjust: exact;
-                print-color-adjust: exact;
-            }}
         }}
 
         /* Color coding for stock colors */
         .color-blue {{ color: #3498db; font-weight: bold; }}
-        .color-orange {{ color: #e67e22; font-weight: bold; }}
+        .color-red {{ color: #e74c3c; font-weight: bold; }}
         .color-yellow {{ color: #f1c40f; font-weight: bold; }}
-        .color-purple {{ color: #9b59b6; font-weight: bold; }}
+        .color-black {{ color: #2c3e50; font-weight: bold; }}
 
         /* Market manipulation cards */
         .card.market-manipulation {{
@@ -260,9 +227,9 @@ def colorize_text(text):
     """Add color classes to color names in text."""
     colors = {
         'Blue': 'blue',
-        'Orange': 'orange',
+        'Red': 'red',
         'Yellow': 'yellow',
-        'Purple': 'purple'
+        'Black': 'black'
     }
 
     for color_name, color_class in colors.items():
@@ -275,13 +242,8 @@ def goal_to_symbols(goal_text):
     """Convert goal text to visual card symbols."""
     import re
 
-    # Check if it's a "none of" goal (starts with 0)
-    if goal_text.startswith('0 '):
-        color = goal_text.split()[1].lower()
-        return f'<div class="ban-symbol"><div class="card-symbol {color}"></div></div>'
-
     # Parse the goal text to extract colors and counts
-    # Examples: "2 Blue", "2 Blue + 1 Orange", "1 Blue + 1 Orange + 1 Yellow"
+    # Examples: "2 Blue", "2 Blue + 1 Red", "1 Blue + 1 Red + 1 Yellow"
     symbols_html = []
 
     # Split by + and process each part

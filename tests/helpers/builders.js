@@ -16,7 +16,7 @@ export function createPlayer(overrides = {}) {
   const defaults = {
     id: 'player1',
     name: 'Test Player',
-    cash: 5,
+    cash: 6,
     hand: [],
     goalCards: [],
     sellBonus: 0,
@@ -64,15 +64,15 @@ export function createResourceCards(color = 'Blue', count = 5) {
 
 /**
  * Create a resource deck with specified distribution
- * @param {Object} distribution - Color distribution (e.g., { Blue: 10, Orange: 10 })
+ * @param {Object} distribution - Color distribution (e.g., { Blue: 10, Red: 10 })
  * @returns {Array<ResourceCard>} Array of resource cards
  */
 export function createResourceDeck(distribution = null) {
   const defaultDistribution = {
-    Blue: 10,
-    Orange: 10,
-    Yellow: 10,
-    Purple: 10
+    Blue: 8,
+    Red: 8,
+    Yellow: 8,
+    Black: 8
   };
 
   const dist = distribution || defaultDistribution;
@@ -187,9 +187,9 @@ function formatGoalText(requirements) {
 export function createStockPrices(defaultPrice = 4) {
   return {
     Blue: defaultPrice,
-    Orange: defaultPrice,
+    Red: defaultPrice,
     Yellow: defaultPrice,
-    Purple: defaultPrice
+    Black: defaultPrice
   };
 }
 
@@ -212,7 +212,7 @@ export function createCustomStockPrices(prices = {}) {
  */
 export function createGameConfig(overrides = {}) {
   const defaults = {
-    startingCash: 5,
+    startingCash: 6,
     startingResourceCards: 2,
     startingGoalCards: 3,
     auctionCardCount: null, // Will be set based on player count

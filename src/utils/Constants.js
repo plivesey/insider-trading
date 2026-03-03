@@ -2,7 +2,7 @@
  * Game constants for Insider Trading board game
  */
 
-export const COLORS = ['Blue', 'Orange', 'Yellow', 'Purple'];
+export const COLORS = ['Blue', 'Red', 'Yellow', 'Black'];
 
 export const PHASES = {
   AUCTION: 'auction',
@@ -33,7 +33,6 @@ export const GOAL_TYPES = {
   PAIR_PLUS_SPECIFIC: 'pair_plus_specific',
   THREE_OF_A_KIND: 'three_of_a_kind',
   THREE_DIFFERENT: 'three_different',
-  NONE_OF: 'none_of',
   TWO_PAIR: 'two_pair',
   ONE_OF_EVERY: 'one_of_every'
 };
@@ -52,25 +51,24 @@ export const REWARD_TYPES = {
   GAIN_CASH: 'gain_cash',
   STEAL_CASH: 'steal_cash',
   ADJUST_STOCK: 'adjust_stock',
-  LOOK_AT_HAND: 'look_at_hand',
-  PEEK_AND_PLACE: 'peek_and_place',
-  SWAP_WITH_DECK: 'swap_with_deck',
-  REARRANGE_TOP_5: 'rearrange_top_5',
-  TAKE_AND_GIVE_CARD: 'take_and_give_card',
-  BUY_WITH_DISCOUNT: 'buy_with_discount',
-  SELL_BONUS: 'sell_bonus',
-  GAIN_LOWEST_STOCK: 'gain_lowest_stock'
+  LOOK_AT_GOAL_CARD: 'look_at_goal_card',
+  CHOOSE_INVESTIGATION: 'choose_investigation',
+  NEXT_AUCTION_DISCOUNT: 'next_auction_discount',
+  EXTRA_TURN: 'extra_turn',
+  SWAP_WITH_FACE_UP: 'swap_with_face_up',
+  ADJUST_STOCK_2: 'adjust_stock_2',
+  PEEK_AND_REARRANGE_5: 'peek_and_rearrange_5'
 };
 
 export const DEFAULT_CONFIG = {
-  startingCash: 5,
+  startingCash: 6,
   startingResourceCards: 2,
   startingGoalCards: 3,
   startingStockPrice: 4,
   totalRounds: 3,
   tradingDuration: 120000, // 2 minutes in milliseconds
-  minStockPrice: 0,
-  maxStockPrice: null // No maximum
+  minStockPrice: 1,
+  maxStockPrice: 10
 };
 
 export const EVENT_TYPES = {

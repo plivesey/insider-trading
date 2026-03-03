@@ -21,9 +21,9 @@ describe('DeckManager', () => {
     test('should shuffle array in place', () => {
       const cards = [
         createResourceCard('Blue'),
-        createResourceCard('Orange'),
+        createResourceCard('Red'),
         createResourceCard('Yellow'),
-        createResourceCard('Purple')
+        createResourceCard('Black')
       ];
       const originalIds = cards.map(c => c.id);
 
@@ -37,15 +37,15 @@ describe('DeckManager', () => {
     test('should produce deterministic shuffle with seed', () => {
       const cards1 = [
         createResourceCard('Blue'),
-        createResourceCard('Orange'),
+        createResourceCard('Red'),
         createResourceCard('Yellow'),
-        createResourceCard('Purple')
+        createResourceCard('Black')
       ];
       const cards2 = [
         createResourceCard('Blue'),
-        createResourceCard('Orange'),
+        createResourceCard('Red'),
         createResourceCard('Yellow'),
-        createResourceCard('Purple')
+        createResourceCard('Black')
       ];
 
       manager.shuffle(cards1, 42);
@@ -74,7 +74,7 @@ describe('DeckManager', () => {
     });
 
     test('should emit DECK_SHUFFLED event', () => {
-      const cards = [createResourceCard('Blue'), createResourceCard('Orange')];
+      const cards = [createResourceCard('Blue'), createResourceCard('Red')];
 
       manager.shuffle(cards);
 
@@ -108,7 +108,7 @@ describe('DeckManager', () => {
       deck = {
         drawPile: [
           createResourceCard('Blue'),
-          createResourceCard('Orange'),
+          createResourceCard('Red'),
           createResourceCard('Yellow')
         ],
         discardPile: []
@@ -185,7 +185,7 @@ describe('DeckManager', () => {
     });
 
     test('should add cards to discard pile', () => {
-      const cards = [createResourceCard('Orange'), createResourceCard('Yellow')];
+      const cards = [createResourceCard('Red'), createResourceCard('Yellow')];
 
       manager.discard(deck, cards);
 
@@ -194,14 +194,14 @@ describe('DeckManager', () => {
     });
 
     test('should append to existing discard pile', () => {
-      deck.discardPile = [createResourceCard('Purple')];
-      const cards = [createResourceCard('Orange')];
+      deck.discardPile = [createResourceCard('Black')];
+      const cards = [createResourceCard('Red')];
 
       manager.discard(deck, cards);
 
       expect(deck.discardPile.length).toBe(2);
-      expect(deck.discardPile[0].color).toBe('Purple');
-      expect(deck.discardPile[1].color).toBe('Orange');
+      expect(deck.discardPile[0].color).toBe('Black');
+      expect(deck.discardPile[1].color).toBe('Red');
     });
 
     test('should handle empty array', () => {
@@ -218,7 +218,7 @@ describe('DeckManager', () => {
       deck = {
         drawPile: [
           createResourceCard('Blue'),
-          createResourceCard('Orange'),
+          createResourceCard('Red'),
           createResourceCard('Yellow')
         ],
         discardPile: []
@@ -268,7 +268,7 @@ describe('DeckManager', () => {
 
     beforeEach(() => {
       deck = {
-        drawPile: [createResourceCard('Blue'), createResourceCard('Orange')],
+        drawPile: [createResourceCard('Blue'), createResourceCard('Red')],
         discardPile: []
       };
     });
@@ -298,7 +298,7 @@ describe('DeckManager', () => {
 
     beforeEach(() => {
       deck = {
-        drawPile: [createResourceCard('Blue'), createResourceCard('Orange')],
+        drawPile: [createResourceCard('Blue'), createResourceCard('Red')],
         discardPile: []
       };
     });
@@ -330,9 +330,9 @@ describe('DeckManager', () => {
       deck = {
         drawPile: [
           createResourceCard('Blue'),
-          createResourceCard('Orange'),
+          createResourceCard('Red'),
           createResourceCard('Yellow'),
-          createResourceCard('Purple')
+          createResourceCard('Black')
         ],
         discardPile: []
       };
@@ -347,7 +347,7 @@ describe('DeckManager', () => {
       expect(deck.drawPile[0].id).toBe(card2.id);
       expect(deck.drawPile[1].id).toBe(card0.id);
       expect(deck.drawPile[2].id).toBe(card1.id);
-      expect(deck.drawPile[3].color).toBe('Purple'); // Unchanged
+      expect(deck.drawPile[3].color).toBe('Black'); // Unchanged
     });
 
     test('should throw error if count mismatch', () => {
@@ -377,7 +377,7 @@ describe('DeckManager', () => {
 
     beforeEach(() => {
       deck = {
-        drawPile: [createResourceCard('Blue'), createResourceCard('Orange')],
+        drawPile: [createResourceCard('Blue'), createResourceCard('Red')],
         discardPile: []
       };
     });
@@ -408,10 +408,10 @@ describe('DeckManager', () => {
       const deck = {
         drawPile: [
           createResourceCard('Blue'),
-          createResourceCard('Orange'),
+          createResourceCard('Red'),
           createResourceCard('Yellow')
         ],
-        discardPile: [createResourceCard('Purple')]
+        discardPile: [createResourceCard('Black')]
       };
 
       const count = manager.getRemainingCount(deck);
@@ -434,9 +434,9 @@ describe('DeckManager', () => {
       deck = {
         drawPile: [createResourceCard('Blue')],
         discardPile: [
-          createResourceCard('Orange'),
+          createResourceCard('Red'),
           createResourceCard('Yellow'),
-          createResourceCard('Purple')
+          createResourceCard('Black')
         ]
       };
     });
@@ -474,7 +474,7 @@ describe('DeckManager', () => {
     });
 
     test('should work without event emitter', () => {
-      const cards = [createResourceCard('Blue'), createResourceCard('Orange')];
+      const cards = [createResourceCard('Blue'), createResourceCard('Red')];
 
       expect(() => {
         manager.shuffle(cards);
@@ -498,7 +498,7 @@ describe('DeckManager', () => {
       const deck = {
         drawPile: [
           createResourceCard('Blue'),
-          createResourceCard('Orange'),
+          createResourceCard('Red'),
           createResourceCard('Yellow')
         ],
         discardPile: []
@@ -522,7 +522,7 @@ describe('DeckManager', () => {
       const deck = {
         drawPile: [
           createResourceCard('Blue'),
-          createResourceCard('Orange'),
+          createResourceCard('Red'),
           createResourceCard('Yellow')
         ],
         discardPile: []

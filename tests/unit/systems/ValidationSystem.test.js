@@ -199,7 +199,7 @@ describe('ValidationSystem', () => {
       state = createGameState({ currentPhase: PHASES.TRADING });
       state.players[0].hand = [
         createResourceCard('Blue'),
-        createResourceCard('Orange')
+        createResourceCard('Red')
       ];
       state.players[0].cash = 10;
       state.phaseState.trading = { activeOffers: [] };

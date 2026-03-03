@@ -1,125 +1,145 @@
 # Stock Trading Board Game - Rules
 
 ## Overview
-A strategic trading and market manipulation game for 3+ players where you bid on resources, trade with other players, and manipulate stock prices using hidden information to maximize your wealth.
+A strategic trading and market manipulation game for 3+ players where you auction stocks, sell at the right time, and manipulate stock prices using insider information. But be careful - the more you manipulate the market, the closer the federal investigators get to shutting you down!
 
 ## Components
 
 ### Cards
-- **Resource Cards**: Four types (colors) - Blue, Orange, Yellow, Purple
-  - Deck contains approximately 8-10 of each color (32-40 total cards)
+- **Resource Cards**: Four types (colors) - Blue, Red, Yellow, Black
+  - Deck contains 8 of each color (32 total cards)
   - These represent stocks that fluctuate in value
-- **Goal Cards**: Each player receives 3 goal cards at the start
-  - Kept private until revealed
-  - Each goal card contains:
-    - A stock movement instruction (e.g., "Blue +2" or "Orange-Purple -1")
-    - A goal requirement (e.g., "Have 2 oranges, 1 blue, and 1 yellow")
-    - A bonus reward for completing the goal
+  - **Hot Stocks**: 2 per color (8 total) are marked with a special icon - selling these increases federal investigation
 
-### Currency
+- **Goal Cards**: 24 goal cards + 8 market manipulation cards (32 total)
+  - Each player receives 3 at the start (kept private until played)
+  - Goal cards contain: a stock movement instruction, a goal requirement, and a bonus reward
+  - Market manipulation cards contain only a stock movement instruction (no goal or reward)
+
+### Currency & Tracking
 - Coin tokens representing money
-- Each player starts with $5
+- Each player starts with $6
 - All stocks start at a value of $4 each
+- **Stock Price Board**: Tracks current prices for all four stocks ($1-$10)
+- **Federal Investigation Tracker**: Tracks suspicion level (0 to threshold)
 
 ## Setup
 
 1. Shuffle the resource deck
-2. Deal 2 random resource cards to each player (these are kept private/hidden)
-3. Deal 3 goal cards to each player (these are kept private/hidden)
-4. Give each player $5 in coins
-5. Set all stock prices to $4 (use a shared tracker visible to all players)
+2. Reveal **4 face-up stock cards** from the deck (these are available for auction)
+3. Deal 2 random resource cards to each player (kept private/hidden)
+4. Deal 3 goal cards to each player (kept private/hidden)
+5. Give each player $6 in coins
+6. Set all stock prices to $4 on the Stock Price Board
+7. Set Federal Investigation tracker to 0
+8. Randomly determine who goes first
 
-## Game Structure
+## How to Play
 
-The game is played over **3 rounds**. Each round consists of 4 phases:
+Players take turns clockwise. On your turn, choose **ONE** of the following actions:
 
-### Phase 1: Auction
-- Reveal **n+2 cards** from the resource deck one at a time (where n = number of players)
-- For each card revealed, conduct an open outcry auction:
-  - Players call out bids freely with no set order
-  - Highest bidder pays their bid to the bank and takes the card
-  - The card is added to their public hand
+### Option 1: Start an Auction
+- Choose one of the 4 face-up stock cards
+- Conduct an open outcry auction:
+  - Players call out bids freely with no set order (like a real auction house)
+  - Highest bidder pays their bid to the bank and takes the card into their hidden hand
+  - Immediately reveal a new face-up card from the deck to replace it (maintain 4 cards)
 
-### Phase 2: Trading
-- **Duration**: 1-2 minutes (use a timer)
-- **Rules**: 
-  - Players may make any trades with any other players
-  - Only current assets can be traded (resource cards and coins you currently have)
-  - No promises or IOUs for future turns
-  - All trades are binding and must be honored
-  - Example trades: "I'll give you 1 blue and 2 coins for your yellow" or "I'll give you 3 coins for that orange"
+### Option 2: Sell One Stock
+- Choose one resource card from your hand and sell it to the bank
+- Receive coins equal to that stock's current price
+- **If you sell a Hot Stock** (marked with special icon): Increase Federal Investigation by **+1**
+- Remove the sold card from the game
 
-### Phase 3: Goal Resolution
+### Option 3: Play a Goal Card
+- Reveal one of your hidden goal cards (or market manipulation cards)
+- **Increase Federal Investigation by +2** (this is obvious market manipulation!)
+- **Adjust stock prices** according to the card's movement instruction
+  - Stock prices are constrained to $1-$10
+- **Check for goal completion** (goal cards only): If you have the required resource cards, collect the bonus reward
+- Keep the revealed card visible for the rest of the game
 
-This phase happens in the following order:
+## Federal Investigation Tracker
 
-1. **Reveal Goal Cards**: Each player simultaneously reveals one of their remaining hidden goal cards
-2. **Adjust Stock Prices**: Apply all stock movements cumulatively
-   - If three players reveal cards with "Blue +2", "Blue +1", and "Orange -1", then:
-     - Blue increases by 3 (from $4 to $7)
-     - Orange decreases by 1 (from $4 to $3)
-3. **Complete Goals**: Each player checks if they have completed **their own revealed goal**
-   - Check if you have the required resources shown on your revealed goal card
-   - If yes, collect the bonus reward shown on that card
-   - **Note**: You can ONLY claim bonuses from goal cards YOU reveal, not from other players' revealed cards
-4. **Revealed Goal Cards**: Keep all revealed goal cards visible for the rest of the game (they show information but their bonuses cannot be claimed by other players)
+**Theme**: You're insider trading on Wall Street. The more you manipulate the market, the more suspicious it looks. When federal investigators reach their threshold, the game ends!
 
-### Phase 4: Sell
-- Each player may sell any number of their resource cards back to the bank
-- Players receive coins equal to the current stock price for each card sold
-- Sold cards are removed from the game
+**Investigation increases when:**
+- Playing a goal/manipulation card: **+2**
+- Selling a Hot Stock: **+1**
 
-## Goal Card Structure
+**Threshold (when game ends):**
+- 3 players: **15**
+- 4 players: **20**
+- 5 players: **25**
 
-Goal cards come in three difficulty levels:
-
-### Easy Goals ($1 value bonuses)
-- Simpler resource requirements (1-2 cards)
-- Example bonuses:
-  - Gain $1
-  - Peek at top card, choose to put it on top or bottom of deck
-  - Look at another player's hand
-
-### Medium Goals ($2 value bonuses)
-- Moderate resource requirements (2-3 cards)
-- Example bonuses:
-  - Gain $2
-  - Buy the lowest-priced stock for $1 discount
-  - Steal $1 from another player
-  - Peek at top 5 cards of the resource deck, and rearrange them in any order
-
-### Hard Goals ($3 value bonuses)
-- Complex or rare resource combinations (3-4 cards)
-- Example bonuses:
-  - Gain $3
-  - Adjust any one stock price by ±1
-  - All cards you sell this round get +$1 bonus
-  - Gain the lowest value stock
-  - Buy any stock for $2 discount
+**Formula**: 5 × number of players
 
 ## End of Game
 
-After **3 rounds** (all players will have revealed all 3 of their goal cards):
+**When Federal Investigation reaches the threshold:**
+1. The current player completes their turn
+2. Each other player gets **one final turn** (everyone gets equal turns)
+3. Game ends immediately after all final turns
 
-1. Calculate each player's final wealth:
+**Determining the Winner:**
+1. Each player calculates their total wealth:
    - Value of all resource cards at current stock prices
    - Plus all coins held
 2. **Highest total value wins!**
 
+## Goal Card Structure
+
+### Goal Types (6 types)
+
+**3-Card Goals:**
+- **Pair**: 2 of the same color (e.g., "2 Blue")
+- **Pair + Specific**: 2 of one color + 1 of another (e.g., "2 Blue + 1 Red")
+- **Three Different**: 1 each of three colors (e.g., "1 Blue + 1 Red + 1 Yellow")
+- **Three of a Kind**: 3 of the same color (e.g., "3 Blue")
+
+**4-Card Goals:**
+- **Two Pair**: 2 each of two colors (e.g., "2 Blue + 2 Red")
+- **One of Every**: 1 of each color (e.g., "1 Blue + 1 Red + 1 Yellow + 1 Black")
+
+### Rewards (12 types, ordered by value)
+1. Choose investigation increase (0-3) when playing this card
+2. Look at a random goal card from another player
+3. Gain $1
+4. Steal $1 from another player
+5. Peek at top 5 cards, rearrange in any order
+6. Your next auction costs $2 less
+7. Gain $2
+8. Extra turn (take another action immediately)
+9. Gain $3
+10. Adjust any one stock price by +-1
+11. Swap one of your cards with a face-up card
+12. Adjust any one stock price by +-2
+
+### Market Manipulation Cards
+- 8 cards with stock movements but no goal or reward
+- Always playable (no requirement to meet)
+- Still cost +2 investigation when played
+
 ## Strategy Tips
 
-- Your goal cards give you advance knowledge of some stock movements
-- Other players have different information on their goal cards
-- Your resource cards are hidden, so you can bluff about what you have during trading
-- Trading lets you position yourself for your goals while misleading others
-- Timing when to play each goal card is crucial
+- Your goal cards give you advance knowledge of future stock movements
+- Other players have different information - watch their actions for clues
+- Your resource cards are hidden, so you can bluff about what you have
+- Timing is everything: Play goal cards early for bonuses, or hold them to manipulate prices at key moments
+- Watch the Federal Investigation tracker - sometimes it's better to sell than play a goal card
 - Selling at the right time can be more valuable than completing goals
-- Having more cards gives you flexibility; having more money gives you buying power
+- Hot stocks are risky to sell (they advance the investigation), but sometimes necessary
+- The player who triggers the end game isn't necessarily the winner!
 
-## Notes
+## Quick Reference
 
-- Resource cards in your hand are kept hidden from other players
-- Goal cards remain hidden until revealed during Goal Resolution
-- Stock prices can go above or below their starting value of $4
-- Once a goal card is revealed, it stays visible but only the player who revealed it could claim its bonus
+**Your Turn Options:**
+1. Start an auction on a face-up stock
+2. Sell one stock card
+3. Play a goal card (+2 investigation)
 
+**Investigation Increases:**
+- Goal/manipulation card played: +2
+- Hot stock sold: +1
+
+**Game Ends:** Investigation reaches threshold (5 × players), then everyone gets one final turn
