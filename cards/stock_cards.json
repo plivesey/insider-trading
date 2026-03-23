@@ -1,0 +1,37 @@
+[
+  { "color": "Blue", "type": "blank" },
+  { "color": "Blue", "type": "blank" },
+  { "color": "Blue", "type": "blank" },
+  { "color": "Blue", "type": "blank" },
+  { "color": "Blue", "type": "stock_up", "ability": "When gained, increase any stock by 1" },
+  { "color": "Blue", "type": "stock_down", "ability": "When gained, decrease any stock by 1" },
+  { "color": "Blue", "type": "hype", "ability": "When gained, Blue +1. When sold, Blue -1" },
+  { "color": "Blue", "type": "insider", "ability": "When gained, draw a Type A card" },
+
+  { "color": "Orange", "type": "blank" },
+  { "color": "Orange", "type": "blank" },
+  { "color": "Orange", "type": "blank" },
+  { "color": "Orange", "type": "blank" },
+  { "color": "Orange", "type": "stock_up", "ability": "When gained, increase any stock by 1" },
+  { "color": "Orange", "type": "stock_down", "ability": "When gained, decrease any stock by 1" },
+  { "color": "Orange", "type": "hype", "ability": "When gained, Orange +1. When sold, Orange -1" },
+  { "color": "Orange", "type": "insider", "ability": "When gained, draw a Type A card" },
+
+  { "color": "Yellow", "type": "blank" },
+  { "color": "Yellow", "type": "blank" },
+  { "color": "Yellow", "type": "blank" },
+  { "color": "Yellow", "type": "blank" },
+  { "color": "Yellow", "type": "stock_up", "ability": "When gained, increase any stock by 1" },
+  { "color": "Yellow", "type": "stock_down", "ability": "When gained, decrease any stock by 1" },
+  { "color": "Yellow", "type": "hype", "ability": "When gained, Yellow +1. When sold, Yellow -1" },
+  { "color": "Yellow", "type": "insider", "ability": "When gained, draw a Type A card" },
+
+  { "color": "Purple", "type": "blank" },
+  { "color": "Purple", "type": "blank" },
+  { "color": "Purple", "type": "blank" },
+  { "color": "Purple", "type": "blank" },
+  { "color": "Purple", "type": "stock_up", "ability": "When gained, increase any stock by 1" },
+  { "color": "Purple", "type": "stock_down", "ability": "When gained, decrease any stock by 1" },
+  { "color": "Purple", "type": "hype", "ability": "When gained, Purple +1. When sold, Purple -1" },
+  { "color": "Purple", "type": "insider", "ability": "When gained, draw a Type A card" }
+]

@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Insider Trading - Card Visualizer</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Georgia', serif;
+            background: #f5f0e8;
+            padding: 20px;
+            color: #2c2c2c;
+        }
+
+        .controls {
+            max-width: 1200px;
+            margin: 0 auto 30px;
+            padding: 20px;
+            background: #fff;
+            border: 2px solid #8b7355;
+            border-radius: 8px;
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .controls h1 {
+            font-size: 22px;
+            color: #4a3728;
+            width: 100%;
+            margin-bottom: 5px;
+        }
+
+        .controls label {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 14px;
+            cursor: pointer;
+            padding: 6px 12px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            background: #fafafa;
+        }
+
+        .controls label:hover { background: #f0ebe3; }
+        .controls input[type="checkbox"] { cursor: pointer; }
+
+        h2 {
+            text-align: center;
+            margin: 30px 0 15px;
+            font-size: 22px;
+            color: #4a3728;
+            border-bottom: 2px solid #8b7355;
+            padding-bottom: 8px;
+            max-width: 1200px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .cards-container {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+            max-width: 1200px;
+            margin: 0 auto 40px;
+        }
+
+        .card {
+            background: #fffef9;
+            border: 2px solid #333;
+            border-radius: 8px;
+            padding: 14px;
+            aspect-ratio: 2.5 / 3.5;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 2px 2px 6px rgba(0,0,0,0.15);
+            position: relative;
+        }
+
+        .card-header {
+            font-size: 10px;
+            font-weight: 600;
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+        }
+
+        /* Stock card styles */
+        .stock-badge {
+            flex-grow: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            padding: 8px;
+        }
+
+        .stock-ticket {
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 90%;
+            padding: 18px 24px;
+            border-radius: 6px;
+            border: 2px solid;
+        }
+
+        .stock-ticket::before,
+        .stock-ticket::after {
+            content: '';
+            position: absolute;
+            width: 14px;
+            height: 14px;
+            background: #fffef9;
+            border-radius: 50%;
+            border: 2px solid;
+        }
+        .stock-ticket::before { left: -9px; top: 50%; transform: translateY(-50%); }
+        .stock-ticket::after { right: -9px; top: 50%; transform: translateY(-50%); }
+
+        .stock-ticket.Blue { background: rgba(41, 128, 185, 0.1); border-color: #2980b9; }
+        .stock-ticket.Blue::before, .stock-ticket.Blue::after { border-color: #2980b9; }
+        .stock-ticket.Orange { background: rgba(230, 126, 34, 0.1); border-color: #e67e22; }
+        .stock-ticket.Orange::before, .stock-ticket.Orange::after { border-color: #e67e22; }
+        .stock-ticket.Yellow { background: rgba(212, 160, 23, 0.12); border-color: #d4a017; }
+        .stock-ticket.Yellow::before, .stock-ticket.Yellow::after { border-color: #d4a017; }
+        .stock-ticket.Purple { background: rgba(142, 68, 173, 0.1); border-color: #8e44ad; }
+        .stock-ticket.Purple::before, .stock-ticket.Purple::after { border-color: #8e44ad; }
+
+        .card-color {
+            font-size: 32px;
+            font-weight: 900;
+            text-align: center;
+        }
+
+        .card-color.Blue { color: #2980b9; }
+        .card-color.Orange { color: #e67e22; }
+        .card-color.Yellow { color: #d4a017; }
+        .card-color.Purple { color: #8e44ad; }
+
+        .card-ability {
+            font-size: 12px;
+            color: #333;
+            text-align: center;
+            padding: 8px 6px;
+            border-top: 1px solid #ddd;
+            min-height: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            line-height: 1.4;
+            font-style: italic;
+        }
+
+        .card-ability.empty { visibility: hidden; }
+
+        /* Action card styles */
+        .card.action-card {
+            border-color: #c0392b;
+            background: #fff8f6;
+        }
+
+        .card.action-card .card-header { color: #c0392b; }
+
+        .action-name {
+            font-size: 16px;
+            font-weight: 700;
+            text-align: center;
+            color: #2c2c2c;
+            padding: 0 4px;
+        }
+
+        .action-body {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 10px 8px;
+            width: 100%;
+        }
+
+        .action-desc {
+            font-size: 13px;
+            text-align: center;
+            line-height: 1.5;
+            color: #444;
+        }
+
+        .action-tag {
+            font-size: 10px;
+            font-weight: 700;
+            color: #fff;
+            background: #c0392b;
+            padding: 2px 8px;
+            border-radius: 10px;
+            margin-top: 8px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .action-tag.todo {
+            background: #e67e22;
+        }
+
+        /* Crisis card styles */
+        .card.crisis-card {
+            border-color: #7f1d1d;
+            background: #1a1a2e;
+            color: #fce4e4;
+        }
+
+        .card.crisis-card .card-header { color: #ff6b6b; }
+
+        .crisis-name {
+            font-size: 20px;
+            font-weight: 900;
+            color: #ff4444;
+            text-align: center;
+        }
+
+        .crisis-body {
+            flex-grow: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .crisis-effect {
+            font-size: 14px;
+            text-align: center;
+            line-height: 1.5;
+            color: #e0d0d0;
+        }
+
+        /* Goal card styles */
+        .card.goal-card {
+            border-color: #27ae60;
+            background: #f6fff8;
+        }
+
+        .card.goal-card .card-header { color: #27ae60; }
+
+        .goal-req {
+            font-size: 16px;
+            font-weight: 700;
+            text-align: center;
+            color: #2c2c2c;
+        }
+
+        .goal-body {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .goal-reward {
+            font-size: 13px;
+            text-align: center;
+            color: #444;
+            padding: 6px 10px;
+            border: 1px dashed #27ae60;
+            border-radius: 4px;
+        }
+
+        .goal-difficulty {
+            font-size: 10px;
+            font-weight: 700;
+            color: #fff;
+            padding: 2px 8px;
+            border-radius: 10px;
+            text-transform: uppercase;
+        }
+
+        .goal-difficulty.easy { background: #27ae60; }
+        .goal-difficulty.medium { background: #e67e22; }
+        .goal-difficulty.hard { background: #c0392b; }
+
+        /* Market manipulation card styles */
+        .card.manipulation-card {
+            border-color: #2c3e50;
+            background: #f0f3f5;
+        }
+
+        .card.manipulation-card .card-header { color: #2c3e50; }
+
+        .manipulation-body {
+            flex-grow: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .manipulation-change {
+            font-size: 22px;
+            font-weight: 900;
+            text-align: center;
+            color: #2c3e50;
+        }
+
+        /* TODO placeholder */
+        .todo-section {
+            max-width: 1200px;
+            margin: 0 auto 40px;
+            padding: 30px;
+            background: #fff3cd;
+            border: 2px dashed #e67e22;
+            border-radius: 8px;
+            text-align: center;
+            font-size: 16px;
+            color: #856404;
+        }
+
+        .section { display: none; }
+        .section.visible { display: block; }
+
+        @media print {
+            @page { size: portrait; margin: 0.3in; }
+            body { background: white; padding: 0; }
+            .controls { display: none; }
+            .section { display: block !important; }
+            .cards-container {
+                grid-template-columns: repeat(4, 1fr);
+                gap: 14px;
+                width: 100%;
+                max-width: none;
+            }
+            .card {
+                box-shadow: none;
+                page-break-inside: avoid;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+            .stock-ticket, .stock-ticket::before, .stock-ticket::after {
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+            .card.crisis-card {
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+            .action-tag, .goal-difficulty {
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="controls">
+    <h1>Insider Trading - Card Visualizer</h1>
+    <label><input type="checkbox" id="toggle-stock" checked> Stock Cards (32)</label>
+    <label><input type="checkbox" id="toggle-action" checked> Action Cards (10)</label>
+    <label><input type="checkbox" id="toggle-crisis" checked> Crisis Cards (2)</label>
+    <label><input type="checkbox" id="toggle-manipulation" checked> Market Manipulation (14)</label>
+    <label><input type="checkbox" id="toggle-goal" checked> Goal Cards (14)</label>
+</div>
+
+<div id="content"></div>
+
+<script>
+// Card data - embedded from JSON files
+const stockCards = [
+  { color: "Blue", type: "blank" },
+  { color: "Blue", type: "blank" },
+  { color: "Blue", type: "blank" },
+  { color: "Blue", type: "blank" },
+  { color: "Blue", type: "stock_up", ability: "When gained, increase any stock by 1" },
+  { color: "Blue", type: "stock_down", ability: "When gained, decrease any stock by 1" },
+  { color: "Blue", type: "hype", ability: "When gained, Blue +1. When sold, Blue -1" },
+  { color: "Blue", type: "insider", ability: "When gained, draw a Type A card" },
+  { color: "Orange", type: "blank" },
+  { color: "Orange", type: "blank" },
+  { color: "Orange", type: "blank" },
+  { color: "Orange", type: "blank" },
+  { color: "Orange", type: "stock_up", ability: "When gained, increase any stock by 1" },
+  { color: "Orange", type: "stock_down", ability: "When gained, decrease any stock by 1" },
+  { color: "Orange", type: "hype", ability: "When gained, Orange +1. When sold, Orange -1" },
+  { color: "Orange", type: "insider", ability: "When gained, draw a Type A card" },
+  { color: "Yellow", type: "blank" },
+  { color: "Yellow", type: "blank" },
+  { color: "Yellow", type: "blank" },
+  { color: "Yellow", type: "blank" },
+  { color: "Yellow", type: "stock_up", ability: "When gained, increase any stock by 1" },
+  { color: "Yellow", type: "stock_down", ability: "When gained, decrease any stock by 1" },
+  { color: "Yellow", type: "hype", ability: "When gained, Yellow +1. When sold, Yellow -1" },
+  { color: "Yellow", type: "insider", ability: "When gained, draw a Type A card" },
+  { color: "Purple", type: "blank" },
+  { color: "Purple", type: "blank" },
+  { color: "Purple", type: "blank" },
+  { color: "Purple", type: "blank" },
+  { color: "Purple", type: "stock_up", ability: "When gained, increase any stock by 1" },
+  { color: "Purple", type: "stock_down", ability: "When gained, decrease any stock by 1" },
+  { color: "Purple", type: "hype", ability: "When gained, Purple +1. When sold, Purple -1" },
+  { color: "Purple", type: "insider", ability: "When gained, draw a Type A card" },
+];
+
+const actionCards = [
+  { name: "Tipster's Choice", description: "Draw 2 cards from deck, keep 1, return other to bottom", persistent: false },
+  { name: "Corner the Market", description: "Take any face-up stock from market for free", persistent: false },
+  { name: "Pump and Dump", description: "Sell 1 stock at double its current price immediately", persistent: false },
+  { name: "Connected Broker", description: "For rest of game, gain +$1 per stock when you sell", persistent: true },
+  { name: "Market Manipulation", description: "Increase one stock by +2 OR decrease one stock by -2", persistent: false },
+  { name: "Wild Speculation", description: "Flip top card from deck, then increase OR decrease that stock by \u00b13", persistent: false },
+  { name: "Preferred Bidder", description: "For rest of game, when you tie the winning bid, you win", persistent: true },
+  { name: "Stock Certificate Forgery", description: "Complete any one goal using one fewer card than required", persistent: false },
+  { name: "Hostile Takeover", description: "Choose another player, look at their hand, take 1 stock of your choice. They receive $5", persistent: false },
+  { name: "Backroom Deal", description: "TODO: Redesign", persistent: false, todo: true },
+];
+
+const crisisCards = [
+  { name: "Market Crash", effect: "+1 End Game Tracker. Remove from game." },
+  { name: "Market Crash", effect: "+1 End Game Tracker. Remove from game." },
+];
+
+function renderStockCards() {
+    let html = '';
+    const colors = ['Blue', 'Orange', 'Yellow', 'Purple'];
+
+    for (const color of colors) {
+        const colorCards = stockCards.filter(c => c.color === color);
+        html += `<h2>${color} Stock Cards</h2><div class="cards-container">`;
+
+        for (const card of colorCards) {
+            const abilityText = card.ability || '';
+            const abilityClass = abilityText ? '' : 'empty';
+
+            html += `
+            <div class="card">
+                <div class="card-header">Stock</div>
+                <div class="stock-badge">
+                    <div class="stock-ticket ${card.color}">
+                        <div class="card-color ${card.color}">${card.color}</div>
+                    </div>
+                </div>
+                <div class="card-ability ${abilityClass}">${abilityText}</div>
+            </div>`;
+        }
+
+        html += '</div>';
+    }
+
+    return html;
+}
+
+function renderActionCards() {
+    let html = '<h2>Type B: Action Cards</h2><div class="cards-container">';
+
+    for (const card of actionCards) {
+        const tagHtml = card.persistent
+            ? '<div class="action-tag">Persistent</div>'
+            : card.todo
+            ? '<div class="action-tag todo">TODO</div>'
+            : '';
+
+        html += `
+        <div class="card action-card">
+            <div class="card-header">Action</div>
+            <div class="action-name">${card.name}</div>
+            <div class="action-body">
+                <div class="action-desc">${card.description}</div>
+                ${tagHtml}
+            </div>
+        </div>`;
+    }
+
+    html += '</div>';
+    return html;
+}
+
+function renderCrisisCards() {
+    let html = '<h2>Crisis Cards</h2><div class="cards-container">';
+
+    for (const card of crisisCards) {
+        html += `
+        <div class="card crisis-card">
+            <div class="card-header">Crisis</div>
+            <div class="crisis-body">
+                <div>
+                    <div class="crisis-name">${card.name}</div>
+                    <div class="crisis-effect">${card.effect}</div>
+                </div>
+            </div>
+        </div>`;
+    }
+
+    html += '</div>';
+    return html;
+}
+
+function renderManipulationCards() {
+    return `
+        <h2>Type A: Market Manipulation Cards</h2>
+        <div class="todo-section">
+            <strong>TODO:</strong> 14 market manipulation cards need to be designed.<br>
+            Each card shows stock price movements. Net-zero balance across all colors required.
+        </div>`;
+}
+
+function renderGoalCards() {
+    return `
+        <h2>Goal Cards</h2>
+        <div class="todo-section">
+            <strong>TODO:</strong> 14 goal cards need to be designed.<br>
+            Shared objectives with tiered difficulty (easy/medium/hard) and scaled rewards.<br>
+            Use (players + 2) goal cards per game.
+        </div>`;
+}
+
+function render() {
+    const content = document.getElementById('content');
+    let html = '';
+
+    if (document.getElementById('toggle-stock').checked) {
+        html += `<div class="section visible" id="section-stock">${renderStockCards()}</div>`;
+    }
+    if (document.getElementById('toggle-action').checked) {
+        html += `<div class="section visible" id="section-action">${renderActionCards()}</div>`;
+    }
+    if (document.getElementById('toggle-crisis').checked) {
+        html += `<div class="section visible" id="section-crisis">${renderCrisisCards()}</div>`;
+    }
+    if (document.getElementById('toggle-manipulation').checked) {
+        html += `<div class="section visible" id="section-manipulation">${renderManipulationCards()}</div>`;
+    }
+    if (document.getElementById('toggle-goal').checked) {
+        html += `<div class="section visible" id="section-goal">${renderGoalCards()}</div>`;
+    }
+
+    content.innerHTML = html;
+}
+
+// Initial render
+render();
+
+// Toggle handlers
+document.querySelectorAll('.controls input[type="checkbox"]').forEach(cb => {
+    cb.addEventListener('change', render);
+});
+
+// URL param support: ?show=stock,action,crisis
+const params = new URLSearchParams(window.location.search);
+const showParam = params.get('show');
+if (showParam) {
+    const types = showParam.split(',');
+    const allToggles = ['stock', 'action', 'crisis', 'manipulation', 'goal'];
+    for (const t of allToggles) {
+        document.getElementById(`toggle-${t}`).checked = types.includes(t);
+    }
+    render();
+}
+</script>
+
+</body>
+</html>

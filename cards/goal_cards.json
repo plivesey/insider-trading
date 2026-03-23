@@ -1,0 +1,43 @@
+{
+  "TODO": "Design 14 goal cards",
+  "requirements": {
+    "totalCards": 14,
+    "cardsPerGame": "number of players + 2",
+    "colors": ["Blue", "Orange", "Yellow", "Purple"],
+    "difficultyTiers": ["easy", "medium", "hard"],
+    "sharedPublicObjectives": true
+  },
+  "goalTypes": {
+    "easy (2-3 stocks)": {
+      "examples": ["2 Blues", "1 Blue + 1 Orange + 1 Yellow"],
+      "rewards": "2 coins OR peek at top 2 cards"
+    },
+    "medium (3-4 stocks)": {
+      "examples": ["3 Blues", "2 Blues + 2 Oranges", "1 of each color"],
+      "rewards": "3 coins OR adjust any stock +/-1"
+    },
+    "hard (4-5 stocks)": {
+      "examples": ["4 Blues", "3 Blues + 2 Yellows", "2 Blues + 2 Oranges + 1 Purple"],
+      "rewards": "5 coins OR draw 1 card OR adjust any stock +/-2"
+    }
+  },
+  "cardSchema": {
+    "id": "number",
+    "goal": {
+      "text": "string (e.g., '2 Blue + 1 Orange')",
+      "parsed": {
+        "type": "string (pair, pair_plus_specific, three_different, etc.)",
+        "requirements": "object (e.g., { 'Blue': 2, 'Orange': 1 })"
+      }
+    },
+    "reward": {
+      "text": "string (e.g., 'Gain $3')",
+      "parsed": {
+        "type": "string",
+        "amount": "number"
+      }
+    },
+    "difficulty": "string (easy, medium, hard)"
+  },
+  "cards": []
+}

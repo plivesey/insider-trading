@@ -1,0 +1,101 @@
+[
+  {
+    "id": 1,
+    "name": "Tipster's Choice",
+    "description": "Draw 2 cards from deck, keep 1, return other to bottom",
+    "persistent": false,
+    "effect": {
+      "type": "draw_and_choose",
+      "drawCount": 2,
+      "keepCount": 1
+    }
+  },
+  {
+    "id": 2,
+    "name": "Corner the Market",
+    "description": "Take any face-up stock from market for free",
+    "persistent": false,
+    "effect": {
+      "type": "take_face_up"
+    }
+  },
+  {
+    "id": 3,
+    "name": "Pump and Dump",
+    "description": "Sell 1 stock at double its current price immediately",
+    "persistent": false,
+    "effect": {
+      "type": "sell_double",
+      "count": 1
+    }
+  },
+  {
+    "id": 4,
+    "name": "Connected Broker",
+    "description": "For rest of game, gain +$1 per stock when you sell",
+    "persistent": true,
+    "effect": {
+      "type": "sell_bonus",
+      "amount": 1
+    }
+  },
+  {
+    "id": 5,
+    "name": "Market Manipulation",
+    "description": "Increase one stock by +2 OR decrease one stock by -2",
+    "persistent": false,
+    "effect": {
+      "type": "adjust_stock",
+      "amount": 2
+    }
+  },
+  {
+    "id": 6,
+    "name": "Wild Speculation",
+    "description": "Flip top card from deck, then increase OR decrease that stock by +/-3",
+    "persistent": false,
+    "effect": {
+      "type": "flip_and_adjust",
+      "amount": 3
+    }
+  },
+  {
+    "id": 7,
+    "name": "Preferred Bidder",
+    "description": "For rest of game, when you tie the winning bid, you win",
+    "persistent": true,
+    "effect": {
+      "type": "tie_breaker"
+    }
+  },
+  {
+    "id": 8,
+    "name": "Stock Certificate Forgery",
+    "description": "Complete any one goal using one fewer card than required",
+    "persistent": false,
+    "effect": {
+      "type": "goal_discount",
+      "discount": 1
+    }
+  },
+  {
+    "id": 9,
+    "name": "Hostile Takeover",
+    "description": "Choose another player, look at their hand, take 1 stock of your choice. They receive $5 from the bank",
+    "persistent": false,
+    "effect": {
+      "type": "steal_stock",
+      "compensation": 5
+    }
+  },
+  {
+    "id": 10,
+    "name": "Backroom Deal",
+    "description": "TODO: Redesign (currently same as Tipster's Choice)",
+    "persistent": false,
+    "todo": true,
+    "effect": {
+      "type": "todo"
+    }
+  }
+]

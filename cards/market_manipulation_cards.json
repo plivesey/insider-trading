@@ -1,0 +1,18 @@
+{
+  "TODO": "Design 14 market manipulation (Type A) cards",
+  "requirements": {
+    "totalCards": 14,
+    "netZeroPerColor": true,
+    "colors": ["Blue", "Orange", "Yellow", "Purple"],
+    "stockPriceRange": [0, 10],
+    "balancedPowerLevels": true
+  },
+  "cardSchema": {
+    "id": "number",
+    "stockChange": {
+      "text": "string (e.g., 'Blue +2')",
+      "parsed": "object (e.g., { 'Blue': 2 })"
+    }
+  },
+  "cards": []
+}
