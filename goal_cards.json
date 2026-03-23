@@ -176,13 +176,13 @@
       }
     },
     "reward": {
-      "text": "Gain $2",
+      "text": "Your next auction costs $2 less",
       "parsed": {
-        "type": "gain_cash",
-        "amount": 2,
+        "type": "next_auction_discount",
+        "discount": 2,
         "requiresTarget": false,
         "requiresChoice": false,
-        "value": 2.0
+        "value": 2.25
       }
     },
     "metadata": {
@@ -190,8 +190,8 @@
       "rewardTier": "medium",
       "completionProbability": 0.6,
       "stockEV": 0.75,
-      "totalEV": 2.75,
-      "score": 2.75
+      "totalEV": 2.8999999999999995,
+      "score": 2.8999999999999995
     }
   },
   {
@@ -212,13 +212,13 @@
       }
     },
     "reward": {
-      "text": "Your next auction costs $2 less",
+      "text": "Gain $2",
       "parsed": {
-        "type": "next_auction_discount",
-        "discount": 2,
+        "type": "gain_cash",
+        "amount": 2,
         "requiresTarget": false,
         "requiresChoice": false,
-        "value": 1.75
+        "value": 2.0
       }
     },
     "metadata": {
@@ -226,8 +226,8 @@
       "rewardTier": "medium",
       "completionProbability": 0.4,
       "stockEV": 1.0,
-      "totalEV": 2.9000000000000004,
-      "score": 2.9000000000000004
+      "totalEV": 3.0,
+      "score": 3.0
     }
   },
   {
@@ -248,22 +248,22 @@
       }
     },
     "reward": {
-      "text": "Gain $2",
+      "text": "Adjust any one stock price by \u00b12",
       "parsed": {
-        "type": "gain_cash",
+        "type": "adjust_stock_2",
         "amount": 2,
         "requiresTarget": false,
-        "requiresChoice": false,
-        "value": 2.0
+        "requiresChoice": true,
+        "value": 2.5
       }
     },
     "metadata": {
       "goalType": "pair",
-      "rewardTier": "medium",
+      "rewardTier": "high",
       "completionProbability": 0.8,
       "stockEV": 0.75,
-      "totalEV": 2.55,
-      "score": 2.55
+      "totalEV": 2.95,
+      "score": 2.95
     }
   },
   {
@@ -323,13 +323,13 @@
       }
     },
     "reward": {
-      "text": "Adjust any one stock price by \u00b12",
+      "text": "Your next auction costs $2 less",
       "parsed": {
-        "type": "adjust_stock_2",
-        "amount": 2,
+        "type": "next_auction_discount",
+        "discount": 2,
         "requiresTarget": false,
-        "requiresChoice": true,
-        "value": 2.0
+        "requiresChoice": false,
+        "value": 2.25
       }
     },
     "metadata": {
@@ -337,8 +337,8 @@
       "rewardTier": "medium",
       "completionProbability": 0.7,
       "stockEV": 0.75,
-      "totalEV": 2.75,
-      "score": 2.75
+      "totalEV": 2.9250000000000003,
+      "score": 2.9250000000000003
     }
   },
   {
@@ -360,12 +360,12 @@
       }
     },
     "reward": {
-      "text": "Adjust any one stock price by \u00b12",
+      "text": "Gain $2",
       "parsed": {
-        "type": "adjust_stock_2",
+        "type": "gain_cash",
         "amount": 2,
         "requiresTarget": false,
-        "requiresChoice": true,
+        "requiresChoice": false,
         "value": 2.0
       }
     },
@@ -470,11 +470,12 @@
       }
     },
     "reward": {
-      "text": "Peek at top 5 cards of the resource deck, and rearrange them in any order",
+      "text": "Draw 2 goal cards",
       "parsed": {
-        "type": "peek_and_rearrange_5",
+        "type": "draw_goal_cards",
+        "amount": 2,
         "requiresTarget": false,
-        "requiresChoice": true,
+        "requiresChoice": false,
         "value": 0.75
       }
     },
@@ -508,13 +509,13 @@
       }
     },
     "reward": {
-      "text": "Adjust any one stock price by \u00b12",
+      "text": "Your next auction costs $2 less",
       "parsed": {
-        "type": "adjust_stock_2",
-        "amount": 2,
+        "type": "next_auction_discount",
+        "discount": 2,
         "requiresTarget": false,
-        "requiresChoice": true,
-        "value": 2.0
+        "requiresChoice": false,
+        "value": 2.25
       }
     },
     "metadata": {
@@ -522,8 +523,8 @@
       "rewardTier": "medium",
       "completionProbability": 0.7,
       "stockEV": 0.75,
-      "totalEV": 2.75,
-      "score": 2.75
+      "totalEV": 2.9250000000000003,
+      "score": 2.9250000000000003
     }
   },
   {
@@ -544,22 +545,22 @@
       }
     },
     "reward": {
-      "text": "Steal $1 from another player",
+      "text": "Adjust any one stock price by \u00b11",
       "parsed": {
-        "type": "steal_cash",
+        "type": "adjust_stock",
         "amount": 1,
-        "requiresTarget": true,
-        "requiresChoice": false,
-        "value": 1.5
+        "requiresTarget": false,
+        "requiresChoice": true,
+        "value": 1.25
       }
     },
     "metadata": {
       "goalType": "pair",
-      "rewardTier": "medium",
+      "rewardTier": "low",
       "completionProbability": 0.8,
       "stockEV": 1.5,
-      "totalEV": 3.1,
-      "score": 3.1
+      "totalEV": 2.9,
+      "score": 2.9
     }
   },
   {
@@ -618,12 +619,13 @@
       }
     },
     "reward": {
-      "text": "Extra turn: take another action immediately",
+      "text": "Adjust any one stock price by \u00b11",
       "parsed": {
-        "type": "extra_turn",
+        "type": "adjust_stock",
+        "amount": 1,
         "requiresTarget": false,
-        "requiresChoice": false,
-        "value": 1.0
+        "requiresChoice": true,
+        "value": 1.25
       }
     },
     "metadata": {
@@ -631,8 +633,8 @@
       "rewardTier": "low",
       "completionProbability": 0.6,
       "stockEV": 1.5,
-      "totalEV": 2.9000000000000004,
-      "score": 2.9000000000000004
+      "totalEV": 3.05,
+      "score": 3.05
     }
   },
   {
@@ -767,12 +769,13 @@
       }
     },
     "reward": {
-      "text": "Extra turn: take another action immediately",
+      "text": "Adjust any one stock price by \u00b11",
       "parsed": {
-        "type": "extra_turn",
+        "type": "adjust_stock",
+        "amount": 1,
         "requiresTarget": false,
-        "requiresChoice": false,
-        "value": 1.0
+        "requiresChoice": true,
+        "value": 1.25
       }
     },
     "metadata": {
@@ -780,8 +783,8 @@
       "rewardTier": "low",
       "completionProbability": 0.4,
       "stockEV": 1.25,
-      "totalEV": 2.8499999999999996,
-      "score": 2.8499999999999996
+      "totalEV": 2.95,
+      "score": 2.95
     }
   },
   {
@@ -804,12 +807,13 @@
       }
     },
     "reward": {
-      "text": "Swap one of your resource cards with a face-up auction card",
+      "text": "Adjust any one stock price by \u00b12",
       "parsed": {
-        "type": "swap_with_face_up",
+        "type": "adjust_stock_2",
+        "amount": 2,
         "requiresTarget": false,
         "requiresChoice": true,
-        "value": 3.0
+        "value": 2.5
       }
     },
     "metadata": {
@@ -817,8 +821,8 @@
       "rewardTier": "high",
       "completionProbability": 0.35,
       "stockEV": 0.75,
-      "totalEV": 3.0999999999999996,
-      "score": 3.0999999999999996
+      "totalEV": 2.925,
+      "score": 2.925
     }
   },
   {
@@ -842,12 +846,13 @@
       }
     },
     "reward": {
-      "text": "Swap one of your resource cards with a face-up auction card",
+      "text": "Adjust any one stock price by \u00b12",
       "parsed": {
-        "type": "swap_with_face_up",
+        "type": "adjust_stock_2",
+        "amount": 2,
         "requiresTarget": false,
         "requiresChoice": true,
-        "value": 3.0
+        "value": 2.5
       }
     },
     "metadata": {
@@ -855,8 +860,8 @@
       "rewardTier": "high",
       "completionProbability": 0.7,
       "stockEV": 0.5,
-      "totalEV": 3.1999999999999997,
-      "score": 3.1999999999999997
+      "totalEV": 2.85,
+      "score": 2.85
     }
   },
   {
@@ -879,22 +884,21 @@
       }
     },
     "reward": {
-      "text": "Your next auction costs $2 less",
+      "text": "Swap one of your resource cards with a face-up auction card",
       "parsed": {
-        "type": "next_auction_discount",
-        "discount": 2,
+        "type": "swap_with_face_up",
         "requiresTarget": false,
-        "requiresChoice": false,
-        "value": 1.75
+        "requiresChoice": true,
+        "value": 3.0
       }
     },
     "metadata": {
       "goalType": "two_pair",
-      "rewardTier": "medium",
+      "rewardTier": "high",
       "completionProbability": 0.35,
       "stockEV": 0.75,
-      "totalEV": 2.6624999999999996,
-      "score": 2.6624999999999996
+      "totalEV": 3.0999999999999996,
+      "score": 3.0999999999999996
     }
   },
   {

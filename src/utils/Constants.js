@@ -57,17 +57,17 @@ export const REWARD_TYPES = {
   EXTRA_TURN: 'extra_turn',
   SWAP_WITH_FACE_UP: 'swap_with_face_up',
   ADJUST_STOCK_2: 'adjust_stock_2',
-  PEEK_AND_REARRANGE_5: 'peek_and_rearrange_5'
+  DRAW_GOAL_CARDS: 'draw_goal_cards'
 };
 
 export const DEFAULT_CONFIG = {
-  startingCash: 6,
+  startingCash: 10,
   startingResourceCards: 2,
   startingGoalCards: 3,
-  startingStockPrice: 4,
+  startingStockPrice: 5,
   totalRounds: 3,
   tradingDuration: 120000, // 2 minutes in milliseconds
-  minStockPrice: 1,
+  minStockPrice: 0,
   maxStockPrice: 10
 };
 

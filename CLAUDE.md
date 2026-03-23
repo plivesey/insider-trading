@@ -12,7 +12,7 @@ This is a strategic market manipulation board game for 3+ players where players 
 
 ### Resources
 - **4 colors of resource cards**: Blue, Red, Yellow, Black
-- Each color represents a stock with a fluctuating price ($1-$10, starting at $4)
+- Each color represents a stock with a fluctuating price ($0-$10, starting at $5)
 - **Resource deck**: 32 cards total (8 of each color)
 - **Hot Stocks**: 2 per color (8 total, 25%) - marked with special icon, add +1 to Federal Investigation when sold
 
@@ -20,14 +20,15 @@ This is a strategic market manipulation board game for 3+ players where players 
 - Each player receives:
   - **2 resource cards** (hidden)
   - **3 goal cards** (hidden)
-  - **$6 in cash**
+  - **$10 in cash**
 - **4 face-up cards** available for auction
 
 ### Turn Structure
 On each turn, a player chooses ONE action:
 1. **Auction**: Bid on one of the 4 face-up cards (replaced from deck after purchase)
 2. **Sell**: Sell any number of resource cards at current stock prices (hot stocks add +1 investigation each)
-3. **Play Goal Card**: Reveal a goal card, apply stock changes, claim reward if goal is met (+2 investigation)
+3. **Draw Goal Card**: Draw one goal card from the deck into your hand
+4. **Play Goal Card**: Reveal a goal card, apply stock changes, claim reward if goal is met (+2 investigation)
 
 ### Federal Investigation Tracker
 - Starts at 0
@@ -67,18 +68,18 @@ Bonus for completing the goal. 13 unique rewards, each used 1-3 times across 24 
 
 **Rewards (weakest to strongest):**
 1. Choose investigation increase (0-3) when playing this card
-2. Look at a random goal card from another player
-3. Gain $1
-4. Steal $1 from another player
-5. Peek at top 5 cards of the resource deck, rearrange in any order
-6. Your next auction costs $2 less
-7. Gain $2
-8. Extra turn: take another action immediately
-9. Gain $3
-10. Adjust any one stock price by ±1
-11. Swap one of your resource cards with a face-up auction card
-12. Gain $4
-13. Adjust any one stock price by ±2
+2. Draw 2 goal cards
+3. Extra turn: take another action immediately
+4. Look at a random goal card from another player
+5. Gain $1
+6. Adjust any one stock price by ±1
+7. Steal $1 from another player
+8. Gain $2
+9. Your next auction costs $2 less
+10. Adjust any one stock price by ±2
+11. Gain $3
+12. Swap one of your resource cards with a face-up auction card
+13. Gain $4
 
 ### Market Manipulation Cards (8 cards)
 - No goal requirement or reward
@@ -163,7 +164,7 @@ insider-trading/
 │   │   └── DeckManager.js         # Deck operations
 │   │
 │   ├── systems/
-│   │   ├── StockPriceSystem.js    # Price calculations ($1-$10)
+│   │   ├── StockPriceSystem.js    # Price calculations ($0-$10)
 │   │   ├── RewardSystem.js        # Interactive rewards
 │   │   ├── ValidationSystem.js    # Action validation
 │   │   └── TurnSystem.js          # Phase transitions
@@ -360,7 +361,7 @@ engine.executeAction({
 **Test Coverage**: 162 tests across 3 layers
 
 **Unit Tests**:
-- `StockPriceSystem.test.js`: Price calculations, constraints ($1-$10), accumulation
+- `StockPriceSystem.test.js`: Price calculations, constraints ($0-$10), accumulation
 - `ValidationSystem.test.js`: All action validations with edge cases
 - `DeckManager.test.js`: Shuffle, draw, peek, rearrange operations
 - `ConservativeAI.test.js`: AI decision-making across all phases

@@ -26,15 +26,15 @@ STOCK_CHANGES = [
 # Each reward can be used multiple times (no fixed count requirement)
 REWARDS_WITH_VALUES = [
     ("Choose investigation increase (0-3) when playing this card", 0.75),
-    ("Peek at top 5 cards of the resource deck, and rearrange them in any order", 0.75),
+    ("Draw 2 goal cards", 0.75),
     ("Extra turn: take another action immediately", 1.00),
     ("Look at a random goal card from another player", 1.00),
     ("Gain $1", 1.00),
-    ("Adjust any one stock price by ±1", 1.00),
+    ("Adjust any one stock price by ±1", 1.25),
     ("Steal $1 from another player", 1.50),
-    ("Your next auction costs $2 less", 1.75),
+    ("Your next auction costs $2 less", 2.25),
     ("Gain $2", 2.00),
-    ("Adjust any one stock price by ±2", 2.00),
+    ("Adjust any one stock price by ±2", 2.50),
     ("Gain $3", 3.00),
     ("Swap one of your resource cards with a face-up auction card", 3.00),
     ("Gain $4", 4.00),
@@ -846,12 +846,13 @@ def parse_reward(reward_text: str, reward_tier: str) -> Dict:
             "value": value
         }
 
-    # Peek at top 5 and rearrange
-    if "peek at top 5" in reward_lower or "rearrange" in reward_lower:
+    # Draw 2 goal cards
+    if "draw 2 goal" in reward_lower:
         return {
-            "type": "peek_and_rearrange_5",
+            "type": "draw_goal_cards",
+            "amount": 2,
             "requiresTarget": False,
-            "requiresChoice": True,
+            "requiresChoice": False,
             "value": value
         }
 

@@ -18,9 +18,9 @@ A strategic trading and market manipulation game for 3+ players where you auctio
 
 ### Currency & Tracking
 - Coin tokens representing money
-- Each player starts with $6
-- All stocks start at a value of $4 each
-- **Stock Price Board**: Tracks current prices for all four stocks ($1-$10)
+- Each player starts with $10
+- All stocks start at a value of $5 each
+- **Stock Price Board**: Tracks current prices for all four stocks ($0-$10)
 - **Federal Investigation Tracker**: Tracks suspicion level (0 to threshold)
 
 ## Setup
@@ -29,8 +29,8 @@ A strategic trading and market manipulation game for 3+ players where you auctio
 2. Reveal **4 face-up stock cards** from the deck (these are available for auction)
 3. Deal 2 random resource cards to each player (kept private/hidden)
 4. Deal 3 goal cards to each player (kept private/hidden)
-5. Give each player $6 in coins
-6. Set all stock prices to $4 on the Stock Price Board
+5. Give each player $10 in coins
+6. Set all stock prices to $5 on the Stock Price Board
 7. Set Federal Investigation tracker to 0
 8. Randomly determine who goes first
 
@@ -51,11 +51,14 @@ Players take turns clockwise. On your turn, choose **ONE** of the following acti
 - **If you sell a Hot Stock** (marked with special icon): Increase Federal Investigation by **+1**
 - Remove the sold card from the game
 
-### Option 3: Play a Goal Card
+### Option 3: Draw a Goal Card
+- Draw one goal card from the goal card deck into your hand
+
+### Option 4: Play a Goal Card
 - Reveal one of your hidden goal cards (or market manipulation cards)
 - **Increase Federal Investigation by +2** (this is obvious market manipulation!)
 - **Adjust stock prices** according to the card's movement instruction
-  - Stock prices are constrained to $1-$10
+  - Stock prices are constrained to $0-$10
 - **Check for goal completion** (goal cards only): If you have the required resource cards, collect the bonus reward
 - Keep the revealed card visible for the rest of the game
 
@@ -101,19 +104,20 @@ Players take turns clockwise. On your turn, choose **ONE** of the following acti
 - **Two Pair**: 2 each of two colors (e.g., "2 Blue + 2 Red")
 - **One of Every**: 1 of each color (e.g., "1 Blue + 1 Red + 1 Yellow + 1 Black")
 
-### Rewards (12 types, ordered by value)
+### Rewards (13 types, ordered by value)
 1. Choose investigation increase (0-3) when playing this card
-2. Look at a random goal card from another player
-3. Gain $1
-4. Steal $1 from another player
-5. Peek at top 5 cards, rearrange in any order
-6. Your next auction costs $2 less
-7. Gain $2
-8. Extra turn (take another action immediately)
-9. Gain $3
-10. Adjust any one stock price by +-1
-11. Swap one of your cards with a face-up card
-12. Adjust any one stock price by +-2
+2. Draw 2 goal cards
+3. Extra turn (take another action immediately)
+4. Look at a random goal card from another player
+5. Gain $1
+6. Adjust any one stock price by +-1
+7. Steal $1 from another player
+8. Gain $2
+9. Your next auction costs $2 less
+10. Adjust any one stock price by +-2
+11. Gain $3
+12. Swap one of your cards with a face-up card
+13. Gain $4
 
 ### Market Manipulation Cards
 - 8 cards with stock movements but no goal or reward
@@ -136,7 +140,8 @@ Players take turns clockwise. On your turn, choose **ONE** of the following acti
 **Your Turn Options:**
 1. Start an auction on a face-up stock
 2. Sell one stock card
-3. Play a goal card (+2 investigation)
+3. Draw a goal card
+4. Play a goal card (+2 investigation)
 
 **Investigation Increases:**
 - Goal/manipulation card played: +2

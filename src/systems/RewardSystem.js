@@ -59,9 +59,9 @@ export class RewardSystem {
       case REWARD_TYPES.ADJUST_STOCK_2:
         return this.executeAdjustStock(state, choices.color, choices.direction, 2);
 
-      case REWARD_TYPES.PEEK_AND_REARRANGE_5:
-        // TODO: Implement peek_and_rearrange_5 - peek at top 5 and rearrange
-        return this.executePeekAndRearrange5(state, playerId, choices);
+      case REWARD_TYPES.DRAW_GOAL_CARDS:
+        // TODO: Implement draw_goal_cards - draw 2 goal cards
+        return this.executeDrawGoalCards(state, playerId, rewardParsed.amount || 2);
 
       default:
         console.warn(`Unknown reward type: ${rewardType}`);
@@ -199,13 +199,14 @@ export class RewardSystem {
   }
 
   /**
-   * Peek at top 5 cards and rearrange them
+   * Draw goal cards reward
    * TODO: Full implementation needed
    */
-  executePeekAndRearrange5(state, playerId, choices) {
+  executeDrawGoalCards(state, playerId, amount) {
     this.eventEmitter.emit(EVENT_TYPES.REWARD_EXECUTED, {
-      type: 'peek_and_rearrange_5',
-      playerId
+      type: 'draw_goal_cards',
+      playerId,
+      amount
     });
 
     return true;
