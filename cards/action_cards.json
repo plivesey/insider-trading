@@ -41,7 +41,7 @@
   },
   {
     "id": 5,
-    "name": "Market Manipulation",
+    "name": "The Squeeze",
     "description": "Increase one stock by +2 OR decrease one stock by -2",
     "persistent": false,
     "effect": {
@@ -90,12 +90,12 @@
   },
   {
     "id": 10,
-    "name": "Backroom Deal",
-    "description": "TODO: Redesign (currently same as Tipster's Choice)",
+    "name": "Rumor Mill",
+    "description": "Adjust every stock by +1 or -1",
     "persistent": false,
-    "todo": true,
     "effect": {
-      "type": "todo"
+      "type": "adjust_all_stocks",
+      "amount": 1
     }
   }
 ]

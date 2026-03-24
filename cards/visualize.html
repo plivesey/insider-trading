@@ -49,18 +49,6 @@
         .controls label:hover { background: #f0ebe3; }
         .controls input[type="checkbox"] { cursor: pointer; }
 
-        h2 {
-            text-align: center;
-            margin: 30px 0 15px;
-            font-size: 22px;
-            color: #4a3728;
-            border-bottom: 2px solid #8b7355;
-            padding-bottom: 8px;
-            max-width: 1200px;
-            margin-left: auto;
-            margin-right: auto;
-        }
-
         .cards-container {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
@@ -70,7 +58,7 @@
         }
 
         .card {
-            background: #fffef9;
+            background: white;
             border: 2px solid #333;
             border-radius: 8px;
             padding: 14px;
@@ -84,7 +72,7 @@
         }
 
         .card-header {
-            font-size: 10px;
+            font-size: 16px;
             font-weight: 600;
             color: #888;
             text-transform: uppercase;
@@ -118,7 +106,7 @@
             position: absolute;
             width: 14px;
             height: 14px;
-            background: #fffef9;
+            background: white;
             border-radius: 50%;
             border: 2px solid;
         }
@@ -146,7 +134,7 @@
         .card-color.Purple { color: #8e44ad; }
 
         .card-ability {
-            font-size: 12px;
+            font-size: 22px;
             color: #333;
             text-align: center;
             padding: 8px 6px;
@@ -162,15 +150,8 @@
         .card-ability.empty { visibility: hidden; }
 
         /* Action card styles */
-        .card.action-card {
-            border-color: #c0392b;
-            background: #fff8f6;
-        }
-
-        .card.action-card .card-header { color: #c0392b; }
-
         .action-name {
-            font-size: 16px;
+            font-size: 20px;
             font-weight: 700;
             text-align: center;
             color: #2c2c2c;
@@ -188,18 +169,18 @@
         }
 
         .action-desc {
-            font-size: 13px;
+            font-size: 22px;
             text-align: center;
             line-height: 1.5;
             color: #444;
         }
 
         .action-tag {
-            font-size: 10px;
+            font-size: 15px;
             font-weight: 700;
             color: #fff;
-            background: #c0392b;
-            padding: 2px 8px;
+            background: #333;
+            padding: 3px 10px;
             border-radius: 10px;
             margin-top: 8px;
             text-transform: uppercase;
@@ -211,18 +192,10 @@
         }
 
         /* Crisis card styles */
-        .card.crisis-card {
-            border-color: #7f1d1d;
-            background: #1a1a2e;
-            color: #fce4e4;
-        }
-
-        .card.crisis-card .card-header { color: #ff6b6b; }
-
         .crisis-name {
-            font-size: 20px;
+            font-size: 22px;
             font-weight: 900;
-            color: #ff4444;
+            color: #c0392b;
             text-align: center;
         }
 
@@ -234,66 +207,57 @@
         }
 
         .crisis-effect {
-            font-size: 14px;
+            font-size: 22px;
             text-align: center;
             line-height: 1.5;
-            color: #e0d0d0;
+            color: #444;
         }
 
         /* Goal card styles */
-        .card.goal-card {
-            border-color: #27ae60;
-            background: #f6fff8;
-        }
-
-        .card.goal-card .card-header { color: #27ae60; }
-
-        .goal-req {
-            font-size: 16px;
-            font-weight: 700;
-            text-align: center;
-            color: #2c2c2c;
-        }
-
         .goal-body {
             flex-grow: 1;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            gap: 10px;
+            gap: 12px;
+        }
+
+        .goal-cards-row {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .card-symbol {
+            width: 40px;
+            height: 56px;
+            border-radius: 5px;
+            border: 2px solid;
+            display: inline-block;
+        }
+
+        .card-symbol.Blue { background-color: #3498db; border-color: #2980b9; }
+        .card-symbol.Orange { background-color: #e67e22; border-color: #d35400; }
+        .card-symbol.Yellow { background-color: #f1c40f; border-color: #d4a017; }
+        .card-symbol.Purple { background-color: #9b59b6; border-color: #8e44ad; }
+
+        .goal-plus {
+            font-size: 22px;
+            font-weight: 700;
+            color: #888;
         }
 
         .goal-reward {
-            font-size: 13px;
+            font-size: 22px;
             text-align: center;
             color: #444;
-            padding: 6px 10px;
-            border: 1px dashed #27ae60;
-            border-radius: 4px;
+            line-height: 1.4;
         }
-
-        .goal-difficulty {
-            font-size: 10px;
-            font-weight: 700;
-            color: #fff;
-            padding: 2px 8px;
-            border-radius: 10px;
-            text-transform: uppercase;
-        }
-
-        .goal-difficulty.easy { background: #27ae60; }
-        .goal-difficulty.medium { background: #e67e22; }
-        .goal-difficulty.hard { background: #c0392b; }
 
         /* Market manipulation card styles */
-        .card.manipulation-card {
-            border-color: #2c3e50;
-            background: #f0f3f5;
-        }
-
-        .card.manipulation-card .card-header { color: #2c3e50; }
-
         .manipulation-body {
             flex-grow: 1;
             display: flex;
@@ -302,23 +266,11 @@
         }
 
         .manipulation-change {
-            font-size: 22px;
+            font-size: 26px;
             font-weight: 900;
             text-align: center;
-            color: #2c3e50;
-        }
-
-        /* TODO placeholder */
-        .todo-section {
-            max-width: 1200px;
-            margin: 0 auto 40px;
-            padding: 30px;
-            background: #fff3cd;
-            border: 2px dashed #e67e22;
-            border-radius: 8px;
-            text-align: center;
-            font-size: 16px;
-            color: #856404;
+            color: #2c2c2c;
+            line-height: 1.6;
         }
 
         .section { display: none; }
@@ -341,15 +293,8 @@
                 -webkit-print-color-adjust: exact;
                 print-color-adjust: exact;
             }
-            .stock-ticket, .stock-ticket::before, .stock-ticket::after {
-                -webkit-print-color-adjust: exact;
-                print-color-adjust: exact;
-            }
-            .card.crisis-card {
-                -webkit-print-color-adjust: exact;
-                print-color-adjust: exact;
-            }
-            .action-tag, .goal-difficulty {
+            .stock-ticket, .stock-ticket::before, .stock-ticket::after,
+            .card-symbol, .action-tag {
                 -webkit-print-color-adjust: exact;
                 print-color-adjust: exact;
             }
@@ -370,7 +315,6 @@
 <div id="content"></div>
 
 <script>
-// Card data - embedded from JSON files
 const stockCards = [
   { color: "Blue", type: "blank" },
   { color: "Blue", type: "blank" },
@@ -379,7 +323,7 @@ const stockCards = [
   { color: "Blue", type: "stock_up", ability: "When gained, increase any stock by 1" },
   { color: "Blue", type: "stock_down", ability: "When gained, decrease any stock by 1" },
   { color: "Blue", type: "hype", ability: "When gained, Blue +1. When sold, Blue -1" },
-  { color: "Blue", type: "insider", ability: "When gained, draw a Type A card" },
+  { color: "Blue", type: "insider", ability: "When sold, draw an unused Insider Tip Action" },
   { color: "Orange", type: "blank" },
   { color: "Orange", type: "blank" },
   { color: "Orange", type: "blank" },
@@ -387,7 +331,7 @@ const stockCards = [
   { color: "Orange", type: "stock_up", ability: "When gained, increase any stock by 1" },
   { color: "Orange", type: "stock_down", ability: "When gained, decrease any stock by 1" },
   { color: "Orange", type: "hype", ability: "When gained, Orange +1. When sold, Orange -1" },
-  { color: "Orange", type: "insider", ability: "When gained, draw a Type A card" },
+  { color: "Orange", type: "insider", ability: "When sold, draw an unused Insider Tip Action" },
   { color: "Yellow", type: "blank" },
   { color: "Yellow", type: "blank" },
   { color: "Yellow", type: "blank" },
@@ -395,7 +339,7 @@ const stockCards = [
   { color: "Yellow", type: "stock_up", ability: "When gained, increase any stock by 1" },
   { color: "Yellow", type: "stock_down", ability: "When gained, decrease any stock by 1" },
   { color: "Yellow", type: "hype", ability: "When gained, Yellow +1. When sold, Yellow -1" },
-  { color: "Yellow", type: "insider", ability: "When gained, draw a Type A card" },
+  { color: "Yellow", type: "insider", ability: "When sold, draw an unused Insider Tip Action" },
   { color: "Purple", type: "blank" },
   { color: "Purple", type: "blank" },
   { color: "Purple", type: "blank" },
@@ -403,7 +347,7 @@ const stockCards = [
   { color: "Purple", type: "stock_up", ability: "When gained, increase any stock by 1" },
   { color: "Purple", type: "stock_down", ability: "When gained, decrease any stock by 1" },
   { color: "Purple", type: "hype", ability: "When gained, Purple +1. When sold, Purple -1" },
-  { color: "Purple", type: "insider", ability: "When gained, draw a Type A card" },
+  { color: "Purple", type: "insider", ability: "When sold, draw an unused Insider Tip Action" },
 ];
 
 const actionCards = [
@@ -411,17 +355,51 @@ const actionCards = [
   { name: "Corner the Market", description: "Take any face-up stock from market for free", persistent: false },
   { name: "Pump and Dump", description: "Sell 1 stock at double its current price immediately", persistent: false },
   { name: "Connected Broker", description: "For rest of game, gain +$1 per stock when you sell", persistent: true },
-  { name: "Market Manipulation", description: "Increase one stock by +2 OR decrease one stock by -2", persistent: false },
+  { name: "The Squeeze", description: "Increase one stock by +2 OR decrease one stock by -2", persistent: false },
   { name: "Wild Speculation", description: "Flip top card from deck, then increase OR decrease that stock by \u00b13", persistent: false },
   { name: "Preferred Bidder", description: "For rest of game, when you tie the winning bid, you win", persistent: true },
   { name: "Stock Certificate Forgery", description: "Complete any one goal using one fewer card than required", persistent: false },
   { name: "Hostile Takeover", description: "Choose another player, look at their hand, take 1 stock of your choice. They receive $5", persistent: false },
-  { name: "Backroom Deal", description: "TODO: Redesign", persistent: false, todo: true },
+  { name: "Rumor Mill", description: "Adjust every stock by +1 or -1", persistent: false },
 ];
 
 const crisisCards = [
-  { name: "Market Crash", effect: "+1 End Game Tracker. Remove from game." },
-  { name: "Market Crash", effect: "+1 End Game Tracker. Remove from game." },
+  { name: "Newspaper Exposé", effect: "+1 End Game Tracker. Remove from game." },
+  { name: "Newspaper Exposé", effect: "+1 End Game Tracker. Remove from game." },
+];
+
+const goalCards = [
+  { id: 1, goal: "2 Blue", reward: "Gain $2", requirements: { Blue: 2 } },
+  { id: 2, goal: "2 Orange", reward: "Adjust any one stock by \u00b11", requirements: { Orange: 2 } },
+  { id: 3, goal: "2 Yellow", reward: "Set any one stock to exactly $5", requirements: { Yellow: 2 } },
+  { id: 4, goal: "2 Purple", reward: "Steal $1 from any one player", requirements: { Purple: 2 } },
+  { id: 5, goal: "3 Blue", reward: "Gain $5", requirements: { Blue: 3 } },
+  { id: 6, goal: "3 Orange", reward: "Adjust any one stock by \u00b13", requirements: { Orange: 3 } },
+  { id: 7, goal: "3 Yellow", reward: "Draw 1 card from the main deck", requirements: { Yellow: 3 } },
+  { id: 8, goal: "3 Purple", reward: "Swap a stock card with a face-up market card", requirements: { Purple: 3 } },
+  { id: 9, goal: "2 Blue + 2 Orange", reward: "Gain $4", requirements: { Blue: 2, Orange: 2 } },
+  { id: 10, goal: "2 Blue + 2 Yellow", reward: "Steal $1 from each other player", requirements: { Blue: 2, Yellow: 2 } },
+  { id: 11, goal: "2 Blue + 2 Purple", reward: "Adjust any one stock by \u00b12", requirements: { Blue: 2, Purple: 2 } },
+  { id: 12, goal: "2 Orange + 2 Yellow", reward: "Gain $1 per stock card you hold", requirements: { Orange: 2, Yellow: 2 } },
+  { id: 13, goal: "2 Orange + 2 Purple", reward: "Draw 2 Type A cards, discard 1", requirements: { Orange: 2, Purple: 2 } },
+  { id: 14, goal: "2 Yellow + 2 Purple", reward: "At end of game, gain $5", requirements: { Yellow: 2, Purple: 2 } },
+];
+
+const manipulationCards = [
+  { id: 1, type: "single_down", text: "Blue -3", parsed: { Blue: -3 } },
+  { id: 2, type: "single_down", text: "Orange -3", parsed: { Orange: -3 } },
+  { id: 3, type: "single_down", text: "Yellow -3", parsed: { Yellow: -3 } },
+  { id: 4, type: "single_down", text: "Purple -3", parsed: { Purple: -3 } },
+  { id: 5, type: "double_up", text: "Blue +2 / Orange +1", parsed: { Blue: 2, Orange: 1 } },
+  { id: 6, type: "double_up", text: "Orange +2 / Yellow +1", parsed: { Orange: 2, Yellow: 1 } },
+  { id: 7, type: "double_up", text: "Yellow +2 / Purple +1", parsed: { Yellow: 2, Purple: 1 } },
+  { id: 8, type: "double_up", text: "Purple +2 / Blue +1", parsed: { Purple: 2, Blue: 1 } },
+  { id: 9, type: "mixed_up", text: "Blue +2 / Orange -1", parsed: { Blue: 2, Orange: -1 } },
+  { id: 10, type: "mixed_up", text: "Orange +2 / Yellow -1", parsed: { Orange: 2, Yellow: -1 } },
+  { id: 11, type: "mixed_up", text: "Yellow +2 / Purple -1", parsed: { Yellow: 2, Purple: -1 } },
+  { id: 12, type: "mixed_down", text: "Blue -2 / Orange +1", parsed: { Blue: -2, Orange: 1 } },
+  { id: 13, type: "mixed_down", text: "Orange -2 / Yellow +1", parsed: { Orange: -2, Yellow: 1 } },
+  { id: 14, type: "mixed_down", text: "Yellow -2 / Purple +1", parsed: { Yellow: -2, Purple: 1 } },
 ];
 
 function renderStockCards() {
@@ -430,7 +408,7 @@ function renderStockCards() {
 
     for (const color of colors) {
         const colorCards = stockCards.filter(c => c.color === color);
-        html += `<h2>${color} Stock Cards</h2><div class="cards-container">`;
+        html += `<div class="cards-container">`;
 
         for (const card of colorCards) {
             const abilityText = card.ability || '';
@@ -455,7 +433,7 @@ function renderStockCards() {
 }
 
 function renderActionCards() {
-    let html = '<h2>Type B: Action Cards</h2><div class="cards-container">';
+    let html = '<div class="cards-container">';
 
     for (const card of actionCards) {
         const tagHtml = card.persistent
@@ -465,7 +443,7 @@ function renderActionCards() {
             : '';
 
         html += `
-        <div class="card action-card">
+        <div class="card">
             <div class="card-header">Action</div>
             <div class="action-name">${card.name}</div>
             <div class="action-body">
@@ -480,11 +458,11 @@ function renderActionCards() {
 }
 
 function renderCrisisCards() {
-    let html = '<h2>Crisis Cards</h2><div class="cards-container">';
+    let html = '<div class="cards-container">';
 
     for (const card of crisisCards) {
         html += `
-        <div class="card crisis-card">
+        <div class="card">
             <div class="card-header">Crisis</div>
             <div class="crisis-body">
                 <div>
@@ -500,22 +478,57 @@ function renderCrisisCards() {
 }
 
 function renderManipulationCards() {
-    return `
-        <h2>Type A: Market Manipulation Cards</h2>
-        <div class="todo-section">
-            <strong>TODO:</strong> 14 market manipulation cards need to be designed.<br>
-            Each card shows stock price movements. Net-zero balance across all colors required.
+    const colorMap = { Blue: '#2980b9', Orange: '#e67e22', Yellow: '#d4a017', Purple: '#8e44ad' };
+
+    let html = '<div class="cards-container">';
+
+    for (const card of manipulationCards) {
+        const parts = Object.entries(card.parsed).map(([color, val]) => {
+            const sign = val > 0 ? '+' : '';
+            return `<span style="color:${colorMap[color]}">${color} ${sign}${val}</span>`;
+        });
+
+        html += `
+        <div class="card">
+            <div class="card-header">Insider Tip Action</div>
+            <div class="manipulation-body">
+                <div class="manipulation-change">${parts.join('<br>')}</div>
+            </div>
         </div>`;
+    }
+
+    html += '</div>';
+    return html;
 }
 
 function renderGoalCards() {
-    return `
-        <h2>Goal Cards</h2>
-        <div class="todo-section">
-            <strong>TODO:</strong> 14 goal cards need to be designed.<br>
-            Shared objectives with tiered difficulty (easy/medium/hard) and scaled rewards.<br>
-            Use (players + 2) goal cards per game.
+    let html = '<div class="cards-container">';
+
+    for (const card of goalCards) {
+        // Build card symbols
+        let symbolsHtml = '';
+        const colors = Object.entries(card.requirements);
+        colors.forEach(([color, count], colorIdx) => {
+            if (colorIdx > 0) {
+                symbolsHtml += '<span class="goal-plus">+</span>';
+            }
+            for (let i = 0; i < count; i++) {
+                symbolsHtml += `<div class="card-symbol ${color}"></div>`;
+            }
+        });
+
+        html += `
+        <div class="card">
+            <div class="card-header">Goal</div>
+            <div class="goal-body">
+                <div class="goal-cards-row">${symbolsHtml}</div>
+                <div class="goal-reward">${card.reward}</div>
+            </div>
         </div>`;
+    }
+
+    html += '</div>';
+    return html;
 }
 
 function render() {
@@ -523,33 +536,30 @@ function render() {
     let html = '';
 
     if (document.getElementById('toggle-stock').checked) {
-        html += `<div class="section visible" id="section-stock">${renderStockCards()}</div>`;
+        html += `<div class="section visible">${renderStockCards()}</div>`;
     }
     if (document.getElementById('toggle-action').checked) {
-        html += `<div class="section visible" id="section-action">${renderActionCards()}</div>`;
+        html += `<div class="section visible">${renderActionCards()}</div>`;
     }
     if (document.getElementById('toggle-crisis').checked) {
-        html += `<div class="section visible" id="section-crisis">${renderCrisisCards()}</div>`;
+        html += `<div class="section visible">${renderCrisisCards()}</div>`;
     }
     if (document.getElementById('toggle-manipulation').checked) {
-        html += `<div class="section visible" id="section-manipulation">${renderManipulationCards()}</div>`;
+        html += `<div class="section visible">${renderManipulationCards()}</div>`;
     }
     if (document.getElementById('toggle-goal').checked) {
-        html += `<div class="section visible" id="section-goal">${renderGoalCards()}</div>`;
+        html += `<div class="section visible">${renderGoalCards()}</div>`;
     }
 
     content.innerHTML = html;
 }
 
-// Initial render
 render();
 
-// Toggle handlers
 document.querySelectorAll('.controls input[type="checkbox"]').forEach(cb => {
     cb.addEventListener('change', render);
 });
 
-// URL param support: ?show=stock,action,crisis
 const params = new URLSearchParams(window.location.search);
 const showParam = params.get('show');
 if (showParam) {

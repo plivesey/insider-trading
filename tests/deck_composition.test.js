@@ -22,24 +22,18 @@ describe('Deck Composition', () => {
     expect(crisisCards.length).toBe(2);
   });
 
-  describe('when all card types are designed', () => {
-    const marketCards = marketManipulationData.cards || [];
-    const goalCards = goalData.cards || [];
-    const allDesigned = marketCards.length > 0 && goalCards.length > 0;
+  test('total cards should be 72 (44 main + 14 Type A + 14 goals)', () => {
+    const total = stockCards.length + actionCards.length + crisisCards.length
+      + marketManipulationData.cards.length + goalData.cards.length;
+    expect(total).toBe(72);
+  });
 
-    (allDesigned ? test : test.skip)('total cards should be 72 (44 main + 14 Type A + 14 goals)', () => {
-      const total = stockCards.length + actionCards.length + crisisCards.length
-        + marketCards.length + goalCards.length;
-      expect(total).toBe(72);
-    });
+  test('Type A market manipulation cards should be 14', () => {
+    expect(marketManipulationData.cards.length).toBe(14);
+  });
 
-    (allDesigned ? test : test.skip)('Type A market manipulation cards should be 14', () => {
-      expect(marketCards.length).toBe(14);
-    });
-
-    (allDesigned ? test : test.skip)('goal cards should be 14', () => {
-      expect(goalCards.length).toBe(14);
-    });
+  test('goal cards should be 14', () => {
+    expect(goalData.cards.length).toBe(14);
   });
 
   test('end game tracker formula: 3 * players + 1', () => {

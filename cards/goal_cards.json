@@ -1,43 +1,214 @@
 {
-  "TODO": "Design 14 goal cards",
-  "requirements": {
-    "totalCards": 14,
-    "cardsPerGame": "number of players + 2",
-    "colors": ["Blue", "Orange", "Yellow", "Purple"],
-    "difficultyTiers": ["easy", "medium", "hard"],
-    "sharedPublicObjectives": true
-  },
-  "goalTypes": {
-    "easy (2-3 stocks)": {
-      "examples": ["2 Blues", "1 Blue + 1 Orange + 1 Yellow"],
-      "rewards": "2 coins OR peek at top 2 cards"
+  "cards": [
+    {
+      "id": 1,
+      "difficulty": "easy",
+      "goal": {
+        "text": "2 Blue",
+        "parsed": {
+          "type": "pair",
+          "requirements": { "Blue": 2 }
+        }
+      },
+      "reward": {
+        "text": "Gain $2",
+        "parsed": { "type": "gain_cash", "amount": 2 }
+      }
     },
-    "medium (3-4 stocks)": {
-      "examples": ["3 Blues", "2 Blues + 2 Oranges", "1 of each color"],
-      "rewards": "3 coins OR adjust any stock +/-1"
+    {
+      "id": 2,
+      "difficulty": "easy",
+      "goal": {
+        "text": "2 Orange",
+        "parsed": {
+          "type": "pair",
+          "requirements": { "Orange": 2 }
+        }
+      },
+      "reward": {
+        "text": "Adjust any one stock by +/-1",
+        "parsed": { "type": "adjust_stock", "amount": 1 }
+      }
     },
-    "hard (4-5 stocks)": {
-      "examples": ["4 Blues", "3 Blues + 2 Yellows", "2 Blues + 2 Oranges + 1 Purple"],
-      "rewards": "5 coins OR draw 1 card OR adjust any stock +/-2"
+    {
+      "id": 3,
+      "difficulty": "easy",
+      "goal": {
+        "text": "2 Yellow",
+        "parsed": {
+          "type": "pair",
+          "requirements": { "Yellow": 2 }
+        }
+      },
+      "reward": {
+        "text": "Set any one stock to exactly $5",
+        "parsed": { "type": "set_stock", "amount": 5 }
+      }
+    },
+    {
+      "id": 4,
+      "difficulty": "easy",
+      "goal": {
+        "text": "2 Purple",
+        "parsed": {
+          "type": "pair",
+          "requirements": { "Purple": 2 }
+        }
+      },
+      "reward": {
+        "text": "Steal $1 from any one player",
+        "parsed": { "type": "steal_cash", "amount": 1 }
+      }
+    },
+    {
+      "id": 5,
+      "difficulty": "hard",
+      "goal": {
+        "text": "3 Blue",
+        "parsed": {
+          "type": "three_of_a_kind",
+          "requirements": { "Blue": 3 }
+        }
+      },
+      "reward": {
+        "text": "Gain $5",
+        "parsed": { "type": "gain_cash", "amount": 5 }
+      }
+    },
+    {
+      "id": 6,
+      "difficulty": "hard",
+      "goal": {
+        "text": "3 Orange",
+        "parsed": {
+          "type": "three_of_a_kind",
+          "requirements": { "Orange": 3 }
+        }
+      },
+      "reward": {
+        "text": "Adjust any one stock by +/-3",
+        "parsed": { "type": "adjust_stock", "amount": 3 }
+      }
+    },
+    {
+      "id": 7,
+      "difficulty": "hard",
+      "goal": {
+        "text": "3 Yellow",
+        "parsed": {
+          "type": "three_of_a_kind",
+          "requirements": { "Yellow": 3 }
+        }
+      },
+      "reward": {
+        "text": "Draw 1 card from the main deck",
+        "parsed": { "type": "draw_card", "amount": 1 }
+      }
+    },
+    {
+      "id": 8,
+      "difficulty": "hard",
+      "goal": {
+        "text": "3 Purple",
+        "parsed": {
+          "type": "three_of_a_kind",
+          "requirements": { "Purple": 3 }
+        }
+      },
+      "reward": {
+        "text": "Swap one of your stock cards with a face-up market card",
+        "parsed": { "type": "swap_with_market" }
+      }
+    },
+    {
+      "id": 9,
+      "difficulty": "hard",
+      "goal": {
+        "text": "2 Blue + 2 Orange",
+        "parsed": {
+          "type": "two_pair",
+          "requirements": { "Blue": 2, "Orange": 2 }
+        }
+      },
+      "reward": {
+        "text": "Gain $4",
+        "parsed": { "type": "gain_cash", "amount": 4 }
+      }
+    },
+    {
+      "id": 10,
+      "difficulty": "hard",
+      "goal": {
+        "text": "2 Blue + 2 Yellow",
+        "parsed": {
+          "type": "two_pair",
+          "requirements": { "Blue": 2, "Yellow": 2 }
+        }
+      },
+      "reward": {
+        "text": "Steal $1 from each other player",
+        "parsed": { "type": "steal_from_all", "amount": 1 }
+      }
+    },
+    {
+      "id": 11,
+      "difficulty": "hard",
+      "goal": {
+        "text": "2 Blue + 2 Purple",
+        "parsed": {
+          "type": "two_pair",
+          "requirements": { "Blue": 2, "Purple": 2 }
+        }
+      },
+      "reward": {
+        "text": "Adjust any one stock by +/-2",
+        "parsed": { "type": "adjust_stock", "amount": 2 }
+      }
+    },
+    {
+      "id": 12,
+      "difficulty": "hard",
+      "goal": {
+        "text": "2 Orange + 2 Yellow",
+        "parsed": {
+          "type": "two_pair",
+          "requirements": { "Orange": 2, "Yellow": 2 }
+        }
+      },
+      "reward": {
+        "text": "Gain $1 per stock card you currently hold",
+        "parsed": { "type": "gain_per_stock", "amount": 1 }
+      }
+    },
+    {
+      "id": 13,
+      "difficulty": "hard",
+      "goal": {
+        "text": "2 Orange + 2 Purple",
+        "parsed": {
+          "type": "two_pair",
+          "requirements": { "Orange": 2, "Purple": 2 }
+        }
+      },
+      "reward": {
+        "text": "Draw 2 Type A cards from the pile, discard 1",
+        "parsed": { "type": "draw_type_a", "drawCount": 2, "keepCount": 1 }
+      }
+    },
+    {
+      "id": 14,
+      "difficulty": "hard",
+      "goal": {
+        "text": "2 Yellow + 2 Purple",
+        "parsed": {
+          "type": "two_pair",
+          "requirements": { "Yellow": 2, "Purple": 2 }
+        }
+      },
+      "reward": {
+        "text": "At the end of the game, gain $5",
+        "parsed": { "type": "end_game_cash", "amount": 5 }
+      }
     }
-  },
-  "cardSchema": {
-    "id": "number",
-    "goal": {
-      "text": "string (e.g., '2 Blue + 1 Orange')",
-      "parsed": {
-        "type": "string (pair, pair_plus_specific, three_different, etc.)",
-        "requirements": "object (e.g., { 'Blue': 2, 'Orange': 1 })"
-      }
-    },
-    "reward": {
-      "text": "string (e.g., 'Gain $3')",
-      "parsed": {
-        "type": "string",
-        "amount": "number"
-      }
-    },
-    "difficulty": "string (easy, medium, hard)"
-  },
-  "cards": []
+  ]
 }

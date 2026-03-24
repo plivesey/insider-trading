@@ -2,13 +2,13 @@
   {
     "id": 1,
     "type": "crisis",
-    "name": "Market Crash",
+    "name": "Newspaper Exposé",
     "effect": "When revealed as a face-up market card: +1 to End Game Tracker. Remove from game to tracker pile. Draw replacement card."
   },
   {
     "id": 2,
     "type": "crisis",
-    "name": "Market Crash",
+    "name": "Newspaper Exposé",
     "effect": "When revealed as a face-up market card: +1 to End Game Tracker. Remove from game to tracker pile. Draw replacement card."
   }
 ]
