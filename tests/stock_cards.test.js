@@ -1,7 +1,7 @@
 const cards = require('../cards/stock_cards.json');
 
 const VALID_COLORS = ['Blue', 'Orange', 'Yellow', 'Purple'];
-const SPECIAL_TYPES = ['stock_up', 'stock_down', 'hype', 'insider'];
+const SPECIAL_TYPES = ['stock_up', 'wild', 'hype', 'insider'];
 const ALL_TYPES = ['blank', ...SPECIAL_TYPES];
 
 describe('Stock Cards', () => {

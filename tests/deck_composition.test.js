@@ -22,14 +22,14 @@ describe('Deck Composition', () => {
     expect(crisisCards.length).toBe(2);
   });
 
-  test('total cards should be 72 (44 main + 14 Type A + 14 goals)', () => {
+  test('total cards should be 74 (44 main + 16 Type A + 14 goals)', () => {
     const total = stockCards.length + actionCards.length + crisisCards.length
       + marketManipulationData.cards.length + goalData.cards.length;
-    expect(total).toBe(72);
+    expect(total).toBe(74);
   });
 
-  test('Type A market manipulation cards should be 14', () => {
-    expect(marketManipulationData.cards.length).toBe(14);
+  test('Type A market manipulation cards should be 16', () => {
+    expect(marketManipulationData.cards.length).toBe(16);
   });
 
   test('goal cards should be 14', () => {

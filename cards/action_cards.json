@@ -32,11 +32,11 @@
   {
     "id": 4,
     "name": "Connected Broker",
-    "description": "For rest of game, gain +$1 per stock when you sell",
+    "description": "For rest of game, gain +$2 per stock when you sell",
     "persistent": true,
     "effect": {
       "type": "sell_bonus",
-      "amount": 1
+      "amount": 2
     }
   },
   {
@@ -81,11 +81,11 @@
   {
     "id": 9,
     "name": "Hostile Takeover",
-    "description": "Choose another player, look at their hand, take 1 stock of your choice. They receive $5 from the bank",
+    "description": "Choose another player, look at their hand, take 1 stock of your choice. They receive $6 from the bank",
     "persistent": false,
     "effect": {
       "type": "steal_stock",
-      "compensation": 5
+      "compensation": 6
     }
   },
   {

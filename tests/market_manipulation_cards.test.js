@@ -6,8 +6,8 @@ const VALID_TYPES = ['single_down', 'double_up', 'mixed_up', 'mixed_down'];
 describe('Market Manipulation Cards (Type A)', () => {
   const cards = data.cards;
 
-  test('should have exactly 14 cards', () => {
-    expect(cards).toHaveLength(14);
+  test('should have exactly 16 cards', () => {
+    expect(cards).toHaveLength(16);
   });
 
   test('should have unique ids', () => {
@@ -48,7 +48,7 @@ describe('Market Manipulation Cards (Type A)', () => {
     }
   });
 
-  test('should have net-zero stock changes per color when all cards are played', () => {
+  test('should have net +1 stock change per color when all cards are played', () => {
     const netChanges = {};
     for (const color of VALID_COLORS) {
       netChanges[color] = 0;
@@ -61,22 +61,23 @@ describe('Market Manipulation Cards (Type A)', () => {
     }
 
     for (const color of VALID_COLORS) {
-      expect(netChanges[color]).toBe(0);
+      expect(netChanges[color]).toBe(1);
     }
   });
 
-  test('should have no more than 4 cards of any single type', () => {
+  test('should have expected count of each card type', () => {
     const typeCounts = {};
     for (const card of cards) {
       typeCounts[card.type] = (typeCounts[card.type] || 0) + 1;
     }
 
-    for (const [type, count] of Object.entries(typeCounts)) {
-      expect(count).toBeLessThanOrEqual(4);
-    }
+    expect(typeCounts.single_down).toBe(4);
+    expect(typeCounts.double_up).toBe(4);
+    expect(typeCounts.mixed_up).toBe(6);
+    expect(typeCounts.mixed_down).toBe(2);
   });
 
-  test('each color should appear on between 5 and 7 cards (inclusive)', () => {
+  test('each color should appear on exactly 7 cards', () => {
     const colorAppearances = {};
     for (const color of VALID_COLORS) {
       colorAppearances[color] = 0;
@@ -90,8 +91,7 @@ describe('Market Manipulation Cards (Type A)', () => {
     }
 
     for (const color of VALID_COLORS) {
-      expect(colorAppearances[color]).toBeGreaterThanOrEqual(5);
-      expect(colorAppearances[color]).toBeLessThanOrEqual(7);
+      expect(colorAppearances[color]).toBe(7);
     }
   });
 });

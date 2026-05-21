@@ -29,12 +29,12 @@ These special action cards are shuffled into the main deck and auctioned:
 1. **"Tipster's Choice"** - Draw 2 cards from deck, keep 1, return other to bottom
 2. **"Corner the Market"** - Take any face-up stock from market for free
 3. **"Pump and Dump"** - Sell 1 stock at double its current price immediately
-4. **"Connected Broker"** - PERSISTENT: For rest of game, gain +$1 per stock when you sell
+4. **"Connected Broker"** - PERSISTENT: For rest of game, gain +$2 per stock when you sell
 5. **"Market Manipulation"** - Increase one stock by +2 OR decrease one stock by -2
 6. **"Wild Speculation"** - Flip top card from deck, then increase OR decrease that stock by ±3
 7. **"Preferred Bidder"** - PERSISTENT: For rest of game, when you tie the winning bid, you win
 8. **"Stock Certificate Forgery"** - Complete any one goal using one fewer card than required
-9. **"Hostile Takeover"** - Choose another player, look at their hand, take 1 stock of your choice. They receive $5 from the bank
+9. **"Hostile Takeover"** - Choose another player, look at their hand, take 1 stock of your choice. They receive $6 from the bank
 10. **"Backroom Deal"** - Draw 2 Type A market manipulation cards from the deck
 
 ### Crisis Cards (2 cards)

@@ -211,6 +211,7 @@
             text-align: center;
             line-height: 1.5;
             color: #444;
+            white-space: pre-line;
         }
 
         /* Goal card styles */
@@ -305,7 +306,8 @@
 
 <div class="controls">
     <h1>Insider Trading - Card Visualizer</h1>
-    <label><input type="checkbox" id="toggle-stock" checked> Stock Cards (32)</label>
+    <label><input type="checkbox" id="toggle-stock-basic" checked> Basic Stock Cards (16)</label>
+    <label><input type="checkbox" id="toggle-stock-bonus" checked> Bonus Stock Cards (16)</label>
     <label><input type="checkbox" id="toggle-action" checked> Action Cards (10)</label>
     <label><input type="checkbox" id="toggle-crisis" checked> Crisis Cards (2)</label>
     <label><input type="checkbox" id="toggle-manipulation" checked> Market Manipulation (14)</label>
@@ -321,7 +323,7 @@ const stockCards = [
   { color: "Blue", type: "blank" },
   { color: "Blue", type: "blank" },
   { color: "Blue", type: "stock_up", ability: "When gained, increase any stock by 1" },
-  { color: "Blue", type: "stock_down", ability: "When gained, decrease any stock by 1" },
+  { color: "Blue", type: "wild", ability: "Counts as any color for goals" },
   { color: "Blue", type: "hype", ability: "When gained, Blue +1. When sold, Blue -1" },
   { color: "Blue", type: "insider", ability: "When sold, draw an unused Insider Tip Action" },
   { color: "Orange", type: "blank" },
@@ -329,7 +331,7 @@ const stockCards = [
   { color: "Orange", type: "blank" },
   { color: "Orange", type: "blank" },
   { color: "Orange", type: "stock_up", ability: "When gained, increase any stock by 1" },
-  { color: "Orange", type: "stock_down", ability: "When gained, decrease any stock by 1" },
+  { color: "Orange", type: "wild", ability: "Counts as any color for goals" },
   { color: "Orange", type: "hype", ability: "When gained, Orange +1. When sold, Orange -1" },
   { color: "Orange", type: "insider", ability: "When sold, draw an unused Insider Tip Action" },
   { color: "Yellow", type: "blank" },
@@ -337,7 +339,7 @@ const stockCards = [
   { color: "Yellow", type: "blank" },
   { color: "Yellow", type: "blank" },
   { color: "Yellow", type: "stock_up", ability: "When gained, increase any stock by 1" },
-  { color: "Yellow", type: "stock_down", ability: "When gained, decrease any stock by 1" },
+  { color: "Yellow", type: "wild", ability: "Counts as any color for goals" },
   { color: "Yellow", type: "hype", ability: "When gained, Yellow +1. When sold, Yellow -1" },
   { color: "Yellow", type: "insider", ability: "When sold, draw an unused Insider Tip Action" },
   { color: "Purple", type: "blank" },
@@ -345,7 +347,7 @@ const stockCards = [
   { color: "Purple", type: "blank" },
   { color: "Purple", type: "blank" },
   { color: "Purple", type: "stock_up", ability: "When gained, increase any stock by 1" },
-  { color: "Purple", type: "stock_down", ability: "When gained, decrease any stock by 1" },
+  { color: "Purple", type: "wild", ability: "Counts as any color for goals" },
   { color: "Purple", type: "hype", ability: "When gained, Purple +1. When sold, Purple -1" },
   { color: "Purple", type: "insider", ability: "When sold, draw an unused Insider Tip Action" },
 ];
@@ -354,35 +356,35 @@ const actionCards = [
   { name: "Tipster's Choice", description: "Draw 2 cards from deck, keep 1, return other to bottom", persistent: false },
   { name: "Corner the Market", description: "Take any face-up stock from market for free", persistent: false },
   { name: "Pump and Dump", description: "Sell 1 stock at double its current price immediately", persistent: false },
-  { name: "Connected Broker", description: "For rest of game, gain +$1 per stock when you sell", persistent: true },
+  { name: "Connected Broker", description: "For rest of game, gain +$2 per stock when you sell", persistent: true },
   { name: "The Squeeze", description: "Increase one stock by +2 OR decrease one stock by -2", persistent: false },
   { name: "Wild Speculation", description: "Flip top card from deck, then increase OR decrease that stock by \u00b13", persistent: false },
   { name: "Preferred Bidder", description: "For rest of game, when you tie the winning bid, you win", persistent: true },
   { name: "Stock Certificate Forgery", description: "Complete any one goal using one fewer card than required", persistent: false },
-  { name: "Hostile Takeover", description: "Choose another player, look at their hand, take 1 stock of your choice. They receive $5", persistent: false },
+  { name: "Hostile Takeover", description: "Choose another player, look at their hand, take 1 stock of your choice. They receive $6", persistent: false },
   { name: "Rumor Mill", description: "Adjust every stock by +1 or -1", persistent: false },
 ];
 
 const crisisCards = [
-  { name: "Newspaper Exposé", effect: "+1 End Game Tracker. Remove from game." },
-  { name: "Newspaper Exposé", effect: "+1 End Game Tracker. Remove from game." },
+  { name: "Newspaper Exposé", effect: "All stock prices +1.\n+1 End Game Tracker.\nRemove from game." },
+  { name: "Market Correction", effect: "Move every stock price 1 step closer to $5.\n+1 End Game Tracker.\nRemove from game." },
 ];
 
 const goalCards = [
-  { id: 1, goal: "2 Blue", reward: "Gain $2", requirements: { Blue: 2 } },
-  { id: 2, goal: "2 Orange", reward: "Adjust any one stock by \u00b11", requirements: { Orange: 2 } },
+  { id: 1, goal: "2 Blue", reward: "Gain $3", requirements: { Blue: 2 } },
+  { id: 2, goal: "2 Orange", reward: "Adjust any one stock by ±2", requirements: { Orange: 2 } },
   { id: 3, goal: "2 Yellow", reward: "Set any one stock to exactly $5", requirements: { Yellow: 2 } },
-  { id: 4, goal: "2 Purple", reward: "Steal $1 from any one player", requirements: { Purple: 2 } },
-  { id: 5, goal: "3 Blue", reward: "Gain $5", requirements: { Blue: 3 } },
-  { id: 6, goal: "3 Orange", reward: "Adjust any one stock by \u00b13", requirements: { Orange: 3 } },
-  { id: 7, goal: "3 Yellow", reward: "Draw 1 card from the main deck", requirements: { Yellow: 3 } },
-  { id: 8, goal: "3 Purple", reward: "Swap a stock card with a face-up market card", requirements: { Purple: 3 } },
-  { id: 9, goal: "2 Blue + 2 Orange", reward: "Gain $4", requirements: { Blue: 2, Orange: 2 } },
-  { id: 10, goal: "2 Blue + 2 Yellow", reward: "Steal $1 from each other player", requirements: { Blue: 2, Yellow: 2 } },
-  { id: 11, goal: "2 Blue + 2 Purple", reward: "Adjust any one stock by \u00b12", requirements: { Blue: 2, Purple: 2 } },
-  { id: 12, goal: "2 Orange + 2 Yellow", reward: "Gain $1 per stock card you hold", requirements: { Orange: 2, Yellow: 2 } },
-  { id: 13, goal: "2 Orange + 2 Purple", reward: "Draw 2 Type A cards, discard 1", requirements: { Orange: 2, Purple: 2 } },
-  { id: 14, goal: "2 Yellow + 2 Purple", reward: "At end of game, gain $5", requirements: { Yellow: 2, Purple: 2 } },
+  { id: 4, goal: "2 Purple", reward: "Draw 1 Insider Tip card from the pile", requirements: { Purple: 2 } },
+  { id: 5, goal: "3 Blue", reward: "Steal $2 from each other player", requirements: { Blue: 3 } },
+  { id: 6, goal: "3 Orange", reward: "Sell as many stocks as you want, gain +$2 per stock sold", requirements: { Orange: 3 } },
+  { id: 7, goal: "3 Yellow", reward: "Gain $5", requirements: { Yellow: 3 } },
+  { id: 8, goal: "3 Purple", reward: "Adjust every stock by +1 or -1 (choose per stock)", requirements: { Purple: 3 } },
+  { id: 9, goal: "2 Blue + 2 Orange", reward: "Gain $6", requirements: { Blue: 2, Orange: 2 } },
+  { id: 10, goal: "2 Blue + 2 Yellow", reward: "Adjust any one stock by ±3", requirements: { Blue: 2, Yellow: 2 } },
+  { id: 11, goal: "2 Blue + 2 Purple", reward: "Adjust any one stock by +2 and another stock by -2", requirements: { Blue: 2, Purple: 2 } },
+  { id: 12, goal: "2 Orange + 2 Yellow", reward: "Swap one of your stock cards with a face-up market card", requirements: { Orange: 2, Yellow: 2 } },
+  { id: 13, goal: "2 Orange + 2 Purple", reward: "Draw 2 cards from the main deck, keep 1, return the other to the bottom", requirements: { Orange: 2, Purple: 2 } },
+  { id: 14, goal: "2 Yellow + 2 Purple", reward: "At the end of the game, gain $7", requirements: { Yellow: 2, Purple: 2 } },
 ];
 
 const manipulationCards = [
@@ -402,38 +404,35 @@ const manipulationCards = [
   { id: 14, type: "mixed_down", text: "Yellow -2 / Purple +1", parsed: { Yellow: -2, Purple: 1 } },
 ];
 
-function renderStockCards() {
-    let html = '';
-    const colors = ['Blue', 'Orange', 'Yellow', 'Purple'];
+function renderStockCards(showBasic, showBonus) {
+    let html = '<div class="cards-container">';
 
-    for (const color of colors) {
-        const colorCards = stockCards.filter(c => c.color === color);
-        html += `<div class="cards-container">`;
+    const filtered = stockCards.filter(c =>
+        (showBasic && c.type === 'blank') || (showBonus && c.type !== 'blank')
+    );
 
-        for (const card of colorCards) {
-            const abilityText = card.ability || '';
-            const abilityClass = abilityText ? '' : 'empty';
+    for (const card of filtered) {
+        const abilityText = card.ability || '';
+        const abilityClass = abilityText ? '' : 'empty';
 
-            html += `
-            <div class="card">
-                <div class="card-header">Stock</div>
-                <div class="stock-badge">
-                    <div class="stock-ticket ${card.color}">
-                        <div class="card-color ${card.color}">${card.color}</div>
-                    </div>
+        html += `
+        <div class="card">
+            <div class="card-header">Stock</div>
+            <div class="stock-badge">
+                <div class="stock-ticket ${card.color}">
+                    <div class="card-color ${card.color}">${card.color}</div>
                 </div>
-                <div class="card-ability ${abilityClass}">${abilityText}</div>
-            </div>`;
-        }
-
-        html += '</div>';
+            </div>
+            <div class="card-ability ${abilityClass}">${abilityText}</div>
+        </div>`;
     }
 
+    html += '</div>';
     return html;
 }
 
 function renderActionCards() {
-    let html = '<div class="cards-container">';
+    let html = '';
 
     for (const card of actionCards) {
         const tagHtml = card.persistent
@@ -453,12 +452,11 @@ function renderActionCards() {
         </div>`;
     }
 
-    html += '</div>';
     return html;
 }
 
 function renderCrisisCards() {
-    let html = '<div class="cards-container">';
+    let html = '';
 
     for (const card of crisisCards) {
         html += `
@@ -473,14 +471,13 @@ function renderCrisisCards() {
         </div>`;
     }
 
-    html += '</div>';
     return html;
 }
 
 function renderManipulationCards() {
     const colorMap = { Blue: '#2980b9', Orange: '#e67e22', Yellow: '#d4a017', Purple: '#8e44ad' };
 
-    let html = '<div class="cards-container">';
+    let html = '';
 
     for (const card of manipulationCards) {
         const parts = Object.entries(card.parsed).map(([color, val]) => {
@@ -497,12 +494,11 @@ function renderManipulationCards() {
         </div>`;
     }
 
-    html += '</div>';
     return html;
 }
 
 function renderGoalCards() {
-    let html = '<div class="cards-container">';
+    let html = '';
 
     for (const card of goalCards) {
         // Build card symbols
@@ -526,8 +522,6 @@ function renderGoalCards() {
             </div>
         </div>`;
     }
-
-    html += '</div>';
     return html;
 }
 
@@ -535,20 +529,26 @@ function render() {
     const content = document.getElementById('content');
     let html = '';
 
-    if (document.getElementById('toggle-stock').checked) {
-        html += `<div class="section visible">${renderStockCards()}</div>`;
+    const showBasic = document.getElementById('toggle-stock-basic').checked;
+    const showBonus = document.getElementById('toggle-stock-bonus').checked;
+    if (showBasic || showBonus) {
+        html += `<div class="section visible">${renderStockCards(showBasic, showBonus)}</div>`;
     }
+    let otherCards = '';
     if (document.getElementById('toggle-action').checked) {
-        html += `<div class="section visible">${renderActionCards()}</div>`;
+        otherCards += renderActionCards();
     }
     if (document.getElementById('toggle-crisis').checked) {
-        html += `<div class="section visible">${renderCrisisCards()}</div>`;
+        otherCards += renderCrisisCards();
     }
     if (document.getElementById('toggle-manipulation').checked) {
-        html += `<div class="section visible">${renderManipulationCards()}</div>`;
+        otherCards += renderManipulationCards();
     }
     if (document.getElementById('toggle-goal').checked) {
-        html += `<div class="section visible">${renderGoalCards()}</div>`;
+        otherCards += renderGoalCards();
+    }
+    if (otherCards) {
+        html += `<div class="section visible"><div class="cards-container">${otherCards}</div></div>`;
     }
 
     content.innerHTML = html;
@@ -564,9 +564,11 @@ const params = new URLSearchParams(window.location.search);
 const showParam = params.get('show');
 if (showParam) {
     const types = showParam.split(',');
-    const allToggles = ['stock', 'action', 'crisis', 'manipulation', 'goal'];
+    const allToggles = ['stock-basic', 'stock-bonus', 'action', 'crisis', 'manipulation', 'goal'];
     for (const t of allToggles) {
-        document.getElementById(`toggle-${t}`).checked = types.includes(t);
+        // Support "stock" as shorthand for both stock-basic and stock-bonus
+        const shown = types.includes(t) || (t.startsWith('stock-') && types.includes('stock'));
+        document.getElementById(`toggle-${t}`).checked = shown;
     }
     render();
 }

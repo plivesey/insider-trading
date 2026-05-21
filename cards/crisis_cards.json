@@ -3,12 +3,12 @@
     "id": 1,
     "type": "crisis",
     "name": "Newspaper Exposé",
-    "effect": "When revealed as a face-up market card: +1 to End Game Tracker. Remove from game to tracker pile. Draw replacement card."
+    "effect": "When revealed as a face-up market card: All stock prices +1. +1 to End Game Tracker. Remove from game to tracker pile. Draw replacement card."
   },
   {
     "id": 2,
     "type": "crisis",
-    "name": "Newspaper Exposé",
-    "effect": "When revealed as a face-up market card: +1 to End Game Tracker. Remove from game to tracker pile. Draw replacement card."
+    "name": "Market Correction",
+    "effect": "When revealed as a face-up market card: Move every stock price 1 step closer to $5. +1 to End Game Tracker. Remove from game to tracker pile. Draw replacement card."
   }
 ]

@@ -76,20 +76,44 @@
       "id": 10,
       "type": "mixed_up",
       "stockChange": {
-        "text": "Orange +2 / Yellow -1",
-        "parsed": { "Orange": 2, "Yellow": -1 }
+        "text": "Yellow +2 / Purple -1",
+        "parsed": { "Yellow": 2, "Purple": -1 }
       }
     },
     {
       "id": 11,
       "type": "mixed_up",
       "stockChange": {
-        "text": "Yellow +2 / Purple -1",
-        "parsed": { "Yellow": 2, "Purple": -1 }
+        "text": "Blue +2 / Yellow -1",
+        "parsed": { "Blue": 2, "Yellow": -1 }
       }
     },
     {
       "id": 12,
+      "type": "mixed_up",
+      "stockChange": {
+        "text": "Orange +2 / Purple -1",
+        "parsed": { "Orange": 2, "Purple": -1 }
+      }
+    },
+    {
+      "id": 13,
+      "type": "mixed_up",
+      "stockChange": {
+        "text": "Yellow +2 / Orange -1",
+        "parsed": { "Yellow": 2, "Orange": -1 }
+      }
+    },
+    {
+      "id": 14,
+      "type": "mixed_up",
+      "stockChange": {
+        "text": "Purple +2 / Blue -1",
+        "parsed": { "Purple": 2, "Blue": -1 }
+      }
+    },
+    {
+      "id": 15,
       "type": "mixed_down",
       "stockChange": {
         "text": "Blue -2 / Orange +1",
@@ -97,15 +121,7 @@
       }
     },
     {
-      "id": 13,
-      "type": "mixed_down",
-      "stockChange": {
-        "text": "Orange -2 / Yellow +1",
-        "parsed": { "Orange": -2, "Yellow": 1 }
-      }
-    },
-    {
-      "id": 14,
+      "id": 16,
       "type": "mixed_down",
       "stockChange": {
         "text": "Yellow -2 / Purple +1",

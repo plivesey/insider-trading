@@ -11,8 +11,8 @@
         }
       },
       "reward": {
-        "text": "Gain $2",
-        "parsed": { "type": "gain_cash", "amount": 2 }
+        "text": "Gain $3",
+        "parsed": { "type": "gain_cash", "amount": 3 }
       }
     },
     {
@@ -26,8 +26,8 @@
         }
       },
       "reward": {
-        "text": "Adjust any one stock by +/-1",
-        "parsed": { "type": "adjust_stock", "amount": 1 }
+        "text": "Adjust any one stock by +/-2",
+        "parsed": { "type": "adjust_stock", "amount": 2 }
       }
     },
     {
@@ -56,8 +56,8 @@
         }
       },
       "reward": {
-        "text": "Steal $1 from any one player",
-        "parsed": { "type": "steal_cash", "amount": 1 }
+        "text": "Draw 1 Insider Tip card from the pile",
+        "parsed": { "type": "draw_type_a", "drawCount": 1, "keepCount": 1 }
       }
     },
     {
@@ -71,8 +71,8 @@
         }
       },
       "reward": {
-        "text": "Gain $5",
-        "parsed": { "type": "gain_cash", "amount": 5 }
+        "text": "Steal $2 from each other player",
+        "parsed": { "type": "steal_from_all", "amount": 2 }
       }
     },
     {
@@ -86,8 +86,8 @@
         }
       },
       "reward": {
-        "text": "Adjust any one stock by +/-3",
-        "parsed": { "type": "adjust_stock", "amount": 3 }
+        "text": "Sell as many stocks as you want, gain +$2 per stock sold",
+        "parsed": { "type": "sell_bonus_batch", "bonus": 2 }
       }
     },
     {
@@ -101,8 +101,8 @@
         }
       },
       "reward": {
-        "text": "Draw 1 card from the main deck",
-        "parsed": { "type": "draw_card", "amount": 1 }
+        "text": "Gain $5",
+        "parsed": { "type": "gain_cash", "amount": 5 }
       }
     },
     {
@@ -116,8 +116,8 @@
         }
       },
       "reward": {
-        "text": "Swap one of your stock cards with a face-up market card",
-        "parsed": { "type": "swap_with_market" }
+        "text": "Adjust every stock by +1 or -1 (choose per stock)",
+        "parsed": { "type": "adjust_all_stocks", "amount": 1 }
       }
     },
     {
@@ -131,8 +131,8 @@
         }
       },
       "reward": {
-        "text": "Gain $4",
-        "parsed": { "type": "gain_cash", "amount": 4 }
+        "text": "Gain $6",
+        "parsed": { "type": "gain_cash", "amount": 6 }
       }
     },
     {
@@ -146,8 +146,8 @@
         }
       },
       "reward": {
-        "text": "Steal $1 from each other player",
-        "parsed": { "type": "steal_from_all", "amount": 1 }
+        "text": "Adjust any one stock by +/-3",
+        "parsed": { "type": "adjust_stock", "amount": 3 }
       }
     },
     {
@@ -161,8 +161,8 @@
         }
       },
       "reward": {
-        "text": "Adjust any one stock by +/-2",
-        "parsed": { "type": "adjust_stock", "amount": 2 }
+        "text": "Adjust any one stock by +2 and another stock by -2",
+        "parsed": { "type": "adjust_two_stocks", "up": 2, "down": 2 }
       }
     },
     {
@@ -176,8 +176,8 @@
         }
       },
       "reward": {
-        "text": "Gain $1 per stock card you currently hold",
-        "parsed": { "type": "gain_per_stock", "amount": 1 }
+        "text": "Swap one of your stock cards with a face-up market card",
+        "parsed": { "type": "swap_with_market" }
       }
     },
     {
@@ -191,8 +191,8 @@
         }
       },
       "reward": {
-        "text": "Draw 2 Type A cards from the pile, discard 1",
-        "parsed": { "type": "draw_type_a", "drawCount": 2, "keepCount": 1 }
+        "text": "Draw 2 cards from the main deck, keep 1, return the other to the bottom",
+        "parsed": { "type": "draw_and_choose", "drawCount": 2, "keepCount": 1 }
       }
     },
     {
@@ -206,8 +206,8 @@
         }
       },
       "reward": {
-        "text": "At the end of the game, gain $5",
-        "parsed": { "type": "end_game_cash", "amount": 5 }
+        "text": "At the end of the game, gain $7",
+        "parsed": { "type": "end_game_cash", "amount": 7 }
       }
     }
   ]
