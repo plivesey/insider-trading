@@ -1,78 +1,82 @@
-# Insider Trading Board Game - V3 Project Documentation
+# Insider Trading Board Game - V4 Project Documentation
 
 ## Project Overview
 
-A strategic trading and market manipulation board game for 2-6 players set in 1920s Wall Street. Players auction stocks, compete for shared goals, and manipulate stock prices using insider information. The game ends when the End Game Tracker reaches its threshold.
+A strategic trading and market manipulation board game for 2-6 players set in 1920s Wall Street. Players auction stocks, race for shared goals, and watch prices swing as every buy, sell, dice roll, and Insider Tip moves the market. The game ends when the goals run out or the Insider Tip deck is exhausted.
 
 **Players**: 2-6
-**Victory Condition**: Highest total wealth (cash + stock card values at current prices)
-**Game End**: End Game Tracker reaches 3 x players
+**Victory Condition**: Highest total wealth (cash + stock value at current prices + end-game goal bonuses − $12 per loan)
+**Game End**: The Insider Tip deck is exhausted, OR only one goal card remains in play.
 
-## V3 Key Changes (from V2)
+## V4 Key Changes (from V3)
 
-- Colors: Blue, Orange, Yellow, Purple (was Blue, Red, Yellow, Black)
-- No more hot stocks / investigation on sell
-- Stock cards have 4 special abilities per color (stock_up, wild, hype, insider)
-- Insider Tip Action cards dealt to players at start, not goal cards
-- Goal cards are shared/public objectives, not private
-- Action cards (10) shuffled into main deck
-- Crisis cards (2) in main deck advance tracker when revealed
-- Trading allowed anytime
-- 5 turn actions (auction, sell, play Insider Tip Action, claim goal, play action card)
-- Tracker: everything is +1 (Insider Tip Action, goal, crisis). Threshold: 3*players
-- Sold stocks go to discard pile (can reshuffle), not removed from game
-- Players start with $30 and 0 stocks
+- **Prices move on trade**: every stock bought → that color +1; every stock sold → that color −1.
+- **No End Game Tracker** — removed entirely. Two end conditions instead (see above).
+- **Insider Tips are an event deck**, never held by players. A face-down deck of (players + 2) cards (drawn from a 16-card pool). Only resolved when flipped by the dice; then removed from the game.
+- **A six-sided die** is rolled at the end of every turn: 1 = flip + resolve the top Insider Tip; 6 = all stocks +1; 2-5 = nothing.
+- **Two turn actions only**: start an auction, or sell one stock.
+- **Goal claiming is optional and free** — claim any time you qualify; never costs a turn.
+- **Action cards and the Hot Tip are free** — played any time, never cost a turn.
+- **Crisis cards removed.**
+- **Loan cards**: bid/spend beyond your cash; loans auto-issue $10 each, count −$12 at game end.
+- **4 colorless Wild Share stocks**: no value, cannot be sold; substitute for any one color when claiming a goal, then discarded.
+- **New stock specials** (one of each per color): Boom (extra_up), Tip-Off (other_up), Scout (peek_buy), Informant (peek_sell).
+- Players start with $30, one Hot Tip card, and 0 stocks.
 
-## Card Types (74 total)
+## Card Types (89 cards + 1 die)
 
-### Stock Cards (32) - `cards/stock_cards.json`
-- 8 per color (Blue, Orange, Yellow, Purple)
-- 4 blank + 4 special per color
-- Special types: stock_up, wild, hype, insider
-- In the main deck, auctioned
+### Stock Cards (36) - `cards/stock_cards.json`
+- 32 colored: 8 each of Blue, Orange, Yellow, Purple (4 blank + 4 special per color)
+- Special types: `extra_up` (Boom), `other_up` (Tip-Off), `peek_buy` (Scout), `peek_sell` (Informant)
+- 4 colorless `wild` (Wild Share) cards
+- All shuffled into the main deck and auctioned
 
-### Insider Tip Action Cards (16) - `cards/market_manipulation_cards.json`
-- Dealt to players at start (2 each for 2-4p, 1 each for 5-6p)
-- Remaining form a draw pile
-- 4 single_down (-3), 4 double_up (+2/+1), 6 mixed_up (+2/-1), 2 mixed_down (-2/+1)
-- Slightly inflationary: net +1 per color; each color appears on exactly 7 cards
+### Action Cards (11) - `cards/action_cards.json`
+- Shuffled into the main deck and auctioned; held in hand; played free at any time
+- 1 persistent (Preferred Bidder), 10 single-use
+- Includes two tip-reorder cards (Inside Track, Wiretap)
 
-### Action Cards (10) - `cards/action_cards.json`
-- In main deck, auctioned
-- Held in hand, played as turn action
-- 2 persistent (Connected Broker, Preferred Bidder), 8 single-use
-
-### Crisis Cards (2) - `cards/crisis_cards.json`
-- In main deck
-- When revealed: all stock prices +1, then +1 tracker, removed to tracker pile, replaced
+### Insider Tip Cards (16-card pool) - `cards/insider_tip_cards.json`
+- Face-down event deck; never held by players
+- 8 crash (halve a color, 2 per color), 4 surge (+4 to one color), 4 slump (−2/−2 to two colors)
+- Each game uses (players + 2) of them
 
 ### Goal Cards (14) - `cards/goal_cards.json`
-- Shared/public, display players+2 per game
+- Shared/public; displays players+2 per game
 - 4 pair (easy), 4 three-of-a-kind (hard), 6 two-pair (hard)
-- 14 unique rewards, equal color totals (11 each)
+
+### Loan Cards (6) - `cards/loan_cards.json`
+- Face-up; auto-issued ($10 each) when a player cannot cover a payment; −$12 each at game end
+
+### Hot Tip Cards (6) - `cards/peek_cards.json`
+- Each player starts with one; single-use peek at the top Insider Tip
 
 ## Project Structure
 
 ```
 insider-trading/
 ├── CLAUDE.md                      # This file
-├── rules.md                       # Complete v3 game rules
+├── rules.md                       # Complete V4 game rules
 ├── package.json                   # Jest config
 ├── cards/
-│   ├── stock_cards.json           # 32 stock cards
-│   ├── action_cards.json          # 10 Type B action cards
-│   ├── market_manipulation_cards.json  # 14 Insider Tip Action cards
+│   ├── stock_cards.json           # 36 stock cards
+│   ├── action_cards.json          # 11 action cards
+│   ├── insider_tip_cards.json     # 16 Insider Tip event cards
 │   ├── goal_cards.json            # 14 goal cards
-│   ├── crisis_cards.json          # 2 crisis cards
+│   ├── loan_cards.json            # 6 loan cards
+│   ├── peek_cards.json            # 6 Hot Tip cards
 │   └── visualize.html             # Card visualizer (toggleable sections)
 ├── tests/
 │   ├── stock_cards.test.js
 │   ├── action_cards.test.js
-│   ├── market_manipulation_cards.test.js
+│   ├── insider_tip_cards.test.js
 │   ├── goal_cards.test.js
-│   ├── crisis_cards.test.js
 │   └── deck_composition.test.js
-└── v2/                            # Archived v2 code and assets
+├── playtest/
+│   ├── init.js                    # Generates game_state.json
+│   └── facilitator_guide.md       # How to run AI playtests
+├── v2/                            # Archived v2
+└── v3/                            # Archived v3
 ```
 
 ## Running Tests
@@ -82,11 +86,8 @@ npm test          # Run all validation tests
 npm run test:watch # Watch mode
 ```
 
-Tests validate JSON card files for correct counts, structure, color balance, and game rules.
+Tests validate JSON card files for correct counts, structure, color balance, and game rules. The `v2/` and `v3/` archives are excluded from the test run.
 
 ## Card Visualizer
 
 Open `cards/visualize.html` in a browser. Use checkboxes to toggle card types.
-URL params: `?show=stock,action` to show only specific types.
-Supports print layout for card printing.
-

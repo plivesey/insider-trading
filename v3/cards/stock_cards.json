@@ -1,0 +1,37 @@
+[
+  { "color": "Blue", "type": "blank" },
+  { "color": "Blue", "type": "blank" },
+  { "color": "Blue", "type": "blank" },
+  { "color": "Blue", "type": "blank" },
+  { "color": "Blue", "type": "stock_up", "ability": "When gained, increase any stock by 1" },
+  { "color": "Blue", "type": "wild", "ability": "Counts as any color for goals" },
+  { "color": "Blue", "type": "hype", "ability": "When gained, Blue +1. When sold, Blue -1" },
+  { "color": "Blue", "type": "insider", "ability": "When sold, draw an unused Insider Tip Action" },
+
+  { "color": "Orange", "type": "blank" },
+  { "color": "Orange", "type": "blank" },
+  { "color": "Orange", "type": "blank" },
+  { "color": "Orange", "type": "blank" },
+  { "color": "Orange", "type": "stock_up", "ability": "When gained, increase any stock by 1" },
+  { "color": "Orange", "type": "wild", "ability": "Counts as any color for goals" },
+  { "color": "Orange", "type": "hype", "ability": "When gained, Orange +1. When sold, Orange -1" },
+  { "color": "Orange", "type": "insider", "ability": "When sold, draw an unused Insider Tip Action" },
+
+  { "color": "Yellow", "type": "blank" },
+  { "color": "Yellow", "type": "blank" },
+  { "color": "Yellow", "type": "blank" },
+  { "color": "Yellow", "type": "blank" },
+  { "color": "Yellow", "type": "stock_up", "ability": "When gained, increase any stock by 1" },
+  { "color": "Yellow", "type": "wild", "ability": "Counts as any color for goals" },
+  { "color": "Yellow", "type": "hype", "ability": "When gained, Yellow +1. When sold, Yellow -1" },
+  { "color": "Yellow", "type": "insider", "ability": "When sold, draw an unused Insider Tip Action" },
+
+  { "color": "Purple", "type": "blank" },
+  { "color": "Purple", "type": "blank" },
+  { "color": "Purple", "type": "blank" },
+  { "color": "Purple", "type": "blank" },
+  { "color": "Purple", "type": "stock_up", "ability": "When gained, increase any stock by 1" },
+  { "color": "Purple", "type": "wild", "ability": "Counts as any color for goals" },
+  { "color": "Purple", "type": "hype", "ability": "When gained, Purple +1. When sold, Purple -1" },
+  { "color": "Purple", "type": "insider", "ability": "When sold, draw an unused Insider Tip Action" }
+]

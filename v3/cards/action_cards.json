@@ -2,7 +2,7 @@
   {
     "id": 1,
     "name": "Tipster's Choice",
-    "description": "Draw 2 cards from the main deck, keep 1, return the other to the bottom",
+    "description": "Draw 2 cards from deck, keep 1, return other to bottom",
     "persistent": false,
     "effect": {
       "type": "draw_and_choose",
@@ -13,7 +13,7 @@
   {
     "id": 2,
     "name": "Corner the Market",
-    "description": "Take any one face-up market stock for free (not bought: no price move, no ability)",
+    "description": "Take any face-up stock from market for free",
     "persistent": false,
     "effect": {
       "type": "take_face_up"
@@ -22,7 +22,7 @@
   {
     "id": 3,
     "name": "Pump and Dump",
-    "description": "Sell 1 stock at double its current price (still a sale: that color falls -1)",
+    "description": "Sell 1 stock at double its current price immediately",
     "persistent": false,
     "effect": {
       "type": "sell_double",
@@ -31,8 +31,18 @@
   },
   {
     "id": 4,
+    "name": "Connected Broker",
+    "description": "For rest of game, gain +$2 per stock when you sell",
+    "persistent": true,
+    "effect": {
+      "type": "sell_bonus",
+      "amount": 2
+    }
+  },
+  {
+    "id": 5,
     "name": "The Squeeze",
-    "description": "Raise one stock by +2 OR lower one stock by -2",
+    "description": "Increase one stock by +2 OR decrease one stock by -2",
     "persistent": false,
     "effect": {
       "type": "adjust_stock",
@@ -40,9 +50,9 @@
     }
   },
   {
-    "id": 5,
+    "id": 6,
     "name": "Wild Speculation",
-    "description": "Reveal the top main-deck card and put it on the bottom; if it is a colored stock, raise or lower that color by 3 (your choice). If it has no color, reveal again",
+    "description": "Flip top card from deck, then increase OR decrease that stock by +/-3",
     "persistent": false,
     "effect": {
       "type": "flip_and_adjust",
@@ -50,7 +60,7 @@
     }
   },
   {
-    "id": 6,
+    "id": 7,
     "name": "Preferred Bidder",
     "description": "For rest of game, when you tie the winning bid, you win",
     "persistent": true,
@@ -59,9 +69,9 @@
     }
   },
   {
-    "id": 7,
+    "id": 8,
     "name": "Stock Certificate Forgery",
-    "description": "Claim any one goal using one fewer stock than required",
+    "description": "Complete any one goal using one fewer card than required",
     "persistent": false,
     "effect": {
       "type": "goal_discount",
@@ -69,9 +79,9 @@
     }
   },
   {
-    "id": 8,
+    "id": 9,
     "name": "Hostile Takeover",
-    "description": "Look at another player's hand and take 1 stock of your choice. They receive $6 from the bank",
+    "description": "Choose another player, look at their hand, take 1 stock of your choice. They receive $6 from the bank",
     "persistent": false,
     "effect": {
       "type": "steal_stock",
@@ -79,33 +89,13 @@
     }
   },
   {
-    "id": 9,
+    "id": 10,
     "name": "Rumor Mill",
-    "description": "Adjust every stock by +1 or -1 (choose per stock)",
+    "description": "Adjust every stock by +1 or -1",
     "persistent": false,
     "effect": {
       "type": "adjust_all_stocks",
       "amount": 1
-    }
-  },
-  {
-    "id": 10,
-    "name": "Inside Track",
-    "description": "Look at the top 2 Insider Tip cards and return them in any order",
-    "persistent": false,
-    "effect": {
-      "type": "peek_reorder_tips",
-      "count": 2
-    }
-  },
-  {
-    "id": 11,
-    "name": "Wiretap",
-    "description": "Look at the top 2 Insider Tip cards and return them in any order",
-    "persistent": false,
-    "effect": {
-      "type": "peek_reorder_tips",
-      "count": 2
     }
   }
 ]

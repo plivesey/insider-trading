@@ -1,47 +1,62 @@
 const stockCards = require('../cards/stock_cards.json');
 const actionCards = require('../cards/action_cards.json');
-const crisisCards = require('../cards/crisis_cards.json');
-const marketManipulationData = require('../cards/market_manipulation_cards.json');
+const insiderTipData = require('../cards/insider_tip_cards.json');
 const goalData = require('../cards/goal_cards.json');
+const loanData = require('../cards/loan_cards.json');
+const peekData = require('../cards/peek_cards.json');
 
-describe('Deck Composition', () => {
-  test('main deck should have 44 cards (32 stock + 10 action + 2 crisis)', () => {
-    const mainDeckSize = stockCards.length + actionCards.length + crisisCards.length;
-    expect(mainDeckSize).toBe(44);
+describe('Deck Composition (V4)', () => {
+  test('stock cards should be 36 (32 colored + 4 wild)', () => {
+    expect(stockCards.length).toBe(36);
   });
 
-  test('stock cards should contribute 32 to main deck', () => {
-    expect(stockCards.length).toBe(32);
+  test('action cards should be 11', () => {
+    expect(actionCards.length).toBe(11);
   });
 
-  test('action cards (Type B) should contribute 10 to main deck', () => {
-    expect(actionCards.length).toBe(10);
+  test('main deck should be 47 cards (36 stock + 11 action)', () => {
+    expect(stockCards.length + actionCards.length).toBe(47);
   });
 
-  test('crisis cards should contribute 2 to main deck', () => {
-    expect(crisisCards.length).toBe(2);
-  });
-
-  test('total cards should be 74 (44 main + 16 Type A + 14 goals)', () => {
-    const total = stockCards.length + actionCards.length + crisisCards.length
-      + marketManipulationData.cards.length + goalData.cards.length;
-    expect(total).toBe(74);
-  });
-
-  test('Type A market manipulation cards should be 16', () => {
-    expect(marketManipulationData.cards.length).toBe(16);
+  test('insider tip pool should be 16', () => {
+    expect(insiderTipData.cards.length).toBe(16);
   });
 
   test('goal cards should be 14', () => {
     expect(goalData.cards.length).toBe(14);
   });
 
-  test('end game tracker formula: 3 * players + 1', () => {
-    expect(3 * 2 + 1).toBe(7);
-    expect(3 * 3 + 1).toBe(10);
-    expect(3 * 4 + 1).toBe(13);
-    expect(3 * 5 + 1).toBe(16);
-    expect(3 * 6 + 1).toBe(19);
+  test('loan cards should be 6', () => {
+    expect(loanData.cards.length).toBe(6);
+  });
+
+  test('Hot Tip (peek) cards should be 6', () => {
+    expect(peekData.cards.length).toBe(6);
+  });
+
+  test('total component cards should be 89', () => {
+    const total = stockCards.length + actionCards.length
+      + insiderTipData.cards.length + goalData.cards.length
+      + loanData.cards.length + peekData.cards.length;
+    expect(total).toBe(89);
+  });
+
+  test('there are no crisis cards in V4', () => {
+    expect(() => require('../cards/crisis_cards.json')).toThrow();
+  });
+
+  test('insider tip deck per game = players + 2', () => {
+    expect(2 + 2).toBe(4);
+    expect(3 + 2).toBe(5);
+    expect(4 + 2).toBe(6);
+    expect(5 + 2).toBe(7);
+    expect(6 + 2).toBe(8);
+  });
+
+  test('insider tip deck never exceeds the 16-card pool', () => {
+    for (let players = 2; players <= 6; players++) {
+      expect(players + 2).toBeLessThanOrEqual(insiderTipData.cards.length);
+    }
   });
 
   test('goals per game formula: players + 2', () => {
@@ -50,5 +65,12 @@ describe('Deck Composition', () => {
     expect(4 + 2).toBe(6);
     expect(5 + 2).toBe(7);
     expect(6 + 2).toBe(8);
+  });
+
+  test('loan cards are worth -12 each at game end', () => {
+    for (const loan of loanData.cards) {
+      expect(loan.endGameValue).toBe(-12);
+      expect(loan.cashOnTake).toBe(10);
+    }
   });
 });

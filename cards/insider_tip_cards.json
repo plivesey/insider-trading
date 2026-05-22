@@ -1,0 +1,100 @@
+{
+  "cards": [
+    {
+      "id": 1,
+      "type": "crash",
+      "text": "Blue stock value is halved (round down)",
+      "effect": { "type": "halve", "color": "Blue" }
+    },
+    {
+      "id": 2,
+      "type": "crash",
+      "text": "Blue stock value is halved (round down)",
+      "effect": { "type": "halve", "color": "Blue" }
+    },
+    {
+      "id": 3,
+      "type": "crash",
+      "text": "Orange stock value is halved (round down)",
+      "effect": { "type": "halve", "color": "Orange" }
+    },
+    {
+      "id": 4,
+      "type": "crash",
+      "text": "Orange stock value is halved (round down)",
+      "effect": { "type": "halve", "color": "Orange" }
+    },
+    {
+      "id": 5,
+      "type": "crash",
+      "text": "Yellow stock value is halved (round down)",
+      "effect": { "type": "halve", "color": "Yellow" }
+    },
+    {
+      "id": 6,
+      "type": "crash",
+      "text": "Yellow stock value is halved (round down)",
+      "effect": { "type": "halve", "color": "Yellow" }
+    },
+    {
+      "id": 7,
+      "type": "crash",
+      "text": "Purple stock value is halved (round down)",
+      "effect": { "type": "halve", "color": "Purple" }
+    },
+    {
+      "id": 8,
+      "type": "crash",
+      "text": "Purple stock value is halved (round down)",
+      "effect": { "type": "halve", "color": "Purple" }
+    },
+    {
+      "id": 9,
+      "type": "surge",
+      "text": "Blue +4",
+      "effect": { "type": "adjust", "changes": { "Blue": 4 } }
+    },
+    {
+      "id": 10,
+      "type": "surge",
+      "text": "Orange +4",
+      "effect": { "type": "adjust", "changes": { "Orange": 4 } }
+    },
+    {
+      "id": 11,
+      "type": "surge",
+      "text": "Yellow +4",
+      "effect": { "type": "adjust", "changes": { "Yellow": 4 } }
+    },
+    {
+      "id": 12,
+      "type": "surge",
+      "text": "Purple +4",
+      "effect": { "type": "adjust", "changes": { "Purple": 4 } }
+    },
+    {
+      "id": 13,
+      "type": "slump",
+      "text": "Blue -2 / Orange -2",
+      "effect": { "type": "adjust", "changes": { "Blue": -2, "Orange": -2 } }
+    },
+    {
+      "id": 14,
+      "type": "slump",
+      "text": "Orange -2 / Purple -2",
+      "effect": { "type": "adjust", "changes": { "Orange": -2, "Purple": -2 } }
+    },
+    {
+      "id": 15,
+      "type": "slump",
+      "text": "Purple -2 / Yellow -2",
+      "effect": { "type": "adjust", "changes": { "Purple": -2, "Yellow": -2 } }
+    },
+    {
+      "id": 16,
+      "type": "slump",
+      "text": "Yellow -2 / Blue -2",
+      "effect": { "type": "adjust", "changes": { "Yellow": -2, "Blue": -2 } }
+    }
+  ]
+}

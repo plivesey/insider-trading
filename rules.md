@@ -1,210 +1,272 @@
-# Stock Trading Board Game - Rules (V3)
+# Insider Trading — Complete Rules (V4)
 
 ## Overview
-A strategic trading and market manipulation game for 2-6 players set in the 1920s era of Wall Street. Players auction stocks, compete for shared goals, and manipulate stock prices using insider information. The game ends when enough market manipulation has occurred, triggering the final reckoning.
+
+A strategic trading and market-manipulation game for 2-6 players set in the 1920s era of Wall Street. Players auction stocks, race for shared goals, and watch the market swing as buying, selling, dice, and a deck of explosive Insider Tips push prices up and down. When the goals run out — or the last Insider Tip is revealed — the bubble bursts and the richest tycoon wins.
+
+**Players:** 2-6
+**Victory:** Highest total wealth (cash + stock value − loans) when the game ends.
 
 ---
 
-## Components (72 Cards Total)
+## Components (89 cards + dice)
 
-### Stock Cards (32 cards)
-- **8 Blue**, **8 Orange**, **8 Yellow**, **8 Purple** stock cards
-- Per color: 4 blank stocks + 4 special stocks
-- Special stock abilities (1 of each per color):
-  - **Stock Up**: "When gained, increase any stock by 1"
-  - **Wild**: "Counts as any color for goals" (still its printed color for buying/selling)
-  - **Hype**: "When gained, [color] stock +1. When sold, [color] stock -1"
-  - **Insider**: "When sold, draw an unused Insider Tip Action card" (no effect if pile is empty)
-- Shuffled into the main deck and auctioned during play
+### Stock Cards (36 cards)
+- **32 colored stocks:** 8 each of **Blue**, **Orange**, **Yellow**, **Purple**.
+  - Per color: **4 blank** + **4 special** (one of each special type — see below).
+- **4 Wild Share cards:** colorless. No cash value, cannot be sold; flexible for claiming goals.
+- All 36 are shuffled into the main deck and auctioned during play.
 
-### Insider Tip Action Cards (16 cards)
-- Hidden information cards dealt to players at game start
-- Each card shows stock price movements (e.g., "Blue +2 / Orange -1")
-- Players play these to manipulate the market
-- Card types:
-  - **Single Down** (4 cards): One stock -3 (one per color)
-  - **Double Up** (4 cards): One stock +2, another +1
-  - **Mixed Up** (6 cards): One stock +2, another -1
-  - **Mixed Down** (2 cards): One stock -2, another +1
-- Slightly inflationary: net +1 per color across the full deck
-- Distribution by player count:
-  - **2-4 players:** Each player gets 2 cards
-  - **5-6 players:** Each player gets 1 card
-- Remaining undealt cards form a face-down draw pile
+### Action Cards (11 cards)
+Special one-shot powers, shuffled into the main deck and auctioned. When won they go into your hand. They are **free to play at any time** and do not use up your turn (see Action Cards below).
 
-### Action Cards (10 cards)
-These special action cards are shuffled into the main deck and auctioned. When won, they go into your hand. You must spend a turn action to play them (they do NOT activate immediately when acquired).
-
-1. **"Tipster's Choice"** - Draw 2 cards from deck, keep 1, return other to bottom
-2. **"Corner the Market"** - Take any face-up stock from market for free
-3. **"Pump and Dump"** - Sell 1 stock at double its current price immediately
-4. **"Connected Broker"** - PERSISTENT: For rest of game, gain +$2 per stock when you sell
-5. **"The Squeeze"** - Increase one stock by +2 OR decrease one stock by -2
-6. **"Wild Speculation"** - Flip top card from deck, then increase OR decrease that stock by +/-3
-7. **"Preferred Bidder"** - PERSISTENT: For rest of game, when you tie the winning bid, you win
-8. **"Stock Certificate Forgery"** - Complete any one goal using one fewer card than required
-9. **"Hostile Takeover"** - Choose another player, look at their hand, take 1 stock of your choice. They receive $6 from the bank
-10. **"Rumor Mill"** - Adjust every stock by +1 or -1
-
-### Crisis Cards (2 cards)
-- **Newspaper Exposé**: All stock prices +1
-- **Market Correction**: Move every stock price 1 step closer to $5
-- Shuffled into the main deck
-- When revealed as a face-up market card: apply the effect, then advance the End Game Tracker by +1
-- The crisis card is removed from the game and placed on the tracker pile
-- A replacement card is immediately drawn from the deck
+### Insider Tip Cards (16-card pool)
+Wild market-event cards. They are **never held by players** — they form a **face-down event deck** that is only revealed by the dice or peeked at by special powers. Each game uses a subset of this pool (see Setup).
 
 ### Goal Cards (14 cards)
-- Shared objectives displayed face-up at game start
-- All players compete to claim these first
-- Number used per game: **number of players + 2**
-- Three difficulty tiers:
-  - **Pair** (4 cards, easy): Own 2 of one color — one per color
-    - Rewards: Gain $3, Adjust stock ±2, Set stock to $5, Draw 1 Insider Tip card
-  - **Three of a Kind** (4 cards, hard): Own 3 of one color — one per color
-    - Rewards: Steal $2 from each player, Sell any stocks +$2/stock, Gain $5, Adjust every stock ±1
-  - **Two Pair** (6 cards, hard): Own 2 of each of two colors — all 6 color combinations
-    - Rewards: Gain $6, Adjust stock ±3, Adjust one +2/another -2, Swap stock with market, Draw 2 main deck (keep 1), End-of-game $7
+Shared public objectives. A set of them is displayed face-up; any player may claim one once they hold the required stocks.
 
-### Currency & Tracking
-- Coin tokens representing money
-- **Stock Price Board**: Tracks current prices for all four stocks ($0-$10)
-- **End Game Tracker Pile**: Cards placed here track progress toward game end
+### Loan Cards (6 cards)
+Face-up on the table. Auto-issued when a player cannot cover a payment. Worth **−$12** at game end.
+
+### Hot Tip Cards (6 cards)
+Each player starts with one. A single-use power to peek at the top Insider Tip.
+
+### Other
+- **One six-sided die** (d6).
+- **Coins** representing money.
+- **Stock Price Board:** tracks the four stock prices. Each has a floor of **$0** and **no maximum** — prices may rise above $10.
+
+> **Price floor:** A stock price can never drop below **$0** (it stops there). There is **no upper limit** — prices may climb above $10.
+
+---
+
+## The Special Stocks
+
+Each color has one of each of these four special stocks (16 specials total). The ability triggers only on the printed event:
+
+| Special | Ability |
+|---------|---------|
+| **Boom** | When **bought**, this stock's color rises an extra **+1** (so its color rises **+2** total this purchase). |
+| **Tip-Off** | When **bought**, raise **a different color** of your choice by **+1**. |
+| **Scout** | When **bought**, look at the top card of the Insider Tip deck. |
+| **Informant** | When **sold**, look at the top card of the Insider Tip deck. |
+
+> "When bought" means **won in an auction** (see Buying & Selling). Special abilities do **not** trigger when a stock is gained any other way (free, traded, or stolen).
+
+### Wild Share Cards (4)
+- Colorless. They have **no cash value** and **cannot be sold**.
+- A Wild Share sits in your hand. When you claim a Goal, a Wild Share **may count as one stock of any one color**.
+- A Wild Share is **discarded** the moment it is used to claim a Goal (unlike normal stocks, which stay in your hand).
+- A Wild Share is auctioned like any other stock, but buying one does **not** move any stock price.
+
+---
+
+## Buying & Selling — Prices Always Move
+
+This is the heart of V4: **every purchase pushes a price up, every sale pushes a price down.**
+
+- **When a stock is BOUGHT** (won in an auction): that stock's **color rises +1**.
+- **When a stock is SOLD** (to the bank): that stock's **color falls −1**.
+
+These moves happen on **every** purchase and **every** sale, including sales made through action cards or goal rewards (e.g., Pump and Dump, the "sell as many stocks as you want" goal). Buying or selling a **Wild Share** moves no price (it is colorless).
 
 ---
 
 ## Setup
 
-1. **Shuffle the main deck**: Combine all stock cards (32), action cards (10), and crisis cards (2) into one 44-card deck
-2. **Reveal 5 face-up cards** from the deck (these are available for the first auction round)
-3. **Deal Insider Tip Action cards** to each player:
-   - 2-4 players: 2 cards each (private/hidden)
-   - 5-6 players: 1 card each (private/hidden)
-   - Remaining cards form a face-down Insider Tip draw pile
-4. **Display goal cards**: Randomly select and display (players + 2) goal cards face-up in the center
-5. **Give each player $30** in coins
-6. **Set all stock prices to $4** on the Stock Price Board
-7. **Determine first player** randomly
+1. **Build the main deck:** Shuffle all **36 stock cards** and **11 action cards** into one **47-card** face-down main deck.
+2. **Reveal the market:** Turn up **5 cards** from the main deck side by side. This is the market.
+3. **Build the Insider Tip deck:** Shuffle all **16 Insider Tip cards**, then deal **2 × (number of players)** of them face-down into a draw pile. Return the rest to the box unseen. *(This deck size is a tuning value and may change with playtesting.)*
 
-**Players start with ZERO stocks** - all stocks must be acquired through auctions or actions.
+   | Players | Insider Tip deck |
+   |---------|------------------|
+   | 2 | 4 |
+   | 3 | 6 |
+   | 4 | 8 |
+   | 5 | 10 |
+   | 6 | 12 |
+
+4. **Display goals:** Shuffle the 14 goal cards and reveal **(players + 2)** of them face-up.
+
+   | Players | Goals in play |
+   |---------|---------------|
+   | 2 | 4 |
+   | 3 | 5 |
+   | 4 | 6 |
+   | 5 | 7 |
+   | 6 | 8 |
+
+5. **Bank:** Give each player **$30**.
+6. **Prices:** Set all four stock prices to **$4**.
+7. **Hot Tips:** Give each player **one Hot Tip card**.
+8. **Loans:** Place the **6 loan cards** face-up within reach of all players.
+9. **First player:** Choose randomly. Play proceeds clockwise.
+
+**Players start with $30, one Hot Tip, and ZERO stocks.** All stocks must be acquired through auctions or card effects.
 
 ---
 
 ## Turn Structure
 
-Players take turns clockwise. On your turn, choose ONE action:
+On your turn you take **exactly one** of these two actions:
 
-### Action 1: Start an Auction
-- Choose one of the 5 face-up cards (stock or action card)
-- Conduct an **open outcry auction**:
-  - Players call out bids freely with no set order (like a real auction house)
-  - Highest bidder wins, pays the bank, and takes the card into their hidden hand
-  - If the card is a stock with a special ability, the ability triggers immediately
-  - Immediately reveal a new card from the deck to replace it (maintain 5 face-up cards)
-  - If a crisis card is revealed during replacement, resolve it immediately (see Crisis Cards)
+### Action A: Start an Auction
+1. Choose one of the 5 face-up market cards.
+2. **Set an initial price** for it — any amount from **$0** upward. This is your own opening bid: you are committed to buy the card at that price if no one outbids you.
+3. Run an **open-outcry auction**: the other players call out ascending bids freely; the highest bidder wins. (You may bid more money than you currently hold — see Loans.) **If every other player passes, you (the auctioneer) buy the card at your initial price** — an auction always ends in a sale; the card is always taken by someone.
+4. The winner pays the bank and takes the card into their hand.
+5. **If the card is a stock:** its color rises **+1** (the purchase). Then resolve its special ability if it has one (Boom, Tip-Off, Scout). A Wild Share moves no price.
+6. Refill the market by revealing a new card from the main deck (back to 5 face-up).
 
-### Action 2: Sell One Stock
-- Choose one stock card from your hand
-- Sell it to the bank for its current market price
-- Receive coins equal to that stock's current price
-- If the stock has the **Hype** ability, decrease that color's stock price by 1
-- The sold card goes to the **discard pile** (may return via deck reshuffle)
+### Action B: Sell One Stock
+1. Choose one stock card from your hand (a Wild Share cannot be sold).
+2. The bank pays you that stock's **current price**.
+3. That stock's color falls **−1**.
+4. If the stock is an **Informant**, look at the top Insider Tip card.
+5. The sold card goes to the **discard pile**.
 
-### Action 3: Play an Insider Tip Action Card
-- Reveal one of your Insider Tip Action cards from your hand
-- **Add the card to the End Game Tracker pile** (+1 to tracker)
-- Apply the stock price changes shown on the card
-- Stock prices are constrained to $0-$10
+> You must take one of these two actions on your turn. Passing is not allowed. An auction is always available (the market always has cards), so there is always a legal action.
 
-### Action 4: Claim a Goal Card
-- If you have the required stocks shown on any face-up goal card, you may claim it
-- Take the goal card and place it on the **End Game Tracker pile** (+1 to tracker)
-- Immediately collect the reward shown on the card
-- **The stocks you used stay in your hand** (not discarded)
-- Once claimed, that goal is gone - no one else can claim it
+### End of Turn: Roll the Die
+After your action fully resolves, **roll the d6**:
 
-### Action 5: Play an Action Card
-- Play one action card from your hand
-- Resolve its effect immediately
-- **Single-use cards** are discarded after use
-- **Persistent cards** (Connected Broker, Preferred Bidder) remain in front of you for the rest of the game
-- **Important:** Winning a persistent card in an auction puts it in your hand. You must **spend a future turn action** to play it and activate its effect. It does not activate automatically when acquired.
+- **Roll a 1:** Flip the top card of the Insider Tip deck face-up and **resolve its effect immediately**. The revealed tip is then **removed from the game** (it is never reshuffled).
+- **Roll a 6:** **All four stock prices rise +1.**
+- **Roll 2, 3, 4, or 5:** Nothing happens.
+
+Then play passes to the next player.
 
 ---
 
-## End Game Trigger
+## Things You Can Do Any Time (Free)
 
-The game ends when the **End Game Tracker pile reaches (3 x number of players) cards**.
+The following are **not** turn actions. They are free and may be done at any time — even on another player's turn — and as often as you like:
 
-| Players | Tracker Threshold | Goals Available |
-|---------|------------------|-----------------|
-| 2       | 6                | 4               |
-| 3       | 9                | 5               |
-| 4       | 12               | 6               |
-| 5       | 15               | 7               |
-| 6       | 18               | 8               |
+### Play an Action Card
+- Action cards in your hand may be played at any time; they do not cost your turn.
+- Resolve the card's effect immediately.
+- Most action cards are discarded after use. **Preferred Bidder is persistent** — once played it stays in front of you for the rest of the game.
+- Winning a persistent card in an auction only puts it in your hand. You must still **play it** (a free action) to activate it.
 
-**Cards are added to the tracker when:**
-- **Playing an Insider Tip Action card:** +1 (the card itself goes on the pile)
-- **Claiming a goal card:** +1 (the goal card goes on the pile)
-- **Crisis card revealed:** +1 (crisis card is removed from game to the pile)
+> *Facilitator note:* In a facilitated/AI playtest, free actions are offered only at the **start of each player's turn**, to keep timing simple (see the Facilitator Guide).
 
-**When the tracker reaches its threshold:**
-- The game ends **immediately**. The current player finishes resolving their action, then the game is over. No additional turns are given.
+### Use Your Hot Tip
+- Your Hot Tip card lets you **look at the top Insider Tip card**. It is **single-use** — discard it after use. (Once per game per player by default.)
+
+### Claim a Goal
+- See Goals below. Claiming a goal is **optional and free** — it never costs your turn.
+
+### Take a Loan
+- Loans are issued automatically when you cannot cover a payment (see Loans). You never choose to take one.
 
 ---
 
-## Deck Reshuffle
+## Goals
 
-When the main deck runs out:
-- Shuffle the **discard pile** to form a new deck
-- Crisis cards that were removed to the tracker pile do NOT return
-- Continue play as normal
+A set of **(players + 2)** goal cards is face-up. Each goal shows a stock requirement and a reward.
+
+- **Claiming is optional.** Whenever you hold the stocks a goal requires, you **may** claim it — but you are never forced to. You may also wait and claim later.
+- To claim, reveal that you hold the required stocks. A **Wild Share** may stand in for one stock of any one color.
+- Take the reward shown on the goal immediately.
+- The claimed goal is set aside (out of play). Each goal can be claimed only once, by one player.
+- **Your stocks stay in your hand** after claiming — except any **Wild Share** used, which is discarded.
+- Claiming a goal does **not** cost your turn and may be done at any time.
+
+**Goal tiers:**
+- **Pair** (4 cards): own 2 of one color.
+- **Three of a Kind** (4 cards): own 3 of one color.
+- **Two Pair** (6 cards): own 2 each of two colors.
+
+---
+
+## Action Cards (11)
+
+| Card | Effect |
+|------|--------|
+| **Tipster's Choice** | Draw 2 cards from the main deck, keep 1, return the other to the bottom. |
+| **Corner the Market** | Take any one face-up market stock for free (not "bought" — no price move, no ability). |
+| **Pump and Dump** | Sell 1 stock at **double** its current price. (Still a sale: that color falls −1.) |
+| **The Squeeze** | Raise one stock +2, OR lower one stock −2. |
+| **Wild Speculation** | Reveal the top main-deck card and put it on the bottom; if it is a colored stock, raise or lower that color by 3 (your choice). If it has no color, reveal again. |
+| **Preferred Bidder** | **Persistent:** for the rest of the game, when you tie the high bid in an auction, you win the tie. |
+| **Stock Certificate Forgery** | Claim any one goal using **one fewer** stock than it requires. |
+| **Hostile Takeover** | Look at another player's hand and take 1 stock of your choice. They receive $6 from the bank. |
+| **Rumor Mill** | Adjust every stock by +1 or −1 (choose one direction for each stock). |
+| **Inside Track** | Look at the top 2 Insider Tip cards and return them in any order. |
+| **Wiretap** | Look at the top 2 Insider Tip cards and return them in any order. |
+
+---
+
+## Insider Tip Cards (event deck)
+
+Insider Tips are **wild market events**. They are never held — they sit face-down and only resolve when the **top card is flipped by a dice roll of 1**. Once resolved, the tip is removed from the game permanently.
+
+The 16-card pool:
+- **8 Crash cards** — "[Color] stock value is halved, rounded down." 2 per color.
+- **4 Surge cards** — "[Color] +4." One per color.
+- **4 Slump cards** — "[Color] −2 / [Color] −2" to two colors. Each color appears on two Slump cards.
+
+Special powers (**Scout**, **Informant**, **Hot Tip**, **Inside Track**, **Wiretap**) let players peek at, or reorder, the top of this deck — useful for predicting or steering the next dice flip.
+
+---
+
+## How the Game Ends
+
+The game ends **immediately** the moment **either** condition is met. The current action finishes resolving, then the game is over — there are **no final turns**.
+
+1. **The Insider Tip deck is exhausted** — the last Insider Tip card has been flipped and resolved.
+2. **All goals but one have been claimed** — once only **one** goal card remains in play, the game ends.
+
+---
+
+## Loans
+
+You may **bid or spend more money than you currently hold.**
+
+- The instant a payment exceeds your cash, you are **automatically issued loan cards**. Each loan card gives you **$10** immediately. Take as many $10 loans as needed to cover the payment.
+- Loans are **never taken voluntarily** and **cannot be repaid**.
+- Each loan card you hold counts **−$12** against your wealth at game end.
+
+So a loan is +$10 now for −$12 later: a net cost of $2 for the extra capital. There are 6 loan cards; this is intended to be effectively unlimited.
 
 ---
 
 ## Determining the Winner
 
-Each player calculates their total wealth:
-- **Stock value:** Count all stock cards in hand x current market price per stock
-- **Plus cash:** Add all coins held
-- **Highest total wealth wins!**
+When the game ends, each player totals their wealth:
 
-**Tiebreaker:** If tied, the player with more stock cards wins. If still tied, share the victory.
+- **Cash** on hand, plus
+- **Stock value:** each colored stock × its current price (Wild Shares are worth $0), plus
+- **End-of-game goal bonuses** (e.g., a goal that pays out at game end), minus
+- **$12 for each loan card** held.
+
+**Highest total wealth wins.**
+
+**Tiebreaker:** most stock cards held. If still tied, share the victory.
 
 ---
 
-## Strategy Tips
+## Deck Reshuffle
 
-- **Start with nothing:** You begin with no stocks, so early auctions establish your strategy
-- **Watch the goals:** Shared goals create competition for specific colors
-- **Hidden information:** Insider Tip Action cards are secret, so you can manipulate prices without telegraphing intent
-- **Timing matters:** Playing Insider Tip Action cards advances the end game - sometimes holding them is smarter
-- **Goal racing:** Claiming goals gives you the reward AND advances the clock
-- **Crisis cards are wild cards:** They can suddenly accelerate the game end
-- **Persistent action cards:** Cards like "Connected Broker" and "Preferred Bidder" pay off over multiple turns
-- **Special stocks matter:** Stock abilities trigger when gained or sold - the Insider stock lets you draw an Insider Tip Action when sold
+If the main deck runs out, shuffle the **discard pile** to form a new main deck and continue. The **Insider Tip deck is never reshuffled** — when it empties, the game ends.
 
 ---
 
 ## Quick Reference
 
-**Turn Actions (pick 1):**
-1. Start an auction (from 5 face-up cards)
-2. Sell 1 stock (current market price, to discard)
-3. Play an Insider Tip Action card (+1 end game tracker)
-4. Claim a goal card (+1 end game tracker)
-5. Play an action card
+**Your turn — pick ONE:**
+1. Start an auction
+2. Sell one stock
 
-**End Game Tracker (+1 each):**
-- Insider Tip Action played
-- Goal claimed
-- Crisis revealed
-- **Game ends immediately at:** 3 x players
+**Then roll the d6:** 1 = flip & resolve top Insider Tip (then remove it); 6 = all stocks +1; 2-5 = nothing.
 
-**Starting Conditions:**
-- $30 per player
-- Stocks start at $4 each
-- 0 stocks in hand (acquire through auctions)
-- 5 face-up market cards
+**Any time, free:** play action cards, use your Hot Tip, claim a goal you qualify for.
 
+**Prices move:** buy a stock → its color +1; sell a stock → its color −1. (Wild Shares move nothing.)
+
+**Game ends immediately when:** the Insider Tip deck empties, OR only one goal remains in play.
+
+**Starting conditions:** $30 cash, one Hot Tip, 0 stocks; all prices $4; 5 market cards; Insider Tip deck = players + 2; goals in play = players + 2.
+
+**Wealth = cash + (stocks × price) + end-game goal bonuses − $12 per loan.**

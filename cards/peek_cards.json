@@ -1,0 +1,10 @@
+{
+  "cards": [
+    { "id": 1, "name": "Hot Tip", "description": "Single-use: look at the top Insider Tip card, then discard this card", "uses": 1 },
+    { "id": 2, "name": "Hot Tip", "description": "Single-use: look at the top Insider Tip card, then discard this card", "uses": 1 },
+    { "id": 3, "name": "Hot Tip", "description": "Single-use: look at the top Insider Tip card, then discard this card", "uses": 1 },
+    { "id": 4, "name": "Hot Tip", "description": "Single-use: look at the top Insider Tip card, then discard this card", "uses": 1 },
+    { "id": 5, "name": "Hot Tip", "description": "Single-use: look at the top Insider Tip card, then discard this card", "uses": 1 },
+    { "id": 6, "name": "Hot Tip", "description": "Single-use: look at the top Insider Tip card, then discard this card", "uses": 1 }
+  ]
+}

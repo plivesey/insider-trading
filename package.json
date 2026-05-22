@@ -1,13 +1,13 @@
 {
-  "name": "insider-trading-v3",
-  "version": "3.0.0",
-  "description": "Insider Trading Board Game - V3",
+  "name": "insider-trading-v4",
+  "version": "4.0.0",
+  "description": "Insider Trading Board Game - V4",
   "scripts": {
     "test": "jest",
     "test:watch": "jest --watch"
   },
   "jest": {
-    "testPathIgnorePatterns": ["/node_modules/", "/v2/"]
+    "testPathIgnorePatterns": ["/node_modules/", "/v2/", "/v3/"]
   },
   "devDependencies": {
     "jest": "^29.7.0"

@@ -1,8 +1,8 @@
 const cards = require('../cards/action_cards.json');
 
-describe('Action Cards', () => {
-  test('should have exactly 11 cards', () => {
-    expect(cards).toHaveLength(11);
+describe('Action Cards (Type B)', () => {
+  test('should have exactly 10 cards', () => {
+    expect(cards).toHaveLength(10);
   });
 
   test('should have unique ids', () => {
@@ -28,28 +28,19 @@ describe('Action Cards', () => {
     }
   });
 
-  test('should have exactly 1 persistent card', () => {
+  test('should have exactly 2 persistent cards', () => {
     const persistent = cards.filter(c => c.persistent === true);
-    expect(persistent).toHaveLength(1);
+    expect(persistent).toHaveLength(2);
   });
 
-  test('should have exactly 10 single-use cards', () => {
+  test('should have exactly 8 single-use cards', () => {
     const singleUse = cards.filter(c => c.persistent === false);
-    expect(singleUse).toHaveLength(10);
+    expect(singleUse).toHaveLength(8);
   });
 
-  test('the persistent card should be Preferred Bidder', () => {
-    const persistentNames = cards.filter(c => c.persistent).map(c => c.name);
-    expect(persistentNames).toEqual(['Preferred Bidder']);
-  });
-
-  test('Connected Broker should no longer exist', () => {
-    expect(cards.find(c => c.name === 'Connected Broker')).toBeUndefined();
-  });
-
-  test('should include two tip-reorder cards', () => {
-    const reorder = cards.filter(c => c.effect.type === 'peek_reorder_tips');
-    expect(reorder).toHaveLength(2);
+  test('persistent cards should be Connected Broker and Preferred Bidder', () => {
+    const persistentNames = cards.filter(c => c.persistent).map(c => c.name).sort();
+    expect(persistentNames).toEqual(['Connected Broker', 'Preferred Bidder']);
   });
 
   test('effect should have a type field', () => {
