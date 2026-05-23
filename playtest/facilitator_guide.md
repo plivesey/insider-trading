@@ -5,7 +5,7 @@ This guide explains how the main agent (facilitator) runs an AI playtest of Insi
 ## Setup
 
 1. Run `node playtest/init.js [numPlayers]` to generate `playtest/game_state.json`.
-2. This shuffles the 47-card main deck (36 stock + 11 action), draws 5 market cards, builds the Insider Tip deck (players + 2, face-down), selects (players + 2) goals, gives each player $30 and one Hot Tip, and sets all prices to $4.
+2. This shuffles the 47-card main deck (36 stock + 11 action), draws 5 market cards, builds the Insider Tip deck (2 × players − 1, face-down), selects (players + 2) goals, gives each player $30 and one Hot Tip, and sets all prices to $4.
 
 There is **no End Game Tracker in V4.** The game ends when the Insider Tip deck empties or when only one goal remains in play.
 
@@ -198,3 +198,31 @@ When triggered:
 After each game, copy `game_state.json` to `playtest/results/gameN/` and write an analysis file.
 
 **The analysis file MUST always include an "Insider Tip Peeks" section.** Give a per-peek breakdown of how each player used every peek at the Insider Tip deck (Hot Tip, Scout, Informant, Inside Track, Wiretap): who peeked, what tip they saw, and whether they then acted on that information. Also note unused peeks — Hot Tips never spent, reorder cards never played.
+
+**The analysis file MUST also include a "Purchase Chart" section** — one table per player listing every card that player won at auction. For each entry include:
+
+- **Card** — the card name (e.g. "Purple Boom", "Preferred Bidder", "Corner the Market").
+- **Price paid** — the winning bid.
+- **Outcome** — what happened with the card. Use whichever applies:
+  - *Stock, held at end:* `In hand at end, value: $X (net [+/−]$Y vs. price paid)`
+  - *Stock, sold mid-game:* `Sold T[N] for $X (net [+/−]$Y)`
+  - *Stock, used for a goal:* `Used to claim [Goal name] (reward $X, net [+/−]$Y)` — still in hand afterwards, so also note its end-game value if applicable.
+  - *Single-use action card:* `Played T[N] to [effect]` — and if the card gained another card, list that gained card and its eventual outcome nested underneath. Example: `Corner the Market | $8 | Played T5 → gained Yellow blank, in hand at end, value $5`.
+  - *Action card with multiple uses (e.g. Preferred Bidder):* `Used N times: T[a] won X, T[b] won Y, ...`
+  - *Unused:* `Never played / still in hand at end`.
+
+Example:
+
+```
+### Carnegie's Purchases
+
+| Card              | Price | Outcome                                                        |
+|-------------------|-------|----------------------------------------------------------------|
+| Purple blank      | $5    | Used to claim Purple Pair (reward $8, net +$3); end value $6   |
+| Blue Boom         | $7    | Sold T9 for $9 (net +$2)                                        |
+| Preferred Bidder  | $3    | Used 3 times: T4 won Orange blank, T7 won Yellow Scout, T10 won Purple Tip-Off |
+| Corner the Market | $8    | Played T5 → gained Yellow blank, in hand at end, value $5      |
+| Wild Share        | $2    | Used to claim Three Blues (reward $10), discarded               |
+```
+
+Include a one-line **summary** per player after the table: total spent at auction, total realized value, and the net result.

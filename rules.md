@@ -77,15 +77,15 @@ These moves happen on **every** purchase and **every** sale, including sales mad
 
 1. **Build the main deck:** Shuffle all **36 stock cards** and **11 action cards** into one **47-card** face-down main deck.
 2. **Reveal the market:** Turn up **5 cards** from the main deck side by side. This is the market.
-3. **Build the Insider Tip deck:** Shuffle all **16 Insider Tip cards**, then deal **2 × (number of players)** of them face-down into a draw pile. Return the rest to the box unseen. *(This deck size is a tuning value and may change with playtesting.)*
+3. **Build the Insider Tip deck:** Shuffle all **16 Insider Tip cards**, then deal **(2 × number of players − 1)** of them face-down into a draw pile. Return the rest to the box unseen. *(This deck size is a tuning value and may change with playtesting.)*
 
    | Players | Insider Tip deck |
    |---------|------------------|
-   | 2 | 4 |
-   | 3 | 6 |
-   | 4 | 8 |
-   | 5 | 10 |
-   | 6 | 12 |
+   | 2 | 3 |
+   | 3 | 5 |
+   | 4 | 7 |
+   | 5 | 9 |
+   | 6 | 11 |
 
 4. **Display goals:** Shuffle the 14 goal cards and reveal **(players + 2)** of them face-up.
 
@@ -267,6 +267,6 @@ If the main deck runs out, shuffle the **discard pile** to form a new main deck 
 
 **Game ends immediately when:** the Insider Tip deck empties, OR only one goal remains in play.
 
-**Starting conditions:** $30 cash, one Hot Tip, 0 stocks; all prices $4; 5 market cards; Insider Tip deck = players + 2; goals in play = players + 2.
+**Starting conditions:** $30 cash, one Hot Tip, 0 stocks; all prices $4; 5 market cards; Insider Tip deck = 2 × players − 1; goals in play = players + 2.
 
 **Wealth = cash + (stocks × price) + end-game goal bonuses − $12 per loan.**

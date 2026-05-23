@@ -12,7 +12,7 @@ A strategic trading and market manipulation board game for 2-6 players set in 19
 
 - **Prices move on trade**: every stock bought → that color +1; every stock sold → that color −1.
 - **No End Game Tracker** — removed entirely. Two end conditions instead (see above).
-- **Insider Tips are an event deck**, never held by players. A face-down deck of (players + 2) cards (drawn from a 16-card pool). Only resolved when flipped by the dice; then removed from the game.
+- **Insider Tips are an event deck**, never held by players. A face-down deck of (2 × players − 1) cards (drawn from a 16-card pool). Only resolved when flipped by the dice; then removed from the game.
 - **A six-sided die** is rolled at the end of every turn: 1 = flip + resolve the top Insider Tip; 6 = all stocks +1; 2-5 = nothing.
 - **Two turn actions only**: start an auction, or sell one stock.
 - **Goal claiming is optional and free** — claim any time you qualify; never costs a turn.
@@ -39,7 +39,7 @@ A strategic trading and market manipulation board game for 2-6 players set in 19
 ### Insider Tip Cards (16-card pool) - `cards/insider_tip_cards.json`
 - Face-down event deck; never held by players
 - 8 crash (halve a color, 2 per color), 4 surge (+4 to one color), 4 slump (−2/−2 to two colors)
-- Each game uses (players + 2) of them
+- Each game uses (2 × players − 1) of them
 
 ### Goal Cards (14) - `cards/goal_cards.json`
 - Shared/public; displays players+2 per game

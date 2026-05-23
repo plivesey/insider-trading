@@ -11,8 +11,8 @@
         }
       },
       "reward": {
-        "text": "Gain $5",
-        "parsed": { "type": "gain_cash", "amount": 5 }
+        "text": "Gain $4",
+        "parsed": { "type": "gain_cash", "amount": 4 }
       }
     },
     {
@@ -26,8 +26,8 @@
         }
       },
       "reward": {
-        "text": "Adjust any one stock by +/-3",
-        "parsed": { "type": "adjust_stock", "amount": 3 }
+        "text": "Adjust any one stock by +/-2",
+        "parsed": { "type": "adjust_stock", "amount": 2 }
       }
     },
     {
@@ -41,8 +41,8 @@
         }
       },
       "reward": {
-        "text": "Set any one stock to exactly $10",
-        "parsed": { "type": "set_stock", "amount": 10 }
+        "text": "Set any one stock to exactly $6",
+        "parsed": { "type": "set_stock", "amount": 6 }
       }
     },
     {
@@ -56,8 +56,8 @@
         }
       },
       "reward": {
-        "text": "Look at the top 3 Insider Tip cards",
-        "parsed": { "type": "peek_tips", "count": 3 }
+        "text": "Look at the top 2 Insider Tip cards",
+        "parsed": { "type": "peek_tips", "count": 2 }
       }
     },
     {
@@ -71,8 +71,8 @@
         }
       },
       "reward": {
-        "text": "Steal $4 from each other player",
-        "parsed": { "type": "steal_from_all", "amount": 4 }
+        "text": "Steal $3 from each other player",
+        "parsed": { "type": "steal_from_all", "amount": 3 }
       }
     },
     {
@@ -86,8 +86,8 @@
         }
       },
       "reward": {
-        "text": "Sell any number of stocks, gain +$4 per stock sold",
-        "parsed": { "type": "sell_bonus_batch", "bonus": 4 }
+        "text": "Sell any number of stocks, gain +$3 per stock sold",
+        "parsed": { "type": "sell_bonus_batch", "bonus": 3 }
       }
     },
     {
@@ -101,8 +101,8 @@
         }
       },
       "reward": {
-        "text": "Gain $10",
-        "parsed": { "type": "gain_cash", "amount": 10 }
+        "text": "Gain $7",
+        "parsed": { "type": "gain_cash", "amount": 7 }
       }
     },
     {
@@ -116,8 +116,8 @@
         }
       },
       "reward": {
-        "text": "Adjust every stock by +2 or -2 (choose per stock)",
-        "parsed": { "type": "adjust_all_stocks", "amount": 2 }
+        "text": "Adjust every stock by +1 or -1 (choose per stock)",
+        "parsed": { "type": "adjust_all_stocks", "amount": 1 }
       }
     },
     {
@@ -131,8 +131,8 @@
         }
       },
       "reward": {
-        "text": "Gain $12",
-        "parsed": { "type": "gain_cash", "amount": 12 }
+        "text": "Gain $8",
+        "parsed": { "type": "gain_cash", "amount": 8 }
       }
     },
     {
@@ -146,8 +146,8 @@
         }
       },
       "reward": {
-        "text": "Adjust any one stock by +/-5",
-        "parsed": { "type": "adjust_stock", "amount": 5 }
+        "text": "Adjust any one stock by +/-4",
+        "parsed": { "type": "adjust_stock", "amount": 4 }
       }
     },
     {
@@ -161,8 +161,8 @@
         }
       },
       "reward": {
-        "text": "Adjust any one stock by +4 and another stock by -4",
-        "parsed": { "type": "adjust_two_stocks", "up": 4, "down": 4 }
+        "text": "Adjust any one stock by +3 and another stock by -3",
+        "parsed": { "type": "adjust_two_stocks", "up": 3, "down": 3 }
       }
     },
     {
@@ -176,8 +176,8 @@
         }
       },
       "reward": {
-        "text": "Take any one face-up market card for free",
-        "parsed": { "type": "take_face_up" }
+        "text": "Swap one of your stock cards with a face-up market card",
+        "parsed": { "type": "swap_with_market" }
       }
     },
     {
@@ -206,8 +206,8 @@
         }
       },
       "reward": {
-        "text": "At the end of the game, gain $14",
-        "parsed": { "type": "end_game_cash", "amount": 14 }
+        "text": "At the end of the game, gain $10",
+        "parsed": { "type": "end_game_cash", "amount": 10 }
       }
     }
   ]

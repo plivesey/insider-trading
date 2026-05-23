@@ -45,17 +45,17 @@ describe('Deck Composition (V4)', () => {
     expect(() => require('../cards/crisis_cards.json')).toThrow();
   });
 
-  test('insider tip deck per game = players + 2', () => {
-    expect(2 + 2).toBe(4);
-    expect(3 + 2).toBe(5);
-    expect(4 + 2).toBe(6);
-    expect(5 + 2).toBe(7);
-    expect(6 + 2).toBe(8);
+  test('insider tip deck per game = 2 x players - 1', () => {
+    expect(2 * 2 - 1).toBe(3);
+    expect(2 * 3 - 1).toBe(5);
+    expect(2 * 4 - 1).toBe(7);
+    expect(2 * 5 - 1).toBe(9);
+    expect(2 * 6 - 1).toBe(11);
   });
 
   test('insider tip deck never exceeds the 16-card pool', () => {
     for (let players = 2; players <= 6; players++) {
-      expect(players + 2).toBeLessThanOrEqual(insiderTipData.cards.length);
+      expect(2 * players - 1).toBeLessThanOrEqual(insiderTipData.cards.length);
     }
   });
 
