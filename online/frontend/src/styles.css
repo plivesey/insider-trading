@@ -103,6 +103,15 @@ body {
   position: fixed; inset: 0; background: rgba(0, 0, 0, 0.5); z-index: 99;
 }
 
+.reset-btn {
+  padding: 6px 14px; border: 1px solid #666; background: #2a2a2f; color: #ccc;
+  border-radius: 4px; cursor: pointer; font-size: 13px;
+}
+.reset-btn:hover { background: #3a3a3f; }
+.reset-btn.danger { background: #5a1a1a; color: #fff; border-color: #8a3a3a; }
+.reset-btn.danger:hover { background: #7a2a2a; }
+.reset-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
 .toast-rack {
   position: fixed; top: 16px; left: 50%; transform: translateX(-50%);
   display: flex; flex-direction: column; gap: 8px; z-index: 200;
