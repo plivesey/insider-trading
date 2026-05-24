@@ -70,14 +70,15 @@ export class MutateQueue {
         resolve(result);
         return;
       }
-      // Success: bump event counter & timestamps if events were emitted.
+      // Success: bump event counter & stamp timestamps/turnNumber from state.
+      // events.ts constructs entries with placeholders; we overwrite them here
+      // so every persisted/broadcast event reflects the actual game state at
+      // the moment of emission.
       for (const ev of result.events) {
         this.state.eventCounter += 1;
         ev.seq = this.state.eventCounter;
         if (!ev.ts) ev.ts = new Date().toISOString();
-        if (ev.turnNumber === undefined || ev.turnNumber === null) {
-          ev.turnNumber = this.state.turnNumber;
-        }
+        ev.turnNumber = this.state.turnNumber;
         this.state.log.push(ev);
         appendLog(ev);
       }

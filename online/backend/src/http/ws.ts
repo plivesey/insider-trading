@@ -52,9 +52,13 @@ export class WsHub {
   }
 
   broadcast(_state: GameState, events: GameLogEntry[]): void {
+    // op_* events are internal replay markers (no human-readable message);
+    // skip them in the WS broadcast so they don't clutter the LogFeed UI.
+    // They're still written to the per-game .jsonl for replay fidelity.
+    const visible = events.filter(e => !e.type.startsWith('op_'));
     for (const c of this.clients) {
       this.sendStateTo(c);
-      if (events.length > 0) this.send(c.socket, { type: 'log', entries: events });
+      if (visible.length > 0) this.send(c.socket, { type: 'log', entries: visible });
     }
   }
 

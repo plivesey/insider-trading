@@ -13,6 +13,8 @@ export function useGameState(): UseGameState {
   const [connected, setConnected] = useState(false);
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectAttempts = useRef(0);
+  // Track the gameId of the log buffer so we can wipe it when a new game starts.
+  const logGameIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -29,8 +31,22 @@ export function useGameState(): UseGameState {
       ws.onmessage = e => {
         try {
           const msg = JSON.parse(e.data as string) as ServerWsMessage;
-          if (msg.type === 'state') setState(msg.state);
-          else if (msg.type === 'log') setLog(prev => [...prev, ...msg.entries].slice(-200));
+          if (msg.type === 'state') {
+            // Detect game-id change → reset log so we don't mix events
+            // from a previous game (or stale post-reset state) with the
+            // current one. Treat "no game" as a sentinel that also clears.
+            const nextGameId =
+              msg.state.mode === 'in_game' || msg.state.mode === 'game_over'
+                ? msg.state.state.gameId
+                : null;
+            if (nextGameId !== logGameIdRef.current) {
+              logGameIdRef.current = nextGameId;
+              setLog([]);
+            }
+            setState(msg.state);
+          } else if (msg.type === 'log') {
+            setLog(prev => [...prev, ...msg.entries].slice(-200));
+          }
         } catch {
           /* ignore */
         }
