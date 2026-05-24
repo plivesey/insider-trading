@@ -160,6 +160,46 @@ describe('sellStock', () => {
   });
 });
 
+describe('auctioneer can re-bid after being outbid', () => {
+  it('prompts the auctioneer again once another player has raised and the rest have passed', () => {
+    const state = mkState();
+    const alice = currentPlayer(state); // auctioneer
+    const bob = state.players[(state.currentPlayerIndex + 1) % 3];
+    const cam = state.players[(state.currentPlayerIndex + 2) % 3];
+    const card = state.market[0];
+
+    // Alice starts at $5.
+    startAuction(state, alice.playerId, card.uid, 5);
+    expect(state.auction!.awaitingBidderId).toBe(bob.playerId);
+
+    // Bob bids $6.
+    const r1 = bid(state, bob.playerId, 6);
+    expect(r1.ok).toBe(true);
+    expect(state.auction!.currentHighBidderId).toBe(bob.playerId);
+    expect(state.auction!.awaitingBidderId).toBe(cam.playerId);
+
+    // Cam passes.
+    const r2 = pass(state, cam.playerId);
+    expect(r2.ok).toBe(true);
+
+    // Auction must NOT have resolved — Alice is still in the rotation.
+    expect(state.auction).not.toBeNull();
+    expect(state.auction!.awaitingBidderId).toBe(alice.playerId);
+
+    // Alice re-bids $7, beating Bob.
+    const r3 = bid(state, alice.playerId, 7);
+    expect(r3.ok).toBe(true);
+    expect(state.auction!.currentHighBidderId).toBe(alice.playerId);
+    expect(state.auction!.awaitingBidderId).toBe(bob.playerId);
+
+    // Bob passes; auction resolves to Alice (Cam already out).
+    const r4 = pass(state, bob.playerId);
+    expect(r4.ok).toBe(true);
+    expect(state.auction).toBeNull();
+    expect(alice.hand.find(c => c.uid === card.uid)).toBeTruthy();
+  });
+});
+
 describe('preferred bidder tie-break', () => {
   it('allows holder to tie the high bid', () => {
     const state = mkState();

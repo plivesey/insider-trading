@@ -43,12 +43,15 @@ export function startAuction(
   const cardIdx = state.market.findIndex(c => c.uid === cardUid);
   if (cardIdx < 0) return { ok: false, error: 'card not in market', events };
 
-  // Build active bidders list in turn order, starting from auctioneer+1.
+  // Build active bidders list in turn order. Once the auctioneer is outbid
+  // they're a regular bidder, so include them at the END (the rotation begins
+  // at auctioneer+1; auctioneer wraps around last).
   const n = state.players.length;
   const order: PlayerId[] = [];
   for (let i = 1; i < n; i++) {
     order.push(state.players[(state.currentPlayerIndex + i) % n].playerId);
   }
+  order.push(playerId);
   const auction: AuctionState = {
     cardUid,
     auctioneerId: playerId,

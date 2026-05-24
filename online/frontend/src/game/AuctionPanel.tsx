@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { AuctionState, PlayerPublic, PromptEnvelope } from '@insider-trading/shared';
 import { api } from '../lib/api.js';
 import { showError } from '../lib/toast.js';
@@ -11,7 +11,17 @@ interface Props {
 }
 
 export function AuctionPanel({ auction, players, myPrompt, myPlayerId }: Props) {
-  const [amount, setAmount] = useState<number>(auction.currentHigh + 1);
+  const me = players.find(p => p.playerId === myPlayerId);
+  const hasPreferred = !!me?.persistentEffects.some(e => e.effect.type === 'tie_breaker');
+  // Lowest legal bid: currentHigh if Preferred Bidder (can tie), else currentHigh + 1.
+  const minBid = hasPreferred ? auction.currentHigh : auction.currentHigh + 1;
+
+  const [amount, setAmount] = useState<number>(minBid);
+  // Re-default to the lowest legal bid whenever currentHigh changes (e.g. another
+  // player just raised). This avoids carrying a stale value into the next prompt.
+  useEffect(() => {
+    setAmount(minBid);
+  }, [auction.currentHigh, hasPreferred]);
 
   const high = players.find(p => p.playerId === auction.currentHighBidderId);
   const awaiting = players.find(p => p.playerId === auction.awaitingBidderId);
@@ -45,11 +55,16 @@ export function AuctionPanel({ auction, players, myPrompt, myPlayerId }: Props) 
           <input
             type="number"
             value={amount}
-            min={auction.currentHigh + 1}
+            min={minBid}
             onChange={e => setAmount(parseInt(e.target.value || '0', 10))}
           />
           <button onClick={bid}>Bid</button>
           <button onClick={pass}>Pass</button>
+          {hasPreferred && (
+            <div style={{ fontSize: 11, color: '#aaa', marginTop: 4 }}>
+              Preferred Bidder: you may tie at ${auction.currentHigh}.
+            </div>
+          )}
         </div>
       )}
     </div>

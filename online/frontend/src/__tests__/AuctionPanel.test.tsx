@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { AuctionPanel } from '../game/AuctionPanel.js';
 import { api } from '../lib/api.js';
-import type { AuctionState, PlayerPublic, PromptEnvelope } from '@insider-trading/shared';
+import type { AuctionState, PlayerPublic, PromptEnvelope, ActionCard } from '@insider-trading/shared';
 
 vi.mock('../lib/api.js', () => ({
   api: { auctionBid: vi.fn() }
@@ -89,5 +89,50 @@ describe('AuctionPanel', () => {
     expect(screen.getByText(/Awaiting:/)).toBeInTheDocument();
     // Alice is awaiting in the fixture
     expect(screen.getByText(/Alice/)).toBeInTheDocument();
+  });
+
+  it('defaults the bid input to currentHigh+1 for a normal bidder', () => {
+    const prompt: PromptEnvelope = {
+      promptId: 'pr1', type: 'auction_bid', playerId: 'p1', payload: {}, message: ''
+    };
+    render(<AuctionPanel auction={auction} players={players} myPrompt={prompt} myPlayerId="p1" />);
+    const input = screen.getByRole('spinbutton') as HTMLInputElement;
+    expect(input.value).toBe(String(auction.currentHigh + 1));
+    expect(input.min).toBe(String(auction.currentHigh + 1));
+  });
+
+  it('defaults to currentHigh and allows tie for a Preferred Bidder holder', () => {
+    const preferred: ActionCard = {
+      uid: 'action-6', category: 'action', id: 6, name: 'Preferred Bidder',
+      description: 'tie wins', persistent: true, effect: { type: 'tie_breaker' }
+    };
+    const playersWithPref: PlayerPublic[] = [
+      { ...players[0], persistentEffects: [preferred] },
+      players[1]
+    ];
+    const prompt: PromptEnvelope = {
+      promptId: 'pr1', type: 'auction_bid', playerId: 'p1', payload: {}, message: ''
+    };
+    render(<AuctionPanel auction={auction} players={playersWithPref} myPrompt={prompt} myPlayerId="p1" />);
+    const input = screen.getByRole('spinbutton') as HTMLInputElement;
+    expect(input.value).toBe(String(auction.currentHigh));
+    expect(input.min).toBe(String(auction.currentHigh));
+    expect(screen.getByText(/Preferred Bidder/)).toBeInTheDocument();
+  });
+
+  it('re-defaults the bid input when currentHigh changes (someone else raised)', () => {
+    const prompt: PromptEnvelope = {
+      promptId: 'pr1', type: 'auction_bid', playerId: 'p1', payload: {}, message: ''
+    };
+    const { rerender } = render(
+      <AuctionPanel auction={auction} players={players} myPrompt={prompt} myPlayerId="p1" />
+    );
+    const input = screen.getByRole('spinbutton') as HTMLInputElement;
+    expect(input.value).toBe('3'); // currentHigh=2, default=3
+
+    // Someone else raised to 6.
+    const raised: AuctionState = { ...auction, currentHigh: 6, currentHighBidderId: 'p2' };
+    rerender(<AuctionPanel auction={raised} players={players} myPrompt={prompt} myPlayerId="p1" />);
+    expect(input.value).toBe('7'); // re-default to currentHigh+1
   });
 });
