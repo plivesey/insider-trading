@@ -13,7 +13,6 @@ export function FreeActionPanel({ state }: Props) {
   const my = state.myPlayer;
   const [showClaim, setShowClaim] = useState<GoalCard | null>(null);
   const [assignment, setAssignment] = useState<Record<string, Color>>({});
-  const [useForgery, setUseForgery] = useState(false);
 
   if (!my) return null;
 
@@ -32,13 +31,11 @@ export function FreeActionPanel({ state }: Props) {
         request: {
           kind: 'claim_goal',
           goalUid: showClaim.uid,
-          stockAssignment: { cards: assignment },
-          useForgery
+          stockAssignment: { cards: assignment }
         }
       });
       setShowClaim(null);
       setAssignment({});
-      setUseForgery(false);
     } catch (e) {
       showError((e as Error).message);
     }
@@ -82,16 +79,6 @@ export function FreeActionPanel({ state }: Props) {
                 </select>
               </div>
             ))}
-          {my.forgeryAvailable && (
-            <label>
-              <input
-                type="checkbox"
-                checked={useForgery}
-                onChange={e => setUseForgery(e.target.checked)}
-              />{' '}
-              Use Stock Certificate Forgery (1 fewer stock)
-            </label>
-          )}
           <div style={{ marginTop: 6 }}>
             <button onClick={submitClaim}>Submit claim</button>
             <button onClick={() => { setShowClaim(null); setAssignment({}); }}>Cancel</button>

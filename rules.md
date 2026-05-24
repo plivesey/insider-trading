@@ -190,7 +190,6 @@ A set of **(players + 2)** goal cards is face-up. Each goal shows a stock requir
 | **The Squeeze** | Raise one stock +2, OR lower one stock −2. |
 | **Wild Speculation** | Reveal the top main-deck card and put it on the bottom; if it is a colored stock, raise or lower that color by 3 (your choice). If it has no color, reveal again. |
 | **Preferred Bidder** | **Persistent:** for the rest of the game, when you tie the high bid in an auction, you win the tie. |
-| **Stock Certificate Forgery** | Claim any one goal using **one fewer** stock than it requires. |
 | **Hostile Takeover** | Look at another player's hand and take 1 stock of your choice. They receive $6 from the bank. |
 | **Rumor Mill** | Adjust every stock by +1 or −1 (choose one direction for each stock). |
 | **Inside Track** | Look at the top 2 Insider Tip cards and return them in any order. |

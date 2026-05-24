@@ -22,7 +22,6 @@ export type ActionEffect =
   | { type: 'adjust_stock'; amount: number }
   | { type: 'flip_and_adjust'; amount: number }
   | { type: 'tie_breaker' }
-  | { type: 'goal_discount'; discount: number }
   | { type: 'steal_stock'; compensation: number }
   | { type: 'adjust_all_stocks'; amount: number }
   | { type: 'peek_reorder_tips'; count: number };

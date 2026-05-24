@@ -26,7 +26,7 @@ describe('createGameState', () => {
     expect(g.market).toHaveLength(5);
     expect(g.insiderTipDeck).toHaveLength(5); // 2*3-1
     expect(g.activeGoals).toHaveLength(5); // 3+2
-    expect(g.mainDeck).toHaveLength(36 + 11 - 5);
+    expect(g.mainDeck).toHaveLength(36 + 10 - 5);
     expect(g.players.every(p => p.cash === 30)).toBe(true);
     expect(g.players.every(p => p.hotTipAvailable)).toBe(true);
     expect(g.stockPrices).toEqual({ Blue: 4, Orange: 4, Yellow: 4, Purple: 4 });

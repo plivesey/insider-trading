@@ -7,7 +7,7 @@
     "test:watch": "jest --watch"
   },
   "jest": {
-    "testPathIgnorePatterns": ["/node_modules/", "/v2/", "/v3/"]
+    "testPathIgnorePatterns": ["/node_modules/", "/v2/", "/v3/", "/online/"]
   },
   "devDependencies": {
     "jest": "^29.7.0"

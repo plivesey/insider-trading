@@ -14,15 +14,14 @@ import { checkEndConditions, findPlayer, receiveBank } from './turn.js';
 
 /**
  * Attempt to claim `goalUid` from activeGoals. Validates that the stock
- * assignment satisfies the goal's requirements (with Wild Share substitution
- * and optional Forgery discount), then applies the reward.
+ * assignment satisfies the goal's requirements (with Wild Share substitution),
+ * then applies the reward.
  */
 export function claimGoal(
   state: GameState,
   player: PlayerPrivate,
   goalUid: string,
   assignment: StockAssignment,
-  useForgery: boolean,
   events: GameLogEntry[]
 ): void {
   const idx = state.activeGoals.findIndex(g => g.uid === goalUid);
@@ -32,22 +31,6 @@ export function claimGoal(
   }
   const goal = state.activeGoals[idx];
   const requirements = { ...goal.goal.parsed.requirements };
-  let forgeryApplied = false;
-  if (useForgery) {
-    if (!player.forgeryAvailable) {
-      events.push(event('error', `claim_goal: ${player.name} has no Forgery armed`, {}));
-      return;
-    }
-    // Subtract 1 from the largest requirement (or any single requirement).
-    const colors = Object.keys(requirements) as Color[];
-    if (colors.length === 0) {
-      events.push(event('error', 'goal has empty requirements', {}));
-      return;
-    }
-    const target = colors.reduce((a, b) => ((requirements[a] ?? 0) >= (requirements[b] ?? 0) ? a : b));
-    requirements[target] = Math.max(1, (requirements[target] ?? 0) - 1);
-    forgeryApplied = true;
-  }
 
   // Validate stock assignment.
   const cardUids = Object.keys(assignment.cards);
@@ -83,7 +66,7 @@ export function claimGoal(
     }
   }
 
-  // All good — discard Wild Shares; reset Forgery if used.
+  // All good — discard Wild Shares.
   for (const uid of wildUidsUsed) {
     const wIdx = player.hand.findIndex(c => c.uid === uid);
     if (wIdx >= 0) {
@@ -91,7 +74,6 @@ export function claimGoal(
       state.discardPile.push(w);
     }
   }
-  if (forgeryApplied) player.forgeryAvailable = false;
 
   // Remove goal from active, add to player's claimed list.
   state.activeGoals.splice(idx, 1);
@@ -106,8 +88,7 @@ export function claimGoal(
           goalUid,
           goalText: goal.goal.text,
           rewardText: goal.reward.text,
-          wildUsed: wildUidsUsed.length,
-          forgeryApplied
+          wildUsed: wildUidsUsed.length
         }
       }
     )

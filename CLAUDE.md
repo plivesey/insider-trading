@@ -31,10 +31,11 @@ A strategic trading and market manipulation board game for 2-6 players set in 19
 - 4 colorless `wild` (Wild Share) cards
 - All shuffled into the main deck and auctioned
 
-### Action Cards (11) - `cards/action_cards.json`
+### Action Cards (10) - `cards/action_cards.json`
 - Shuffled into the main deck and auctioned; held in hand; played free at any time
-- 1 persistent (Preferred Bidder), 10 single-use
+- 1 persistent (Preferred Bidder), 9 single-use
 - Includes two tip-reorder cards (Inside Track, Wiretap)
+- 11th slot open: Stock Certificate Forgery removed; replacement TBD
 
 ### Insider Tip Cards (16-card pool) - `cards/insider_tip_cards.json`
 - Face-down event deck; never held by players

@@ -114,13 +114,6 @@ describe('Action cards', () => {
     expect(s.players[0].persistentEffects.find(c => c.uid === ac.uid)).toBeTruthy();
   });
 
-  it('Stock Certificate Forgery arms forgery flag', () => {
-    const s = mkState();
-    const ac = giveActionCard(s, 'p1', 'goal_discount');
-    play(s, 'p1', ac);
-    expect(s.players[0].forgeryAvailable).toBe(true);
-  });
-
   it('Hostile Takeover: target + stock pick, target gets $6', () => {
     const s = mkState();
     const ac = giveActionCard(s, 'p1', 'steal_stock');
@@ -223,23 +216,6 @@ describe('Goal claiming', () => {
     // Wild is discarded after use.
     expect(s.players[0].hand.find(c => c.uid === w1.uid)).toBeUndefined();
     expect(s.discardPile.find(c => c.uid === w1.uid)).toBeTruthy();
-  });
-
-  it('Forgery discount: claim 3 Yellow with 2 Yellow', () => {
-    const s = mkState();
-    s.players[0].forgeryAvailable = true;
-    const goal: GoalCard = { ...catalog.goals.find(g => g.id === 7)! }; // 3 Yellow → +$7
-    s.activeGoals.push(goal);
-    const [y1, y2] = giveStock(s, 'p1', 'Yellow', 2);
-    submitFreeAction(s, 'p1', {
-      kind: 'claim_goal',
-      goalUid: goal.uid,
-      useForgery: true,
-      stockAssignment: { cards: { [y1.uid]: 'Yellow', [y2.uid]: 'Yellow' } }
-    });
-    processNextFreeAction(s, []);
-    expect(s.players[0].cash).toBe(37);
-    expect(s.players[0].forgeryAvailable).toBe(false);
   });
 
   it('rejects insufficient stocks', () => {

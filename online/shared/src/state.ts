@@ -21,7 +21,6 @@ export interface PlayerPrivate {
   loans: number;
   endGameCashBonus: number;
   goalsClaimed: GoalCard[];
-  forgeryAvailable: boolean;
 }
 
 export interface PlayerPublic {
@@ -78,7 +77,7 @@ export interface PromptEnvelope {
 export type FreeActionRequest =
   | { kind: 'play_action_card'; cardUid: string; payload?: Record<string, unknown> }
   | { kind: 'use_hot_tip' }
-  | { kind: 'claim_goal'; goalUid: string; stockAssignment: StockAssignment; useForgery?: boolean };
+  | { kind: 'claim_goal'; goalUid: string; stockAssignment: StockAssignment };
 
 export interface StockAssignment {
   /** uid of stock card -> the color it satisfies. Wild Shares satisfy any one color. */

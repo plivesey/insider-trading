@@ -10,12 +10,13 @@ describe('Deck Composition (V4)', () => {
     expect(stockCards.length).toBe(36);
   });
 
-  test('action cards should be 11', () => {
-    expect(actionCards.length).toBe(11);
+  // 11th slot is open — Stock Certificate Forgery removed pending replacement.
+  test('action cards should be 10', () => {
+    expect(actionCards.length).toBe(10);
   });
 
-  test('main deck should be 47 cards (36 stock + 11 action)', () => {
-    expect(stockCards.length + actionCards.length).toBe(47);
+  test('main deck should be 46 cards (36 stock + 10 action)', () => {
+    expect(stockCards.length + actionCards.length).toBe(46);
   });
 
   test('insider tip pool should be 16', () => {
@@ -34,11 +35,11 @@ describe('Deck Composition (V4)', () => {
     expect(peekData.cards.length).toBe(6);
   });
 
-  test('total component cards should be 89', () => {
+  test('total component cards should be 88', () => {
     const total = stockCards.length + actionCards.length
       + insiderTipData.cards.length + goalData.cards.length
       + loanData.cards.length + peekData.cards.length;
-    expect(total).toBe(89);
+    expect(total).toBe(88);
   });
 
   test('there are no crisis cards in V4', () => {

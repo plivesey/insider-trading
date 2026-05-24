@@ -68,7 +68,6 @@ export function processNextFreeAction(state: GameState, events: GameLogEntry[]):
         player,
         entry.request.goalUid,
         entry.request.stockAssignment,
-        entry.request.useForgery ?? false,
         events
       );
       break;

@@ -10,7 +10,7 @@ describe('cardLoader', () => {
 
   it('loads the correct number of cards in each category', () => {
     expect(catalog.stocks).toHaveLength(36);
-    expect(catalog.actions).toHaveLength(11);
+    expect(catalog.actions).toHaveLength(10); // 11th slot is open — Stock Certificate Forgery removed pending replacement
     expect(catalog.insiderTips).toHaveLength(16);
     expect(catalog.goals).toHaveLength(14);
     expect(catalog.loans).toHaveLength(6);

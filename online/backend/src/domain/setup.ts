@@ -49,8 +49,7 @@ export function createGameState(input: SetupInput): GameState {
     persistentEffects: [],
     loans: 0,
     endGameCashBonus: 0,
-    goalsClaimed: [],
-    forgeryAvailable: false
+    goalsClaimed: []
   }));
 
   const connected: Record<PlayerId, boolean> = {};

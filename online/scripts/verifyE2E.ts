@@ -75,7 +75,7 @@ function assert(cond: unknown, msg: string): void {
 const COLORS = ['Blue', 'Orange', 'Yellow', 'Purple'] as const;
 
 /** Build a stock-assignment that satisfies a goal using owned colors + wilds. */
-function tryBuildGoalAssignment(myPlayer: any, goal: any, useForgery: boolean): Record<string, string> | null {
+function tryBuildGoalAssignment(myPlayer: any, goal: any): Record<string, string> | null {
   // Requirements live at goal.goal.parsed.requirements as {Color: count}.
   const raw: Record<string, number> = goal.goal?.parsed?.requirements ?? {};
   const reqs: { color: string; count: number }[] = Object.entries(raw).map(([color, count]) => ({
@@ -83,10 +83,6 @@ function tryBuildGoalAssignment(myPlayer: any, goal: any, useForgery: boolean): 
     count: count as number
   }));
   if (reqs.length === 0) return null;
-  if (useForgery) {
-    reqs.sort((a, b) => b.count - a.count);
-    reqs[0].count = Math.max(1, reqs[0].count - 1);
-  }
   const byColor: Record<string, string[]> = {};
   for (const c of myPlayer.hand) {
     if (c.category === 'stock' && c.color !== 'Wild') {
@@ -305,13 +301,7 @@ async function main(): Promise<void> {
       for (const goal of s.activeGoals) {
         const fpKey = `${p.playerId}:${goal.uid}:${handFp}`;
         if (failedGoalAttempts.has(fpKey)) continue;
-        const useForgery = my.forgeryAvailable;
-        let assignment = tryBuildGoalAssignment(my, goal, false);
-        let usedForgery = false;
-        if (!assignment && useForgery) {
-          assignment = tryBuildGoalAssignment(my, goal, true);
-          usedForgery = !!assignment;
-        }
+        const assignment = tryBuildGoalAssignment(my, goal);
         if (!assignment) {
           failedGoalAttempts.add(fpKey);
           continue;
@@ -322,8 +312,7 @@ async function main(): Promise<void> {
           request: {
             kind: 'claim_goal',
             goalUid: goal.uid,
-            stockAssignment: { cards: assignment },
-            useForgery: usedForgery
+            stockAssignment: { cards: assignment }
           }
         });
         if (r.status !== 200) {

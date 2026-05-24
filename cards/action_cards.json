@@ -59,16 +59,6 @@
     }
   },
   {
-    "id": 7,
-    "name": "Stock Certificate Forgery",
-    "description": "Claim any one goal using one fewer stock than required",
-    "persistent": false,
-    "effect": {
-      "type": "goal_discount",
-      "discount": 1
-    }
-  },
-  {
     "id": 8,
     "name": "Hostile Takeover",
     "description": "Look at another player's hand and take 1 stock of your choice. They receive $6 from the bank",

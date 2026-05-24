@@ -39,18 +39,6 @@ export function startActionCard(
       );
       return;
     }
-    case 'goal_discount': {
-      player.forgeryAvailable = true;
-      state.discardPile.push(card);
-      events.push(
-        event(
-          'forgery_armed',
-          `${player.name} arms Stock Certificate Forgery — next goal claim costs 1 less stock`,
-          { actor: player.playerId }
-        )
-      );
-      return;
-    }
     case 'draw_and_choose': {
       const { drawCount, keepCount } = card.effect;
       const rng = nextRng(state);
@@ -102,6 +90,17 @@ export function startActionCard(
     }
     case 'sell_double': {
       state.discardPile.push(card);
+      const sellable = player.hand.some(c => c.category === 'stock' && c.color !== 'Wild');
+      if (!sellable) {
+        events.push(
+          event(
+            'pump_and_dump_no_stock',
+            `${player.name} plays Pump and Dump but has no colored stocks to sell — fizzles`,
+            { actor: player.playerId }
+          )
+        );
+        return;
+      }
       setPrompt(
         state,
         player.playerId,

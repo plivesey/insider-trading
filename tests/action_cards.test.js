@@ -1,8 +1,9 @@
 const cards = require('../cards/action_cards.json');
 
 describe('Action Cards', () => {
-  test('should have exactly 11 cards', () => {
-    expect(cards).toHaveLength(11);
+  // 11th slot is open — Stock Certificate Forgery removed pending replacement.
+  test('should have exactly 10 cards', () => {
+    expect(cards).toHaveLength(10);
   });
 
   test('should have unique ids', () => {
@@ -33,9 +34,9 @@ describe('Action Cards', () => {
     expect(persistent).toHaveLength(1);
   });
 
-  test('should have exactly 10 single-use cards', () => {
+  test('should have exactly 9 single-use cards', () => {
     const singleUse = cards.filter(c => c.persistent === false);
-    expect(singleUse).toHaveLength(10);
+    expect(singleUse).toHaveLength(9);
   });
 
   test('the persistent card should be Preferred Bidder', () => {
