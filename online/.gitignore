@@ -1,0 +1,6 @@
+node_modules/
+dist/
+*.tsbuildinfo
+.DS_Store
+backend/game_state.json
+backend/game_logs/*.jsonl
