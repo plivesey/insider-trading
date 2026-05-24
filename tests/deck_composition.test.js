@@ -10,7 +10,6 @@ describe('Deck Composition (V4)', () => {
     expect(stockCards.length).toBe(36);
   });
 
-  // 11th slot is open — Stock Certificate Forgery removed pending replacement.
   test('action cards should be 10', () => {
     expect(actionCards.length).toBe(10);
   });

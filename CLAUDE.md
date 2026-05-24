@@ -35,7 +35,6 @@ A strategic trading and market manipulation board game for 2-6 players set in 19
 - Shuffled into the main deck and auctioned; held in hand; played free at any time
 - 1 persistent (Preferred Bidder), 9 single-use
 - Includes two tip-reorder cards (Inside Track, Wiretap)
-- 11th slot open: Stock Certificate Forgery removed; replacement TBD
 
 ### Insider Tip Cards (16-card pool) - `cards/insider_tip_cards.json`
 - Face-down event deck; never held by players

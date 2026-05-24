@@ -1,7 +1,6 @@
 const cards = require('../cards/action_cards.json');
 
 describe('Action Cards', () => {
-  // 11th slot is open — Stock Certificate Forgery removed pending replacement.
   test('should have exactly 10 cards', () => {
     expect(cards).toHaveLength(10);
   });
