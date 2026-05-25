@@ -10,6 +10,7 @@ import { FreeActionPanel } from './FreeActionPanel.js';
 import { PromptModal } from './PromptModal.js';
 import { LogFeed } from './LogFeed.js';
 import { GameOverPanel } from './GameOverPanel.js';
+import { DieRollOverlay } from './DieRollOverlay.js';
 
 interface Props {
   state: ProjectedGameState;
@@ -75,6 +76,7 @@ export function GameBoard({ state, log, mode }: Props) {
             players={state.players}
             myPrompt={state.myPrompt}
             myPlayerId={myId}
+            market={state.market}
           />
         )}
         {!state.auction && <TurnPanel state={state} myPlayerId={myId} />}
@@ -82,6 +84,7 @@ export function GameBoard({ state, log, mode }: Props) {
         <LogFeed entries={log} />
       </div>
       {showPrompt && state.myPrompt && <PromptModal prompt={state.myPrompt} state={state} />}
+      <DieRollOverlay log={log} />
     </div>
   );
 }

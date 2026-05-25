@@ -10,7 +10,7 @@ import { makeRng, type Rng } from './rng.js';
 
 export interface SetupInput {
   catalog: CardCatalog;
-  players: { playerId: PlayerId; name: string }[];
+  players: { playerId: PlayerId; name: string; isBot?: boolean }[];
   seed: number;
   gameId: string;
   startedAt: string;
@@ -49,7 +49,8 @@ export function createGameState(input: SetupInput): GameState {
     persistentEffects: [],
     loans: 0,
     endGameCashBonus: 0,
-    goalsClaimed: []
+    goalsClaimed: [],
+    isBot: p.isBot
   }));
 
   const connected: Record<PlayerId, boolean> = {};

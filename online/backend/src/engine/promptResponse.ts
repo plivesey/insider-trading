@@ -174,6 +174,20 @@ export function respondToPrompt(
             { actor: playerId, payload: { color: card.color, payout, newPrice: state.stockPrices[card.color] } }
           )
         );
+        // Informant: when sold (including via Pump-and-Dump), peek at the top
+        // Insider Tip. Matches the normal sellStock flow in turn.ts.
+        if ((card as StockCard).type === 'peek_sell') {
+          const top = state.insiderTipDeck[0];
+          if (top) {
+            setPrompt(
+              state,
+              playerId,
+              'peek_ack',
+              `Informant: top Insider Tip is "${top.text}". Acknowledge to continue.`,
+              { tip: { text: top.text, type: top.type } }
+            );
+          }
+        }
         return { ok: true, events };
       }
       if (mode === 'sell_bonus_batch') {
@@ -267,6 +281,11 @@ export function respondToPrompt(
       if (!cardUid) return { ok: false, error: 'cardUid required', events };
       const mIdx = state.market.findIndex(c => c.uid === cardUid);
       if (mIdx < 0) return { ok: false, error: 'card not in market', events };
+      // Can't grab the card currently being auctioned — that would let the
+      // player dodge their bid commitment or steal an in-progress auction.
+      if (state.auction && state.auction.cardUid === cardUid) {
+        return { ok: false, error: 'cannot target the card being auctioned', events };
+      }
       if (freeTake) {
         // Corner the Market: take, no price move, no ability.
         const card = state.market.splice(mIdx, 1)[0];

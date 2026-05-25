@@ -1,210 +1,123 @@
 {
   "version": 4,
-  "status": "finished",
-  "winner": "Vanderbilt",
-  "finalWealth": {
-    "Vanderbilt": 52,
-    "Carnegie": 29,
-    "Astor": 28,
-    "Getty": 22
-  },
+  "status": "in_progress",
   "stockPrices": {
-    "Blue": 7,
+    "Blue": 5,
     "Orange": 7,
-    "Yellow": 19,
-    "Purple": 17
+    "Yellow": 5,
+    "Purple": 5
   },
-  "currentPlayerIndex": 3,
-  "turnNumber": 24,
+  "currentPlayerIndex": 2,
+  "turnNumber": 3,
   "players": [
-    {
-      "name": "Astor",
-      "personality": "goal_seeker",
-      "cash": 4,
-      "hand": [
-        {
-          "color": "Blue",
-          "type": "peek_buy",
-          "name": "Scout",
-          "ability": "When bought, look at the top Insider Tip card.",
-          "category": "stock",
-          "uid": "stock-7"
-        },
-        {
-          "color": "Purple",
-          "type": "blank",
-          "category": "stock",
-          "uid": "stock-28"
-        }
-      ],
-      "hotTipAvailable": false,
-      "persistentEffects": [],
-      "loans": 0,
-      "endGameCashBonus": 0,
-      "goalsClaimed": [],
-      "peeks": [
-        {"turn": 1, "via": "hot_tip", "saw": "itip-57 Orange +4 surge"},
-        {"turn": 2, "via": "scout (stock-7)", "saw": "itip-58 Yellow +4 surge (now top after Vanderbilt's swap)"}
-      ]
-    },
     {
       "name": "Carnegie",
       "personality": "value_estimator",
-      "cash": 22,
-      "hand": [
-        {
-          "color": "Blue",
-          "type": "other_up",
-          "name": "Tip-Off",
-          "ability": "When bought, raise a different color of your choice by +1.",
-          "category": "stock",
-          "uid": "stock-6"
-        }
-      ],
+      "cash": 30,
+      "hand": [],
       "hotTipAvailable": false,
       "persistentEffects": [],
       "loans": 0,
       "endGameCashBonus": 0,
-      "goalsClaimed": [
-        {"uid": "goal-68", "text": "3 Blue", "claimedTurn": 12, "reward": "stole $3 from each other player"}
-      ],
-      "peeks": [{"turn": 1, "via": "hot_tip", "saw": "itip-57 Orange +4 surge"}]
+      "goalsClaimed": []
     },
     {
-      "name": "Getty",
-      "personality": "deal_hunter",
-      "cash": 5,
-      "hand": [
-        {
-          "color": "Purple",
-          "type": "peek_sell",
-          "name": "Informant",
-          "ability": "When sold, look at the top Insider Tip card.",
-          "category": "stock",
-          "uid": "stock-32"
-        }
-      ],
+      "name": "Morgan",
+      "personality": "goal_chaser",
+      "cash": 30,
+      "hand": [],
       "hotTipAvailable": false,
       "persistentEffects": [],
       "loans": 0,
       "endGameCashBonus": 0,
-      "goalsClaimed": [
-        {"uid": "goal-67", "text": "2 Purple", "claimedTurn": 21, "reward": "peeked top 2 tips: itip-63 Yellow-2/Blue-2 slump, itip-49 Blue halved", "wildUsed": "stock-36"}
-      ],
-      "peeks": [
-        {"turn": 1, "via": "hot_tip", "saw": "itip-57 Orange +4 surge"},
-        {"turn": 19, "via": "informant (stock-16 sold)", "saw": "itip-51 Orange halved crash"},
-        {"turn": 21, "via": "goal-67 reward (peek 2 tips)", "saw": "tip1=itip-63 Yellow-2/Blue-2 slump, tip2=itip-49 Blue halved"}
-      ]
+      "goalsClaimed": []
     },
     {
       "name": "Vanderbilt",
       "personality": "manipulator",
-      "cash": 4,
-      "loans": 3,
+      "cash": 28,
       "hand": [
         {
-          "color": "Yellow",
-          "type": "blank",
-          "category": "stock",
-          "uid": "stock-20"
-        },
-        {
-          "color": "Purple",
-          "type": "blank",
-          "category": "stock",
-          "uid": "stock-25"
-        },
-        {
-          "color": "Orange",
-          "type": "blank",
-          "category": "stock",
-          "uid": "stock-11"
-        },
-        {
-          "color": "Purple",
-          "type": "blank",
-          "category": "stock",
-          "uid": "stock-27"
-        },
-        {
-          "color": "Orange",
-          "type": "blank",
-          "category": "stock",
-          "uid": "stock-10"
-        },
-        {
-          "color": "Purple",
-          "type": "blank",
-          "category": "stock",
-          "uid": "stock-26"
+          "id": 9,
+          "name": "Rumor Mill",
+          "description": "Adjust every stock by +1 or -1 (choose per stock)",
+          "persistent": false,
+          "effect": {
+            "type": "adjust_all_stocks",
+            "amount": 1
+          },
+          "category": "action",
+          "uid": "action-45"
         }
       ],
-      "hotTipAvailable": false,
+      "hotTipAvailable": true,
       "persistentEffects": [],
+      "loans": 0,
       "endGameCashBonus": 0,
-      "goalsClaimed": [
-        {"uid": "goal-66", "text": "2 Yellow", "claimedTurn": 15, "reward": "set Blue to $6"},
-        {"uid": "goal-76", "text": "2 Orange + 2 Purple", "claimedTurn": 24, "reward": "drew 3 from main deck, kept stock-26 (Purple blank); returned stock-23 (Yellow Scout) and stock-13 (Orange Boom) to bottom"},
-        {"uid": "goal-71", "text": "3 Purple", "claimedTurn": 24, "reward": "adjust every stock per choice: Blue -1, Orange +1, Yellow +1, Purple +1"}
+      "goalsClaimed": []
+    },
+    {
+      "name": "Hearst",
+      "personality": "two_pair_strategist",
+      "cash": 22,
+      "hand": [
+        {
+          "color": "Orange",
+          "type": "extra_up",
+          "name": "Boom",
+          "ability": "When bought, Orange rises an extra +1 (Orange rises +2 total).",
+          "category": "stock",
+          "uid": "stock-13"
+        }
       ],
-      "peeks": [
-        {"turn": 1, "via": "hot_tip", "saw": "itip-57 Orange +4 surge"},
-        {"turn": 2, "via": "wiretap", "saw": "tip1=itip-57 Orange+4, tip2=itip-58 Yellow+4; reordered to put Yellow on top"}
-      ]
+      "hotTipAvailable": true,
+      "persistentEffects": [],
+      "loans": 0,
+      "endGameCashBonus": 0,
+      "goalsClaimed": []
     }
   ],
   "market": [
     {
-      "color": "Blue",
-      "type": "blank",
+      "color": "Orange",
+      "type": "peek_sell",
+      "name": "Informant",
+      "ability": "When sold, look at the top Insider Tip card.",
       "category": "stock",
-      "uid": "stock-3"
-    },
-    {
-      "color": "Yellow",
-      "type": "blank",
-      "category": "stock",
-      "uid": "stock-17"
-    },
-    {
-      "color": "Yellow",
-      "type": "blank",
-      "category": "stock",
-      "uid": "stock-18"
-    },
-    {
-      "color": "Blue",
-      "type": "blank",
-      "category": "stock",
-      "uid": "stock-1"
+      "uid": "stock-16"
     },
     {
       "color": "Orange",
       "type": "blank",
       "category": "stock",
-      "uid": "stock-12"
+      "uid": "stock-9"
+    },
+    {
+      "color": "Yellow",
+      "type": "extra_up",
+      "name": "Boom",
+      "ability": "When bought, Yellow rises an extra +1 (Yellow rises +2 total).",
+      "category": "stock",
+      "uid": "stock-21"
+    },
+    {
+      "color": "Wild",
+      "type": "wild",
+      "name": "Wild Share",
+      "ability": "No cash value and cannot be sold. When claiming a Goal, may count as one stock of any one color, then is discarded.",
+      "category": "stock",
+      "uid": "stock-33"
+    },
+    {
+      "color": "Blue",
+      "type": "peek_buy",
+      "name": "Scout",
+      "ability": "When bought, look at the top Insider Tip card.",
+      "category": "stock",
+      "uid": "stock-7"
     }
   ],
   "mainDeck": [
-    {
-      "color": "Yellow",
-      "type": "blank",
-      "category": "stock",
-      "uid": "stock-19"
-    },
-    {
-      "id": 7,
-      "name": "Stock Certificate Forgery",
-      "description": "Claim any one goal using one fewer stock than required",
-      "persistent": false,
-      "effect": {
-        "type": "goal_discount",
-        "discount": 1
-      },
-      "category": "action",
-      "uid": "action-43"
-    },
     {
       "id": 10,
       "name": "Inside Track",
@@ -218,36 +131,10 @@
       "uid": "action-46"
     },
     {
-      "color": "Yellow",
-      "type": "peek_sell",
-      "name": "Informant",
-      "ability": "When sold, look at the top Insider Tip card.",
-      "category": "stock",
-      "uid": "stock-24"
-    },
-    {
-      "color": "Blue",
+      "color": "Orange",
       "type": "blank",
       "category": "stock",
-      "uid": "stock-2"
-    },
-    {
-      "color": "Blue",
-      "type": "blank",
-      "category": "stock",
-      "uid": "stock-4"
-    },
-    {
-      "id": 9,
-      "name": "Rumor Mill",
-      "description": "Adjust every stock by +1 or -1 (choose per stock)",
-      "persistent": false,
-      "effect": {
-        "type": "adjust_all_stocks",
-        "amount": 1
-      },
-      "category": "action",
-      "uid": "action-45"
+      "uid": "stock-12"
     },
     {
       "id": 1,
@@ -263,12 +150,12 @@
       "uid": "action-37"
     },
     {
-      "color": "Purple",
-      "type": "peek_buy",
-      "name": "Scout",
-      "ability": "When bought, look at the top Insider Tip card.",
+      "color": "Orange",
+      "type": "other_up",
+      "name": "Tip-Off",
+      "ability": "When bought, raise a different color of your choice by +1.",
       "category": "stock",
-      "uid": "stock-31"
+      "uid": "stock-14"
     },
     {
       "id": 5,
@@ -284,19 +171,61 @@
     },
     {
       "color": "Blue",
-      "type": "peek_sell",
-      "name": "Informant",
-      "ability": "When sold, look at the top Insider Tip card.",
+      "type": "blank",
       "category": "stock",
-      "uid": "stock-8"
+      "uid": "stock-2"
+    },
+    {
+      "color": "Orange",
+      "type": "peek_buy",
+      "name": "Scout",
+      "ability": "When bought, look at the top Insider Tip card.",
+      "category": "stock",
+      "uid": "stock-15"
+    },
+    {
+      "id": 11,
+      "name": "Wiretap",
+      "description": "Look at the top 2 Insider Tip cards and return them in any order",
+      "persistent": false,
+      "effect": {
+        "type": "peek_reorder_tips",
+        "count": 2
+      },
+      "category": "action",
+      "uid": "action-47"
     },
     {
       "color": "Yellow",
-      "type": "extra_up",
-      "name": "Boom",
-      "ability": "When bought, Yellow rises an extra +1 (Yellow rises +2 total).",
+      "type": "other_up",
+      "name": "Tip-Off",
+      "ability": "When bought, raise a different color of your choice by +1.",
       "category": "stock",
-      "uid": "stock-21"
+      "uid": "stock-22"
+    },
+    {
+      "color": "Yellow",
+      "type": "blank",
+      "category": "stock",
+      "uid": "stock-20"
+    },
+    {
+      "id": 8,
+      "name": "Hostile Takeover",
+      "description": "Look at another player's hand and take 1 stock of your choice. They receive $6 from the bank",
+      "persistent": false,
+      "effect": {
+        "type": "steal_stock",
+        "compensation": 6
+      },
+      "category": "action",
+      "uid": "action-44"
+    },
+    {
+      "color": "Purple",
+      "type": "blank",
+      "category": "stock",
+      "uid": "stock-26"
     },
     {
       "color": "Purple",
@@ -319,20 +248,68 @@
       "uid": "action-39"
     },
     {
-      "color": "Orange",
+      "color": "Wild",
+      "type": "wild",
+      "name": "Wild Share",
+      "ability": "No cash value and cannot be sold. When claiming a Goal, may count as one stock of any one color, then is discarded.",
+      "category": "stock",
+      "uid": "stock-36"
+    },
+    {
+      "color": "Blue",
+      "type": "blank",
+      "category": "stock",
+      "uid": "stock-1"
+    },
+    {
+      "color": "Yellow",
+      "type": "blank",
+      "category": "stock",
+      "uid": "stock-19"
+    },
+    {
+      "color": "Blue",
+      "type": "blank",
+      "category": "stock",
+      "uid": "stock-3"
+    },
+    {
+      "color": "Blue",
+      "type": "blank",
+      "category": "stock",
+      "uid": "stock-4"
+    },
+    {
+      "color": "Purple",
       "type": "peek_buy",
       "name": "Scout",
       "ability": "When bought, look at the top Insider Tip card.",
       "category": "stock",
-      "uid": "stock-15"
+      "uid": "stock-31"
+    },
+    {
+      "color": "Yellow",
+      "type": "blank",
+      "category": "stock",
+      "uid": "stock-18"
+    },
+    {
+      "id": 7,
+      "name": "Stock Certificate Forgery",
+      "description": "Claim any one goal using one fewer stock than required",
+      "persistent": false,
+      "effect": {
+        "type": "goal_discount",
+        "discount": 1
+      },
+      "category": "action",
+      "uid": "action-43"
     },
     {
       "color": "Purple",
-      "type": "extra_up",
-      "name": "Boom",
-      "ability": "When bought, Purple rises an extra +1 (Purple rises +2 total).",
+      "type": "blank",
       "category": "stock",
-      "uid": "stock-29"
+      "uid": "stock-25"
     },
     {
       "color": "Wild",
@@ -340,7 +317,21 @@
       "name": "Wild Share",
       "ability": "No cash value and cannot be sold. When claiming a Goal, may count as one stock of any one color, then is discarded.",
       "category": "stock",
-      "uid": "stock-33"
+      "uid": "stock-35"
+    },
+    {
+      "color": "Blue",
+      "type": "extra_up",
+      "name": "Boom",
+      "ability": "When bought, Blue rises an extra +1 (Blue rises +2 total).",
+      "category": "stock",
+      "uid": "stock-5"
+    },
+    {
+      "color": "Purple",
+      "type": "blank",
+      "category": "stock",
+      "uid": "stock-28"
     },
     {
       "id": 4,
@@ -355,12 +346,18 @@
       "uid": "action-40"
     },
     {
-      "color": "Wild",
-      "type": "wild",
-      "name": "Wild Share",
-      "ability": "No cash value and cannot be sold. When claiming a Goal, may count as one stock of any one color, then is discarded.",
+      "color": "Purple",
+      "type": "extra_up",
+      "name": "Boom",
+      "ability": "When bought, Purple rises an extra +1 (Purple rises +2 total).",
       "category": "stock",
-      "uid": "stock-34"
+      "uid": "stock-29"
+    },
+    {
+      "color": "Orange",
+      "type": "blank",
+      "category": "stock",
+      "uid": "stock-11"
     },
     {
       "id": 6,
@@ -374,74 +371,6 @@
       "uid": "action-42"
     },
     {
-      "color": "Yellow",
-      "type": "peek_buy",
-      "name": "Scout",
-      "ability": "When bought, look at the top Insider Tip card.",
-      "category": "stock",
-      "uid": "stock-23"
-    },
-    {
-      "color": "Orange",
-      "type": "extra_up",
-      "name": "Boom",
-      "ability": "When bought, Orange rises an extra +1 (Orange rises +2 total).",
-      "category": "stock",
-      "uid": "stock-13"
-    }
-  ],
-  "discardPile": [
-    {
-      "color": "Wild",
-      "type": "wild",
-      "name": "Wild Share",
-      "ability": "No cash value and cannot be sold. When claiming a Goal, may count as one stock of any one color, then is discarded.",
-      "category": "stock",
-      "uid": "stock-36"
-    },
-    {
-      "color": "Orange",
-      "type": "peek_sell",
-      "name": "Informant",
-      "ability": "When sold, look at the top Insider Tip card.",
-      "category": "stock",
-      "uid": "stock-16"
-    },
-    {
-      "id": 11,
-      "name": "Wiretap",
-      "description": "Look at the top 2 Insider Tip cards and return them in any order",
-      "persistent": false,
-      "effect": {
-        "type": "peek_reorder_tips",
-        "count": 2
-      },
-      "category": "action",
-      "uid": "action-47"
-    },
-    {
-      "color": "Orange",
-      "type": "other_up",
-      "name": "Tip-Off",
-      "ability": "When bought, raise a different color of your choice by +1.",
-      "category": "stock",
-      "uid": "stock-14"
-    },
-    {
-      "color": "Orange",
-      "type": "blank",
-      "category": "stock",
-      "uid": "stock-9"
-    },
-    {
-      "color": "Wild",
-      "type": "wild",
-      "name": "Wild Share",
-      "ability": "No cash value and cannot be sold. When claiming a Goal, may count as one stock of any one color, then is discarded.",
-      "category": "stock",
-      "uid": "stock-35"
-    },
-    {
       "id": 2,
       "name": "Corner the Market",
       "description": "Take any one face-up market stock for free (not bought: no price move, no ability)",
@@ -453,48 +382,98 @@
       "uid": "action-38"
     },
     {
-      "id": 8,
-      "name": "Hostile Takeover",
-      "description": "Look at another player's hand and take 1 stock of your choice. They receive $6 from the bank",
-      "persistent": false,
-      "effect": {
-        "type": "steal_stock",
-        "compensation": 6
-      },
-      "category": "action",
-      "uid": "action-44"
-    },
-    {
-      "color": "Blue",
-      "type": "extra_up",
-      "name": "Boom",
-      "ability": "When bought, Blue rises an extra +1 (Blue rises +2 total).",
+      "color": "Purple",
+      "type": "blank",
       "category": "stock",
-      "uid": "stock-5"
+      "uid": "stock-27"
     },
     {
       "color": "Yellow",
+      "type": "peek_sell",
+      "name": "Informant",
+      "ability": "When sold, look at the top Insider Tip card.",
+      "category": "stock",
+      "uid": "stock-24"
+    },
+    {
+      "color": "Yellow",
+      "type": "peek_buy",
+      "name": "Scout",
+      "ability": "When bought, look at the top Insider Tip card.",
+      "category": "stock",
+      "uid": "stock-23"
+    },
+    {
+      "color": "Purple",
+      "type": "peek_sell",
+      "name": "Informant",
+      "ability": "When sold, look at the top Insider Tip card.",
+      "category": "stock",
+      "uid": "stock-32"
+    },
+    {
+      "color": "Blue",
       "type": "other_up",
       "name": "Tip-Off",
       "ability": "When bought, raise a different color of your choice by +1.",
       "category": "stock",
-      "uid": "stock-22"
+      "uid": "stock-6"
+    },
+    {
+      "color": "Wild",
+      "type": "wild",
+      "name": "Wild Share",
+      "ability": "No cash value and cannot be sold. When claiming a Goal, may count as one stock of any one color, then is discarded.",
+      "category": "stock",
+      "uid": "stock-34"
+    },
+    {
+      "color": "Yellow",
+      "type": "blank",
+      "category": "stock",
+      "uid": "stock-17"
+    },
+    {
+      "color": "Orange",
+      "type": "blank",
+      "category": "stock",
+      "uid": "stock-10"
+    },
+    {
+      "color": "Blue",
+      "type": "peek_sell",
+      "name": "Informant",
+      "ability": "When sold, look at the top Insider Tip card.",
+      "category": "stock",
+      "uid": "stock-8"
     }
   ],
+  "discardPile": [],
   "insiderTipDeck": [
     {
-      "id": 16,
+      "id": 1,
+      "type": "crash",
+      "text": "Blue stock value is halved (round down)",
+      "effect": {
+        "type": "halve",
+        "color": "Blue"
+      },
+      "category": "insider_tip",
+      "uid": "itip-48"
+    },
+    {
+      "id": 15,
       "type": "slump",
-      "text": "Yellow -2 / Blue -2",
+      "text": "Purple -2 / Yellow -2",
       "effect": {
         "type": "adjust",
         "changes": {
-          "Yellow": -2,
-          "Blue": -2
+          "Purple": -2,
+          "Yellow": -2
         }
       },
       "category": "insider_tip",
-      "uid": "itip-63"
+      "uid": "itip-62"
     },
     {
       "id": 2,
@@ -508,99 +487,202 @@
       "uid": "itip-49"
     },
     {
-      "id": 12,
-      "type": "surge",
-      "text": "Purple +4",
+      "id": 8,
+      "type": "crash",
+      "text": "Purple stock value is halved (round down)",
+      "effect": {
+        "type": "halve",
+        "color": "Purple"
+      },
+      "category": "insider_tip",
+      "uid": "itip-55"
+    },
+    {
+      "id": 14,
+      "type": "slump",
+      "text": "Orange -2 / Purple -2",
       "effect": {
         "type": "adjust",
         "changes": {
-          "Purple": 4
+          "Orange": -2,
+          "Purple": -2
         }
       },
       "category": "insider_tip",
-      "uid": "itip-59"
+      "uid": "itip-61"
+    },
+    {
+      "id": 7,
+      "type": "crash",
+      "text": "Purple stock value is halved (round down)",
+      "effect": {
+        "type": "halve",
+        "color": "Purple"
+      },
+      "category": "insider_tip",
+      "uid": "itip-54"
+    },
+    {
+      "id": 6,
+      "type": "crash",
+      "text": "Yellow stock value is halved (round down)",
+      "effect": {
+        "type": "halve",
+        "color": "Yellow"
+      },
+      "category": "insider_tip",
+      "uid": "itip-53"
     }
   ],
-  "resolvedInsiderTips": [
-    {
-      "id": 11,
-      "type": "surge",
-      "text": "Yellow +4",
-      "uid": "itip-58",
-      "resolvedTurn": 4
-    },
-    {
-      "id": 10,
-      "type": "surge",
-      "text": "Orange +4",
-      "uid": "itip-57",
-      "resolvedTurn": 7
-    },
-    {
-      "id": 4,
-      "type": "crash",
-      "text": "Orange stock value is halved (round down)",
-      "uid": "itip-51",
-      "resolvedTurn": 19
-    },
-    {
-      "id": 3,
-      "type": "crash",
-      "text": "Orange stock value is halved (round down)",
-      "uid": "itip-50",
-      "resolvedTurn": 20
-    }
-  ],
+  "resolvedInsiderTips": [],
   "activeGoals": [
     {
-      "id": 11,
+      "id": 5,
       "difficulty": "hard",
       "goal": {
-        "text": "2 Blue + 2 Purple",
+        "text": "3 Blue",
+        "parsed": {
+          "type": "three_of_a_kind",
+          "requirements": {
+            "Blue": 3
+          }
+        }
+      },
+      "reward": {
+        "text": "Steal $3 from each other player",
+        "parsed": {
+          "type": "steal_from_all",
+          "amount": 3
+        }
+      },
+      "category": "goal",
+      "uid": "goal-68"
+    },
+    {
+      "id": 12,
+      "difficulty": "hard",
+      "goal": {
+        "text": "2 Orange + 2 Yellow",
         "parsed": {
           "type": "two_pair",
           "requirements": {
-            "Blue": 2,
+            "Orange": 2,
+            "Yellow": 2
+          }
+        }
+      },
+      "reward": {
+        "text": "Swap one of your stock cards with a face-up market card",
+        "parsed": {
+          "type": "swap_with_market"
+        }
+      },
+      "category": "goal",
+      "uid": "goal-75"
+    },
+    {
+      "id": 13,
+      "difficulty": "hard",
+      "goal": {
+        "text": "2 Orange + 2 Purple",
+        "parsed": {
+          "type": "two_pair",
+          "requirements": {
+            "Orange": 2,
             "Purple": 2
           }
         }
       },
       "reward": {
-        "text": "Adjust any one stock by +3 and another stock by -3",
+        "text": "Draw 3 cards from the main deck, keep 1, return the others to the bottom",
         "parsed": {
-          "type": "adjust_two_stocks",
-          "up": 3,
-          "down": 3
+          "type": "draw_and_choose",
+          "drawCount": 3,
+          "keepCount": 1
         }
       },
       "category": "goal",
-      "uid": "goal-74"
+      "uid": "goal-76"
+    },
+    {
+      "id": 6,
+      "difficulty": "hard",
+      "goal": {
+        "text": "3 Orange",
+        "parsed": {
+          "type": "three_of_a_kind",
+          "requirements": {
+            "Orange": 3
+          }
+        }
+      },
+      "reward": {
+        "text": "Sell any number of stocks, gain +$3 per stock sold",
+        "parsed": {
+          "type": "sell_bonus_batch",
+          "bonus": 3
+        }
+      },
+      "category": "goal",
+      "uid": "goal-69"
+    },
+    {
+      "id": 8,
+      "difficulty": "hard",
+      "goal": {
+        "text": "3 Purple",
+        "parsed": {
+          "type": "three_of_a_kind",
+          "requirements": {
+            "Purple": 3
+          }
+        }
+      },
+      "reward": {
+        "text": "Adjust every stock by +1 or -1 (choose per stock)",
+        "parsed": {
+          "type": "adjust_all_stocks",
+          "amount": 1
+        }
+      },
+      "category": "goal",
+      "uid": "goal-71"
+    },
+    {
+      "id": 4,
+      "difficulty": "easy",
+      "goal": {
+        "text": "2 Purple",
+        "parsed": {
+          "type": "pair",
+          "requirements": {
+            "Purple": 2
+          }
+        }
+      },
+      "reward": {
+        "text": "Look at the top 2 Insider Tip cards",
+        "parsed": {
+          "type": "peek_tips",
+          "count": 2
+        }
+      },
+      "category": "goal",
+      "uid": "goal-67"
     }
   ],
-  "loanCardsAvailable": 3,
+  "loanCardsAvailable": 6,
   "endConditions": {
     "insiderTipDeckEmpty": false,
-    "oneGoalRemaining": true,
-    "triggeredOn": "T24 Vanderbilt claimed goal-71, leaving only goal-74 active"
+    "oneGoalRemaining": false
   },
   "log": [
     "Game initialized with 4 players: 42 cards in main deck, 5 in market, 7 Insider Tips, 6 goals.",
-    "T18: Carnegie auctioned Orange Informant (stock-16) opening $0. Vanderbilt pass, Astor pass, Carnegie pass. Getty won at $9. Orange +1 → $17. Market refilled with stock-17 (Yellow blank).",
-    "T18 die: 2 (no effect).",
-    "T19: Getty sold Orange Informant (stock-16) for $17. Orange -1 → $16. Informant peeked: top tip is itip-51 (Orange halved crash).",
-    "T19 die: 1 (flip + resolve top tip). itip-51 resolved: Orange halved $16 → $8. Removed from game. 4 tips remain.",
-    "T20: Vanderbilt auctioned Orange blank (stock-11) opening $5. Astor pass, Carnegie bid $6, Getty $7, Vanderbilt $8, Carnegie pass, Getty $9, Vanderbilt $10, Getty pass. Vanderbilt won at $10. Orange +1 → $9. Market refilled with stock-36 (Wild Share).",
-    "T20 die: 1 (flip + resolve top tip). itip-50 resolved: Orange halved $9 → $4. Removed. 3 tips remain. Vanderbilt's just-bought Orange now worth $4 vs $10 paid.",
-    "T21: Astor auctioned Wild Share (stock-36) opening $3. Carnegie pass, Getty $8, Vanderbilt $9, Astor $10, Getty $11, Vanderbilt $12, Astor $13, Getty $14, Vanderbilt pass, Astor pass. Getty won at $14. No price move (Wild). Market refilled with stock-27 (Purple blank).",
-    "T21 post-auction: Getty claimed goal-67 (2 Purple via Wild Share substitute + Purple Informant). Wild Share discarded. Reward: peeked top 2 tips → itip-63 Yellow-2/Blue-2 slump, itip-49 Blue halved. 4→3 active goals.",
-    "T21 die: 2 (no effect).",
-    "T22: Carnegie auctioned Purple blank (stock-27) opening $14. Getty pass, Vanderbilt $17, Astor pass, Carnegie pass. Vanderbilt won at $17. Took 1 loan (now 3 loans, cash $9). Purple +1 → $15. Market refilled with stock-10 (Orange blank).",
-    "T22 die: 2 (no effect).",
-    "T23: Getty auctioned Orange blank (stock-10) opening $2 (baiting Vanderbilt). Vanderbilt bid $5, Astor pass, Carnegie pass, Getty pass. Vanderbilt won at $5. Orange +1 → $5. Market refilled with stock-1 (Blue blank).",
-    "T23 post-auction: Vanderbilt qualified for goal-76 (2 Orange + 2 Purple) but DECLINED to claim (holding the option to control game-end timing).",
-    "T23 die: 6 (all stocks +1). Blue $7→$8, Orange $5→$6, Yellow $17→$18, Purple $15→$16.",
-    "T24 (Vanderbilt's turn) start free actions: Vanderbilt claimed goal-76 (2 Orange + 2 Purple) using stock-11+10 (Orange) and stock-25+27 (Purple). Reward: drew stock-26 Purple blank, stock-23 Yellow Scout, stock-13 Orange Boom; kept stock-26 (now has 3 Purple); returned 23 and 13 to bottom of main deck. Active goals: 3→2.",
-    "T24 free actions cont: Vanderbilt claimed goal-71 (3 Purple). Reward: adjust each stock - chose Blue -1, Orange +1, Yellow +1, Purple +1. Final prices: Blue $7, Orange $7, Yellow $19, Purple $17. Active goals: 2→1 → GAME ENDS.",
-    "GAME OVER. Final wealth: Vanderbilt $52 (3 goals, 3 loans) WINS. Carnegie $29 (1 goal). Astor $28 (0 goals). Getty $22 (1 goal)."
+    "T1: Carnegie used Hot Tip — saw top Tip is Blue Crash (halve).",
+    "T1: Carnegie auctioned Orange Boom (stock-13) at $4. Hearst won at $8. Orange +2 → $6. Market refilled with stock-9 (Orange blank).",
+    "T1: Carnegie rolled d6 = 6 → all stocks +1. Prices: B5/O7/Y5/P5.",
+    "T2: Morgan used Hot Tip — saw top Tip is Blue Crash (halve).",
+    "T2: Morgan auctioned Rumor Mill (action-45) at $1. Vanderbilt won at $2. Market refilled with stock-16 (Orange Informant).",
+    "T2: Morgan rolled d6 = 4 → no effect."
   ]
 }

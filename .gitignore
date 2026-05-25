@@ -27,3 +27,6 @@ __pycache__/
 
 # Test artifacts
 test-results/
+
+# Playwright MCP debug output
+.playwright-mcp/

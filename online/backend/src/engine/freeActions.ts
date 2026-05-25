@@ -9,7 +9,7 @@ import type {
 } from '@insider-trading/shared';
 import type { MutationResult } from '../domain/mutate.js';
 import { event } from './events.js';
-import { hasAnyPendingPrompt, setPrompt } from './prompts.js';
+import { setPrompt } from './prompts.js';
 import { startActionCard } from './actionCards.js';
 import { claimGoal } from './goals.js';
 import { findPlayer } from './turn.js';
@@ -49,10 +49,15 @@ function describe(r: FreeActionRequest): string {
 export function processNextFreeAction(state: GameState, events: GameLogEntry[]): void {
   const entry = state.freeActionQueue[0];
   if (!entry) return;
-  // If the actor already has a pending prompt, we must wait — should never
-  // happen because advance() checks hasAnyPendingPrompt first, but guard
-  // anyway.
-  if (state.pendingPrompts[entry.playerId]) return;
+  // If the actor has a pending prompt other than `auction_bid`, we must wait.
+  // An auction_bid prompt is interruptible: a free action runs to completion
+  // (potentially setting its own short-lived prompts), then advance() re-issues
+  // the bid prompt once the queue drains.
+  const myPrompt = state.pendingPrompts[entry.playerId];
+  if (myPrompt && myPrompt.type !== 'auction_bid') return;
+  if (myPrompt && myPrompt.type === 'auction_bid') {
+    state.pendingPrompts[entry.playerId] = null;
+  }
   state.freeActionQueue.shift();
   const player = findPlayer(state, entry.playerId);
   switch (entry.request.kind) {

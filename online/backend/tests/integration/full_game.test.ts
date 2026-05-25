@@ -12,6 +12,7 @@ import { sellStock, currentPlayer, findPlayer } from '../../src/engine/turn.js';
 import { advance } from '../../src/engine/advance.js';
 import { submitFreeAction } from '../../src/engine/freeActions.js';
 import { respondToPrompt } from '../../src/engine/promptResponse.js';
+import { assertGameOverInvariants } from './_invariants.js';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const CARDS_DIR = path.resolve(HERE, '../../../../cards');
@@ -207,43 +208,7 @@ describe('full game integration', () => {
     });
     const events: any[] = [];
     driveToEnd(state, events);
-    expect(state.gameOver).not.toBeNull();
-    const reason = state.gameOver!.reason;
-    expect(['insider_tip_deck_empty', 'one_goal_remaining']).toContain(reason);
-    // Wealth math: each player's `total` matches cash + Σ(stock × price) + bonus − 12·loans.
-    for (const b of state.gameOver!.breakdown) {
-      const player = state.players.find(p => p.playerId === b.playerId)!;
-      let stockValue = 0;
-      let stocksHeld = 0;
-      for (const c of player.hand) {
-        if (c.category !== 'stock') continue;
-        stocksHeld++;
-        if (c.color === 'Wild') continue;
-        stockValue += state.stockPrices[c.color];
-      }
-      expect(b.stocksHeld).toBe(stocksHeld);
-      expect(b.stockValue).toBe(stockValue);
-      expect(b.cash).toBe(player.cash);
-      expect(b.endGameBonus).toBe(player.endGameCashBonus);
-      expect(b.loanPenalty).toBe(player.loans * 12);
-      expect(b.total).toBe(player.cash + stockValue + player.endGameCashBonus - player.loans * 12);
-    }
-    // Insider tip deck source: if it was 'insider_tip_deck_empty', deck must be empty.
-    if (reason === 'insider_tip_deck_empty') {
-      expect(state.insiderTipDeck).toHaveLength(0);
-    }
-    // No card uid leaks: gather every uid still in the system.
-    const all: string[] = [];
-    for (const p of state.players) {
-      all.push(...p.hand.map(c => c.uid), ...p.persistentEffects.map(c => c.uid), ...p.goalsClaimed.map(c => c.uid));
-    }
-    all.push(...state.market.map(c => c.uid));
-    all.push(...state.mainDeck.map(c => c.uid));
-    all.push(...state.discardPile.map(c => c.uid));
-    all.push(...state.activeGoals.map(c => c.uid));
-    all.push(...state.insiderTipDeck.map(c => c.uid));
-    all.push(...state.resolvedInsiderTips.map(c => c.uid));
-    expect(new Set(all).size).toBe(all.length);
+    assertGameOverInvariants(state);
   });
 
   it('runs a 4-player game to completion deterministically', () => {

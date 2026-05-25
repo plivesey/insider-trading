@@ -1,16 +1,28 @@
 import { useEffect, useState } from 'react';
-import type { AuctionState, PlayerPublic, PromptEnvelope } from '@insider-trading/shared';
+import type {
+  AuctionState,
+  PlayerPublic,
+  PromptEnvelope,
+  StockCard,
+  ActionCard
+} from '@insider-trading/shared';
 import { api } from '../lib/api.js';
 import { showError } from '../lib/toast.js';
+import { describeCard } from './cardLabel.js';
 
 interface Props {
   auction: AuctionState;
   players: PlayerPublic[];
   myPrompt: PromptEnvelope | null;
   myPlayerId: string;
+  market: (StockCard | ActionCard)[];
 }
 
-export function AuctionPanel({ auction, players, myPrompt, myPlayerId }: Props) {
+export function AuctionPanel({ auction, players, myPrompt, myPlayerId, market }: Props) {
+  const auctionedCard = market.find(c => c.uid === auction.cardUid);
+  const cardLabel = auctionedCard
+    ? describeCard(auctionedCard as any).title
+    : auction.cardUid;
   const me = players.find(p => p.playerId === myPlayerId);
   const hasPreferred = !!me?.persistentEffects.some(e => e.effect.type === 'tie_breaker');
   // Lowest legal bid: currentHigh if Preferred Bidder (can tie), else currentHigh + 1.
@@ -46,7 +58,7 @@ export function AuctionPanel({ auction, players, myPrompt, myPlayerId }: Props) 
     <div className="panel">
       <h3>Auction</h3>
       <div>
-        Card: <strong>{auction.cardUid}</strong> · High: <strong>${auction.currentHigh}</strong> by{' '}
+        Card: <strong>{cardLabel}</strong> · High: <strong>${auction.currentHigh}</strong> by{' '}
         <strong>{high?.name ?? '?'}</strong>
       </div>
       <div>Awaiting: {awaiting?.name ?? '(resolving)'}</div>

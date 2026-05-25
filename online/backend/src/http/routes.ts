@@ -17,6 +17,7 @@ import { submitFreeAction } from '../engine/freeActions.js';
 import { respondToPrompt } from '../engine/promptResponse.js';
 import { advance } from '../engine/advance.js';
 import { event } from '../engine/events.js';
+import { kickBots } from '../bots/runner.js';
 
 export function createRouter(hub: ServerHub): Router {
   const r = Router();
@@ -51,7 +52,15 @@ export function createRouter(hub: ServerHub): Router {
   r.post('/start', async (_req, res) => {
     const r2 = await hub.startGame(undefined);
     if (!r2.ok) return fail(res, 400, r2.error ?? 'cannot start');
+    // Game just started; if any bot got the first turn, give it a kick.
+    kickBots(hub);
     return res.json({ ok: true });
+  });
+
+  r.post('/add-bot', (_req, res) => {
+    const result = hub.addBot();
+    if ('error' in result) return fail(res, 400, result.error);
+    return res.json({ playerId: result.playerId, name: result.name });
   });
 
   r.post('/reset', (_req, res) => {

@@ -32,7 +32,7 @@ const auction: AuctionState = {
 
 describe('AuctionPanel', () => {
   it('shows auction state without bid controls when no auction_bid prompt for me', () => {
-    render(<AuctionPanel auction={auction} players={players} myPrompt={null} myPlayerId="p1" />);
+    render(<AuctionPanel auction={auction} players={players} myPrompt={null} myPlayerId="p1" market={[]} />);
     expect(screen.getByText(/Card:/)).toBeInTheDocument();
     expect(screen.getByText('Bob')).toBeInTheDocument(); // high bidder
     expect(screen.queryByRole('button', { name: 'Bid' })).not.toBeInTheDocument();
@@ -47,7 +47,7 @@ describe('AuctionPanel', () => {
       payload: { currentHigh: 2 },
       message: 'Your bid'
     };
-    render(<AuctionPanel auction={auction} players={players} myPrompt={prompt} myPlayerId="p1" />);
+    render(<AuctionPanel auction={auction} players={players} myPrompt={prompt} myPlayerId="p1" market={[]} />);
     expect(screen.getByRole('button', { name: 'Bid' })).toBeEnabled();
     expect(screen.getByRole('button', { name: 'Pass' })).toBeEnabled();
   });
@@ -60,7 +60,7 @@ describe('AuctionPanel', () => {
       payload: {},
       message: 'Your bid'
     };
-    render(<AuctionPanel auction={auction} players={players} myPrompt={prompt} myPlayerId="p1" />);
+    render(<AuctionPanel auction={auction} players={players} myPrompt={prompt} myPlayerId="p1" market={[]} />);
     const input = screen.getByRole('spinbutton') as HTMLInputElement;
     fireEvent.change(input, { target: { value: '5' } });
     fireEvent.click(screen.getByRole('button', { name: 'Bid' }));
@@ -77,7 +77,7 @@ describe('AuctionPanel', () => {
       payload: {},
       message: 'Your bid'
     };
-    render(<AuctionPanel auction={auction} players={players} myPrompt={prompt} myPlayerId="p1" />);
+    render(<AuctionPanel auction={auction} players={players} myPrompt={prompt} myPlayerId="p1" market={[]} />);
     fireEvent.click(screen.getByRole('button', { name: 'Pass' }));
     await waitFor(() =>
       expect(mockedApi.auctionBid).toHaveBeenCalledWith({ type: 'pass' })
@@ -85,7 +85,7 @@ describe('AuctionPanel', () => {
   });
 
   it('renders awaiting bidder name', () => {
-    render(<AuctionPanel auction={auction} players={players} myPrompt={null} myPlayerId="p1" />);
+    render(<AuctionPanel auction={auction} players={players} myPrompt={null} myPlayerId="p1" market={[]} />);
     expect(screen.getByText(/Awaiting:/)).toBeInTheDocument();
     // Alice is awaiting in the fixture
     expect(screen.getByText(/Alice/)).toBeInTheDocument();
@@ -95,7 +95,7 @@ describe('AuctionPanel', () => {
     const prompt: PromptEnvelope = {
       promptId: 'pr1', type: 'auction_bid', playerId: 'p1', payload: {}, message: ''
     };
-    render(<AuctionPanel auction={auction} players={players} myPrompt={prompt} myPlayerId="p1" />);
+    render(<AuctionPanel auction={auction} players={players} myPrompt={prompt} myPlayerId="p1" market={[]} />);
     const input = screen.getByRole('spinbutton') as HTMLInputElement;
     expect(input.value).toBe(String(auction.currentHigh + 1));
     expect(input.min).toBe(String(auction.currentHigh + 1));
@@ -113,7 +113,7 @@ describe('AuctionPanel', () => {
     const prompt: PromptEnvelope = {
       promptId: 'pr1', type: 'auction_bid', playerId: 'p1', payload: {}, message: ''
     };
-    render(<AuctionPanel auction={auction} players={playersWithPref} myPrompt={prompt} myPlayerId="p1" />);
+    render(<AuctionPanel auction={auction} players={playersWithPref} myPrompt={prompt} myPlayerId="p1" market={[]} />);
     const input = screen.getByRole('spinbutton') as HTMLInputElement;
     expect(input.value).toBe(String(auction.currentHigh));
     expect(input.min).toBe(String(auction.currentHigh));
@@ -125,14 +125,14 @@ describe('AuctionPanel', () => {
       promptId: 'pr1', type: 'auction_bid', playerId: 'p1', payload: {}, message: ''
     };
     const { rerender } = render(
-      <AuctionPanel auction={auction} players={players} myPrompt={prompt} myPlayerId="p1" />
+      <AuctionPanel auction={auction} players={players} myPrompt={prompt} myPlayerId="p1" market={[]} />
     );
     const input = screen.getByRole('spinbutton') as HTMLInputElement;
     expect(input.value).toBe('3'); // currentHigh=2, default=3
 
     // Someone else raised to 6.
     const raised: AuctionState = { ...auction, currentHigh: 6, currentHighBidderId: 'p2' };
-    rerender(<AuctionPanel auction={raised} players={players} myPrompt={prompt} myPlayerId="p1" />);
+    rerender(<AuctionPanel auction={raised} players={players} myPrompt={prompt} myPlayerId="p1" market={[]} />);
     expect(input.value).toBe('7'); // re-default to currentHigh+1
   });
 });

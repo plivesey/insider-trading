@@ -27,6 +27,18 @@ export function hasAnyPendingPrompt(state: GameState): boolean {
   return Object.values(state.pendingPrompts).some(p => p !== null);
 }
 
+/**
+ * Like `hasAnyPendingPrompt` but ignores `auction_bid` prompts. Used by the
+ * advance loop so that free actions (play action card, claim goal, use Hot
+ * Tip) can interleave with a player's pending bid decision. The auction_bid
+ * prompt is re-issued by advance() once the queue drains.
+ */
+export function hasBlockingPrompt(state: GameState): boolean {
+  return Object.values(state.pendingPrompts).some(
+    p => p !== null && p.type !== 'auction_bid'
+  );
+}
+
 export function getPrompt(state: GameState, playerId: PlayerId): PromptEnvelope | null {
   return state.pendingPrompts[playerId] ?? null;
 }

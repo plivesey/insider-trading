@@ -15,7 +15,8 @@ export function projectState(game: GameState, viewerId: PlayerId | null): Projec
     persistentEffects: p.persistentEffects,
     loans: p.loans,
     goalsClaimed: p.goalsClaimed,
-    connected: !!game.connected[p.playerId]
+    connected: !!game.connected[p.playerId],
+    isBot: p.isBot
   }));
   const my = viewerId ? game.players.find(p => p.playerId === viewerId) ?? null : null;
   const myPrompt = viewerId ? game.pendingPrompts[viewerId] ?? null : null;

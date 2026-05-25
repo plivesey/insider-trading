@@ -20,6 +20,8 @@ export type StateResponse =
 
 export interface StartRequest {}
 export interface ResetRequest {}
+export interface AddBotRequest {}
+export interface AddBotResponse { playerId: string; name: string; }
 
 export type TurnActionRequest =
   | { type: 'start_auction'; cardUid: string; initialBid: number }

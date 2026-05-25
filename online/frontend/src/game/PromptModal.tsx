@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { Color, ProjectedGameState, PromptEnvelope } from '@insider-trading/shared';
 import { api } from '../lib/api.js';
 import { showError } from '../lib/toast.js';
+import { describeCard } from './cardLabel.js';
 
 const COLORS: Color[] = ['Blue', 'Orange', 'Yellow', 'Purple'];
 
@@ -205,7 +206,9 @@ export function PromptModal({ prompt, state }: Props) {
         return (
           <div>
             {eligible.map(c => (
-              <button key={c.uid} onClick={() => send({ stockUid: c.uid })}>{(c as any).color}</button>
+              <button key={c.uid} onClick={() => send({ stockUid: c.uid })}>
+                {describeCard(c).title}
+              </button>
             ))}
             {mode === 'sell_bonus_batch' && <button onClick={() => send({ done: true })}>Done</button>}
           </div>

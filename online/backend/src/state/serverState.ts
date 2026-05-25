@@ -5,11 +5,14 @@ import { loadCards, type CardCatalog, type GameState, type LobbyMember, type Pla
 import { MutateQueue } from '../domain/mutate.js';
 import { createGameState } from '../domain/setup.js';
 import { openLog, closeLog, appendLog } from '../domain/gameLog.js';
+import { makeRng, type Rng } from '../domain/rng.js';
+import { createBotProfile, pickBotName, type BotProfile } from '../bots/profile.js';
 
 export interface LobbyEntry {
   playerId: PlayerId;
   name: string;
   connected: boolean;
+  isBot?: boolean;
 }
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
@@ -23,6 +26,10 @@ export class ServerHub {
   logsDir: string;
   cardsDir: string;
   defaultSeed: number | undefined;
+  /** Per-bot runtime state, keyed by playerId. Not persisted across restarts. */
+  botProfiles: Map<PlayerId, BotProfile> = new Map();
+  /** RNG used for bot profile creation and per-tick randomness (auction discounts, weighted picks). */
+  botRng: Rng = makeRng(Date.now() & 0xffffffff);
 
   constructor(opts: {
     cardsDir?: string;
@@ -37,6 +44,29 @@ export class ServerHub {
     this.catalog = loadCards(this.cardsDir);
     this.queue = new MutateQueue();
     this.queue.setSnapshotPath(this.snapshotPath);
+  }
+
+  /** Add a bot to the lobby. Returns the new entry, or an error string. */
+  addBot(): LobbyEntry | { error: string } {
+    if (this.getGame() && !this.getGame()!.gameOver) {
+      return { error: 'game in progress' };
+    }
+    if (this.lobby.length >= 6) return { error: 'lobby full (max 6)' };
+    const taken = new Set(this.lobby.map(p => p.name));
+    const name = pickBotName(taken, this.botRng);
+    const entry: LobbyEntry = {
+      playerId: uuidv4(),
+      name,
+      connected: true,
+      isBot: true
+    };
+    this.lobby.push(entry);
+    this.botProfiles.set(entry.playerId, createBotProfile(this.botRng));
+    return entry;
+  }
+
+  getBotProfile(playerId: PlayerId): BotProfile | undefined {
+    return this.botProfiles.get(playerId);
   }
 
   getMode(): 'lobby' | 'in_game' | 'game_over' {
@@ -107,7 +137,7 @@ export class ServerHub {
     const realSeed = seed ?? this.defaultSeed ?? Date.now();
     const state = createGameState({
       catalog: this.catalog,
-      players: this.lobby.map(p => ({ playerId: p.playerId, name: p.name })),
+      players: this.lobby.map(p => ({ playerId: p.playerId, name: p.name, isBot: p.isBot })),
       seed: realSeed,
       gameId,
       startedAt
@@ -125,9 +155,15 @@ export class ServerHub {
     closeLog();
     this.queue.setState(null);
     this.lobby = [];
+    this.botProfiles.clear();
   }
 
   lobbyMembers(): LobbyMember[] {
-    return this.lobby.map(l => ({ playerId: l.playerId, name: l.name, connected: l.connected }));
+    return this.lobby.map(l => ({
+      playerId: l.playerId,
+      name: l.name,
+      connected: l.connected,
+      isBot: l.isBot
+    }));
   }
 }

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import type { GameLogEntry, ServerWsMessage, StateResponse } from '@insider-trading/shared';
+import { getBackendOverride } from '../lib/api.js';
 
 export interface UseGameState {
   state: StateResponse | null;
@@ -20,8 +21,14 @@ export function useGameState(): UseGameState {
     let cancelled = false;
     function connect() {
       if (cancelled) return;
-      const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-      const url = `${proto}//${window.location.host}/ws`;
+      const override = getBackendOverride();
+      let url: string;
+      if (override) {
+        url = override.replace(/^http/, 'ws') + '/ws';
+      } else {
+        const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        url = `${proto}//${window.location.host}/ws`;
+      }
       const ws = new WebSocket(url);
       wsRef.current = ws;
       ws.onopen = () => {

@@ -11,7 +11,9 @@ export default defineConfig({
     }
   },
   server: {
+    host: true,
     port: 5173,
+    allowedHosts: true,
     proxy: {
       '/api': 'http://localhost:4000',
       '/ws': { target: 'ws://localhost:4000', ws: true }

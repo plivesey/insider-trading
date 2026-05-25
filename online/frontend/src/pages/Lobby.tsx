@@ -1,6 +1,11 @@
 import { useState } from 'react';
 import type { StateResponse } from '@insider-trading/shared';
-import { api } from '../lib/api.js';
+import {
+  api,
+  clearBackendOverride,
+  getBackendOverride,
+  setBackendOverride
+} from '../lib/api.js';
 
 interface Props {
   state: Extract<StateResponse, { mode: 'lobby' }>;
@@ -11,6 +16,18 @@ export function Lobby({ state, myName }: Props) {
   const [name, setName] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [backendUrl, setBackendUrl] = useState(getBackendOverride() ?? '');
+
+  function applyBackend() {
+    if (!backendUrl.trim()) return;
+    setBackendOverride(backendUrl);
+    window.location.reload();
+  }
+
+  function resetBackend() {
+    clearBackendOverride();
+    window.location.reload();
+  }
 
   async function join() {
     if (!name.trim()) return;
@@ -34,6 +51,15 @@ export function Lobby({ state, myName }: Props) {
     }
   }
 
+  async function addBot() {
+    setError(null);
+    try {
+      await api.addBot();
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'failed');
+    }
+  }
+
   const alreadyJoined = !!myName && state.lobby.some(p => p.name === myName);
 
   return (
@@ -44,7 +70,8 @@ export function Lobby({ state, myName }: Props) {
         {state.lobby.length === 0 ? <li><em>No one has joined yet.</em></li> : null}
         {state.lobby.map(p => (
           <li key={p.playerId}>
-            {p.name} {p.connected ? '' : '(offline)'} {myName === p.name ? '— you' : ''}
+            {p.name} {p.isBot ? '(bot)' : p.connected ? '' : '(offline)'}{' '}
+            {myName === p.name ? '— you' : ''}
           </li>
         ))}
       </ul>
@@ -61,6 +88,11 @@ export function Lobby({ state, myName }: Props) {
           </button>
         </div>
       )}
+      {state.lobby.length < 6 && (
+        <button onClick={addBot} className="add-bot-btn">
+          Add Bot
+        </button>
+      )}
       {state.canStart && (
         <button onClick={start} className="start-btn">
           Start Game ({state.lobby.length} players)
@@ -70,6 +102,28 @@ export function Lobby({ state, myName }: Props) {
       <p className="hint">
         Once started, anyone joining later sees only "Game in progress" until the game ends.
       </p>
+      <details className="backend-config">
+        <summary>
+          Backend: {getBackendOverride() ?? 'default (same origin)'}
+        </summary>
+        <div className="backend-config-row">
+          <input
+            value={backendUrl}
+            onChange={e => setBackendUrl(e.target.value)}
+            placeholder="https://xxxx.ngrok-free.app"
+            onKeyDown={e => e.key === 'Enter' && applyBackend()}
+          />
+          <button onClick={applyBackend} disabled={!backendUrl.trim()}>
+            Apply
+          </button>
+          <button onClick={resetBackend} disabled={!getBackendOverride()}>
+            Reset
+          </button>
+        </div>
+        <p className="hint">
+          Stored in sessionStorage; cleared when the tab closes. Page reloads on apply.
+        </p>
+      </details>
     </div>
   );
 }

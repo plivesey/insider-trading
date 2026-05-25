@@ -7,6 +7,7 @@ import cors from 'cors';
 import { ServerHub } from './state/serverState.js';
 import { createRouter } from './http/routes.js';
 import { WsHub } from './http/ws.js';
+import { kickBots } from './bots/runner.js';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const BACKEND_ROOT = path.resolve(HERE, '..');
@@ -41,6 +42,9 @@ export async function startServer(opts: {
   });
 
   const app = express();
+  // Trust ngrok/proxy headers so req.secure reflects the original scheme;
+  // setPlayerCookie uses this to pick SameSite=None/Secure for HTTPS tunnels.
+  app.set('trust proxy', 1);
   app.use(express.json());
   app.use(cookieParser());
   app.use(
@@ -51,6 +55,12 @@ export async function startServer(opts: {
   );
   const server = http.createServer(app);
   const wsHub = new WsHub(server, hub);
+  // Wrap WsHub's broadcaster so every state change also gives the bot runner a
+  // chance to act. Only kick on non-empty events to avoid empty-tick loops.
+  hub.queue.setBroadcaster((s, events) => {
+    wsHub.broadcast(s, events);
+    if (events.length > 0) kickBots(hub);
+  });
 
   // After every /api request, push current projected state to all WS clients.
   // Game-state mutations also broadcast via MutateQueue (which adds log events

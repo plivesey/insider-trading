@@ -21,6 +21,7 @@ export interface PlayerPrivate {
   loans: number;
   endGameCashBonus: number;
   goalsClaimed: GoalCard[];
+  isBot?: boolean;
 }
 
 export interface PlayerPublic {
@@ -33,6 +34,7 @@ export interface PlayerPublic {
   loans: number;
   goalsClaimed: GoalCard[];
   connected: boolean;
+  isBot?: boolean;
 }
 
 export type StockPrices = Record<Color, number>;
@@ -116,6 +118,7 @@ export type LobbyMember = {
   playerId: PlayerId;
   name: string;
   connected: boolean;
+  isBot?: boolean;
 };
 
 export interface ServerState {

@@ -24,9 +24,14 @@ body {
 }
 .lobby button:disabled { opacity: 0.4; cursor: not-allowed; }
 .lobby .start-btn { background: #2da14d; margin-top: 1rem; padding: 10px 20px; font-size: 16px; }
+.lobby .add-bot-btn { background: #6a4ca3; margin-top: 1rem; padding: 8px 16px; }
 .lobby .hint { color: #888; font-size: 12px; margin-top: 1rem; }
 .error { color: #ff7777; margin-top: 0.5rem; }
 .join-row { margin: 1rem 0; }
+.backend-config { margin-top: 1.5rem; color: #aaa; font-size: 12px; }
+.backend-config summary { cursor: pointer; user-select: none; padding: 4px 0; }
+.backend-config-row { display: flex; gap: 6px; margin: 8px 0 4px; }
+.backend-config-row input { flex: 1; }
 
 .gameboard { display: grid; grid-template-columns: 1fr 320px; gap: 1rem; }
 .gameboard .main { display: flex; flex-direction: column; gap: 1rem; }
@@ -128,6 +133,56 @@ body {
   to { transform: translateY(0); opacity: 1; }
 }
 .conn-indicator.disconnected { color: #ffaaaa; opacity: 1; }
+
+.die-overlay {
+  position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+  z-index: 150; pointer-events: none;
+  display: flex; flex-direction: column; align-items: center;
+  gap: 8px;
+}
+.die-result {
+  font-size: 22px; color: #fff; font-weight: 600;
+  background: rgba(15, 15, 20, 0.85); padding: 8px 20px; border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.6);
+  animation: die-label-in 0.3s ease-out;
+  margin-bottom: 4px;
+}
+.die-face {
+  font-size: 140px; line-height: 1;
+  color: #f5b800;
+  text-shadow: 0 0 20px rgba(245, 184, 0, 0.6), 0 4px 16px rgba(0, 0, 0, 0.7);
+  animation: die-roll 0.7s ease-out;
+}
+.die-label {
+  font-size: 18px; color: #fff; font-weight: 600;
+  background: rgba(0, 0, 0, 0.6); padding: 4px 14px; border-radius: 14px;
+  animation: die-label-in 0.3s ease-out 0.4s both;
+}
+.tip-banner {
+  font-size: 14px; color: #f5b800; font-weight: 700; letter-spacing: 2px;
+  text-transform: uppercase;
+  animation: tip-in 0.25s ease-out;
+}
+.tip-text {
+  font-size: 26px; color: #fff; font-weight: 600;
+  background: rgba(15, 15, 20, 0.92); padding: 14px 28px; border-radius: 8px;
+  border: 1px solid #f5b800; max-width: 480px; text-align: center;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.7);
+  animation: tip-in 0.3s ease-out;
+}
+@keyframes die-roll {
+  0% { transform: rotate(-180deg) scale(0.3); opacity: 0; }
+  60% { transform: rotate(20deg) scale(1.15); opacity: 1; }
+  100% { transform: rotate(0deg) scale(1); opacity: 1; }
+}
+@keyframes die-label-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes tip-in {
+  from { opacity: 0; transform: translateY(8px) scale(0.95); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
 
 .panel.your-turn {
   border: 2px solid #f5b800;
