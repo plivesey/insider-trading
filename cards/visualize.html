@@ -4,6 +4,19 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Insider Trading V4 - Card Visualizer</title>
+    <!--
+      Loads card data live from the six JSON files in this folder, so the
+      printable cards always match the canonical /cards/*.json that the online
+      game uses.
+
+      Industry mapping (Steel / Oil / Rail / Auto) mirrors
+      online/frontend/src/game/theme.tsx — keep them in sync if the theme there
+      ever changes.
+
+      Run via a local server (fetch() is blocked under file://):
+        cd cards && python3 -m http.server 8000
+      then open http://localhost:8000/visualize.html
+    -->
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -49,19 +62,40 @@
         .controls label:hover { background: #f0ebe3; }
         .controls input[type="checkbox"] { cursor: pointer; }
 
+        .loading, .error {
+            max-width: 1200px;
+            margin: 30px auto;
+            padding: 20px;
+            text-align: center;
+            font-size: 16px;
+            color: #6b5d44;
+        }
+        .error {
+            background: #fff3f0;
+            border: 2px solid #c0392b;
+            color: #7a2820;
+            border-radius: 8px;
+        }
+        .error code {
+            font-family: Menlo, Consolas, monospace;
+            background: #fff;
+            padding: 2px 6px;
+            border-radius: 3px;
+        }
+
         .cards-container {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
-            gap: 20px;
-            max-width: 1200px;
-            margin: 0 auto 40px;
+            gap: 14px;
+            max-width: 960px;
+            margin: 0 auto 30px;
         }
 
         .card {
             background: white;
             border: 2px solid #333;
-            border-radius: 8px;
-            padding: 14px;
+            border-radius: 6px;
+            padding: 10px;
             aspect-ratio: 2.5 / 3.5;
             display: flex;
             flex-direction: column;
@@ -72,21 +106,21 @@
         }
 
         .card-header {
-            font-size: 16px;
+            font-size: 11px;
             font-weight: 600;
             color: #888;
             text-transform: uppercase;
             letter-spacing: 1.5px;
         }
 
-        /* Stock card styles */
+        /* ----- Stock cards ----- */
         .stock-badge {
             flex-grow: 1;
             display: flex;
             align-items: center;
             justify-content: center;
             width: 100%;
-            padding: 8px;
+            padding: 4px;
         }
 
         .stock-ticket {
@@ -94,9 +128,10 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            width: 90%;
-            padding: 18px 24px;
-            border-radius: 6px;
+            gap: 6px;
+            width: 88%;
+            padding: 10px 12px;
+            border-radius: 5px;
             border: 2px solid;
         }
 
@@ -104,44 +139,53 @@
         .stock-ticket::after {
             content: '';
             position: absolute;
-            width: 14px;
-            height: 14px;
+            width: 10px;
+            height: 10px;
             background: white;
             border-radius: 50%;
             border: 2px solid;
         }
-        .stock-ticket::before { left: -9px; top: 50%; transform: translateY(-50%); }
-        .stock-ticket::after { right: -9px; top: 50%; transform: translateY(-50%); }
+        .stock-ticket::before { left: -7px; top: 50%; transform: translateY(-50%); }
+        .stock-ticket::after { right: -7px; top: 50%; transform: translateY(-50%); }
 
-        .stock-ticket.Blue { background: rgba(41, 128, 185, 0.1); border-color: #2980b9; }
-        .stock-ticket.Blue::before, .stock-ticket.Blue::after { border-color: #2980b9; }
-        .stock-ticket.Orange { background: rgba(230, 126, 34, 0.1); border-color: #e67e22; }
-        .stock-ticket.Orange::before, .stock-ticket.Orange::after { border-color: #e67e22; }
-        .stock-ticket.Yellow { background: rgba(212, 160, 23, 0.12); border-color: #d4a017; }
-        .stock-ticket.Yellow::before, .stock-ticket.Yellow::after { border-color: #d4a017; }
-        .stock-ticket.Purple { background: rgba(142, 68, 173, 0.1); border-color: #8e44ad; }
-        .stock-ticket.Purple::before, .stock-ticket.Purple::after { border-color: #8e44ad; }
-        .stock-ticket.Wild { background: rgba(80, 80, 80, 0.08); border-color: #555; }
-        .stock-ticket.Wild::before, .stock-ticket.Wild::after { border-color: #555; }
+        .stock-ticket.steel { background: rgba(90, 140, 196, 0.12); border-color: #5a8cc4; }
+        .stock-ticket.steel::before, .stock-ticket.steel::after { border-color: #5a8cc4; }
+        .stock-ticket.oil   { background: rgba(213, 154, 60, 0.12); border-color: #d59a3c; }
+        .stock-ticket.oil::before,   .stock-ticket.oil::after   { border-color: #d59a3c; }
+        .stock-ticket.rail  { background: rgba(188, 58, 58, 0.10); border-color: #bc3a3a; }
+        .stock-ticket.rail::before,  .stock-ticket.rail::after  { border-color: #bc3a3a; }
+        .stock-ticket.auto  { background: rgba(82, 161, 115, 0.10); border-color: #52a173; }
+        .stock-ticket.auto::before,  .stock-ticket.auto::after  { border-color: #52a173; }
+        .stock-ticket.wild  { background: rgba(200, 183, 139, 0.18); border-color: #8b7355; }
+        .stock-ticket.wild::before,  .stock-ticket.wild::after  { border-color: #8b7355; }
 
-        .card-color {
-            font-size: 32px;
+        .ticket-label {
+            font-size: 20px;
             font-weight: 900;
-            text-align: center;
+            letter-spacing: 1px;
+            text-transform: uppercase;
         }
-
-        .card-color.Blue { color: #2980b9; }
-        .card-color.Orange { color: #e67e22; }
-        .card-color.Yellow { color: #d4a017; }
-        .card-color.Purple { color: #8e44ad; }
-        .card-color.Wild {
-            background: linear-gradient(90deg,#2980b9,#e67e22,#d4a017,#8e44ad);
+        .ticket-label.steel { color: #2f5a8a; }
+        .ticket-label.oil   { color: #8a5e1e; }
+        .ticket-label.rail  { color: #8c2424; }
+        .ticket-label.auto  { color: #2f6f4a; }
+        .ticket-label.wild  {
+            background: linear-gradient(90deg,#5a8cc4,#d59a3c,#bc3a3a,#52a173);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
         }
 
+        .ticket-company {
+            font-size: 8.5px;
+            font-style: italic;
+            color: #6b5d44;
+            text-align: center;
+            margin-top: 3px;
+            letter-spacing: 0.4px;
+        }
+
         .special-name {
-            font-size: 16px;
+            font-size: 13px;
             font-weight: 700;
             text-transform: uppercase;
             letter-spacing: 1px;
@@ -150,29 +194,30 @@
         }
 
         .card-ability {
-            font-size: 19px;
+            font-size: 13px;
             color: #333;
             text-align: center;
-            padding: 8px 6px;
+            padding: 6px 4px;
             border-top: 1px solid #ddd;
-            min-height: 44px;
+            min-height: 36px;
             display: flex;
             align-items: center;
             justify-content: center;
-            line-height: 1.4;
+            line-height: 1.35;
             font-style: italic;
             width: 100%;
         }
 
         .card-ability.empty { visibility: hidden; }
 
-        /* Action card styles */
+        /* ----- Action cards ----- */
         .action-name {
-            font-size: 20px;
+            font-size: 15px;
             font-weight: 700;
             text-align: center;
             color: #2c2c2c;
             padding: 0 4px;
+            line-height: 1.2;
         }
 
         .action-body {
@@ -181,32 +226,32 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            padding: 10px 8px;
+            padding: 6px 4px;
             width: 100%;
         }
 
         .action-desc {
-            font-size: 20px;
+            font-size: 13px;
             text-align: center;
-            line-height: 1.5;
+            line-height: 1.4;
             color: #444;
         }
 
         .action-tag {
-            font-size: 15px;
+            font-size: 10px;
             font-weight: 700;
             color: #fff;
             background: #333;
-            padding: 3px 10px;
-            border-radius: 10px;
-            margin-top: 8px;
+            padding: 2px 8px;
+            border-radius: 9px;
+            margin-top: 6px;
             text-transform: uppercase;
             letter-spacing: 1px;
         }
 
-        /* Insider Tip card styles */
+        /* ----- Insider Tip cards ----- */
         .tip-name {
-            font-size: 15px;
+            font-size: 12px;
             font-weight: 700;
             text-transform: uppercase;
             letter-spacing: 1px;
@@ -222,14 +267,15 @@
         }
 
         .tip-text {
-            font-size: 24px;
-            font-weight: 900;
+            font-size: 17px;
+            font-weight: 800;
             text-align: center;
             color: #2c2c2c;
-            line-height: 1.5;
+            line-height: 1.35;
+            padding: 0 4px;
         }
 
-        /* Goal card styles */
+        /* ----- Goal cards ----- */
         .goal-body {
             flex-grow: 1;
             display: flex;
@@ -243,39 +289,47 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 8px;
+            gap: 4px;
             flex-wrap: wrap;
         }
 
         .card-symbol {
-            width: 40px;
-            height: 56px;
-            border-radius: 5px;
+            width: 26px;
+            height: 36px;
+            border-radius: 4px;
             border: 2px solid;
-            display: inline-block;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Georgia', serif;
+            font-weight: 900;
+            font-size: 16px;
+            color: #fff;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.35);
         }
 
-        .card-symbol.Blue { background-color: #3498db; border-color: #2980b9; }
-        .card-symbol.Orange { background-color: #e67e22; border-color: #d35400; }
-        .card-symbol.Yellow { background-color: #f1c40f; border-color: #d4a017; }
-        .card-symbol.Purple { background-color: #9b59b6; border-color: #8e44ad; }
+        .card-symbol.steel { background-color: #5a8cc4; border-color: #2f5a8a; }
+        .card-symbol.oil   { background-color: #d59a3c; border-color: #8a5e1e; }
+        .card-symbol.rail  { background-color: #bc3a3a; border-color: #8c2424; }
+        .card-symbol.auto  { background-color: #52a173; border-color: #2f6f4a; }
 
         .goal-plus {
-            font-size: 22px;
+            font-size: 16px;
             font-weight: 700;
             color: #888;
         }
 
         .goal-reward {
-            font-size: 20px;
+            font-size: 13px;
             text-align: center;
             color: #444;
-            line-height: 1.4;
+            line-height: 1.35;
+            padding: 0 4px;
         }
 
-        /* Simple text card (loan / hot tip) */
+        /* ----- Plain text card (loan / hot tip) ----- */
         .plain-name {
-            font-size: 22px;
+            font-size: 17px;
             font-weight: 900;
             text-align: center;
             color: #4a3728;
@@ -286,26 +340,42 @@
             display: flex;
             align-items: center;
             justify-content: center;
+            padding: 0 4px;
         }
 
         .plain-text {
-            font-size: 20px;
+            font-size: 13px;
             text-align: center;
-            line-height: 1.5;
+            line-height: 1.4;
             color: #444;
         }
 
         .section { display: none; }
         .section.visible { display: block; }
+        .section-title {
+            max-width: 960px;
+            margin: 18px auto 8px;
+            padding: 0 4px 4px;
+            font-family: 'Georgia', serif;
+            font-size: 14px;
+            font-weight: 700;
+            color: #6b5d44;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            border-bottom: 1px solid #c8b78b;
+        }
 
         @media print {
-            @page { size: portrait; margin: 0.3in; }
+            @page { size: portrait; margin: 0.4in; }
             body { background: white; padding: 0; }
             .controls { display: none; }
+            .loading, .error { display: none; }
             .section { display: block !important; }
+            .section + .section { break-before: page; }
+            .section-title { display: none; }
             .cards-container {
-                grid-template-columns: repeat(4, 1fr);
-                gap: 14px;
+                grid-template-columns: repeat(5, 1fr);
+                gap: 10px;
                 width: 100%;
                 max-width: none;
             }
@@ -316,7 +386,7 @@
                 print-color-adjust: exact;
             }
             .stock-ticket, .stock-ticket::before, .stock-ticket::after,
-            .card-symbol, .action-tag {
+            .card-symbol, .action-tag, .ticket-label {
                 -webkit-print-color-adjust: exact;
                 print-color-adjust: exact;
             }
@@ -330,240 +400,363 @@
     <label><input type="checkbox" id="toggle-stock-basic" checked> Basic Stock Cards (16)</label>
     <label><input type="checkbox" id="toggle-stock-special" checked> Special Stock Cards (16)</label>
     <label><input type="checkbox" id="toggle-stock-wild" checked> Wild Shares (4)</label>
-    <label><input type="checkbox" id="toggle-action" checked> Action Cards (11)</label>
+    <label><input type="checkbox" id="toggle-action" checked> Action Cards (10)</label>
     <label><input type="checkbox" id="toggle-insider" checked> Insider Tip Cards (16)</label>
     <label><input type="checkbox" id="toggle-goal" checked> Goal Cards (14)</label>
     <label><input type="checkbox" id="toggle-loan" checked> Loan Cards (6)</label>
     <label><input type="checkbox" id="toggle-peek" checked> Hot Tip Cards (6)</label>
 </div>
 
-<div id="content"></div>
+<div id="content"><div class="loading">Loading cards…</div></div>
 
 <script>
-const SPECIAL_NAMES = {
-  extra_up: "Boom",
-  other_up: "Tip-Off",
-  peek_buy: "Scout",
-  peek_sell: "Informant",
-  wild: "Wild Share"
+// =============================================================================
+// Industry mapping — mirrors online/frontend/src/game/theme.tsx (INDUSTRY).
+// The card JSON `color` field stays Blue/Orange/Yellow/Purple/Wild; we display
+// the matching industry on the printed card.
+// =============================================================================
+const INDUSTRY = {
+  Blue:   { label: 'Steel',      long: 'Bethlehem Steel Co.', icon: 'steel', accent: '#5a8cc4' },
+  Orange: { label: 'Oil',        long: 'Standard Oil & Co.',  icon: 'oil',   accent: '#d59a3c' },
+  Yellow: { label: 'Rail',       long: 'Continental Rail',    icon: 'rail',  accent: '#bc3a3a' },
+  Purple: { label: 'Automobile', long: 'Detroit Motor Works', icon: 'auto',  accent: '#52a173' },
+  Wild:   { label: 'Wild Share', long: 'Wild Share',          icon: 'wild',  accent: '#c8b78b' },
 };
 
-function buildStockCards() {
-  const colors = ["Blue", "Orange", "Yellow", "Purple"];
-  const cards = [];
-  for (const color of colors) {
-    for (let i = 0; i < 4; i++) cards.push({ color, type: "blank" });
-    cards.push({ color, type: "extra_up", ability: `When bought, ${color} rises an extra +1 (${color} rises +2 total).` });
-    cards.push({ color, type: "other_up", ability: "When bought, raise a different color of your choice by +1." });
-    cards.push({ color, type: "peek_buy", ability: "When bought, look at the top Insider Tip card." });
-    cards.push({ color, type: "peek_sell", ability: "When sold, look at the top Insider Tip card." });
-  }
-  for (let i = 0; i < 4; i++) {
-    cards.push({ color: "Wild", type: "wild", ability: "No cash value and cannot be sold. When claiming a Goal, may count as one stock of any one color, then is discarded." });
-  }
-  return cards;
+const SPECIAL_NAMES = {
+  extra_up: 'Boom',
+  other_up: 'Tip-Off',
+  peek_buy: 'Scout',
+  peek_sell: 'Informant',
+  wild: 'Wild Share',
+};
+
+function relabelColors(text) {
+  if (!text) return text;
+  return text
+    .replace(/\bBlue\b/g, INDUSTRY.Blue.label)
+    .replace(/\bOrange\b/g, INDUSTRY.Orange.label)
+    .replace(/\bYellow\b/g, INDUSTRY.Yellow.label)
+    .replace(/\bPurple\b/g, INDUSTRY.Purple.label);
 }
-const stockCards = buildStockCards();
 
-const actionCards = [
-  { name: "Tipster's Choice", description: "Draw 2 cards from the main deck, keep 1, return the other to the bottom", persistent: false },
-  { name: "Corner the Market", description: "Take any one face-up market stock for free (not bought)", persistent: false },
-  { name: "Pump and Dump", description: "Sell 1 stock at double its current price (that color still falls -1)", persistent: false },
-  { name: "The Squeeze", description: "Raise one stock +2 OR lower one stock -2", persistent: false },
-  { name: "Wild Speculation", description: "Reveal the top main-deck card; if it is a colored stock, raise or lower that color by 3", persistent: false },
-  { name: "Preferred Bidder", description: "For rest of game, when you tie the winning bid, you win", persistent: true },
-  { name: "Stock Certificate Forgery", description: "Claim any one goal using one fewer stock than required", persistent: false },
-  { name: "Hostile Takeover", description: "Look at another player's hand, take 1 stock of your choice. They receive $6", persistent: false },
-  { name: "Rumor Mill", description: "Adjust every stock by +1 or -1", persistent: false },
-  { name: "Inside Track", description: "Look at the top 2 Insider Tip cards and return them in any order", persistent: false },
-  { name: "Wiretap", description: "Look at the top 2 Insider Tip cards and return them in any order", persistent: false },
-];
+function industryClass(color) {
+  return INDUSTRY[color]?.icon || 'wild';
+}
 
-const goalCards = [
-  { id: 1, goal: "2 Blue", reward: "Gain $4", requirements: { Blue: 2 } },
-  { id: 2, goal: "2 Orange", reward: "Adjust any one stock by ±2", requirements: { Orange: 2 } },
-  { id: 3, goal: "2 Yellow", reward: "Set any one stock to exactly $6", requirements: { Yellow: 2 } },
-  { id: 4, goal: "2 Purple", reward: "Look at the top 2 Insider Tip cards", requirements: { Purple: 2 } },
-  { id: 5, goal: "3 Blue", reward: "Steal $3 from each other player", requirements: { Blue: 3 } },
-  { id: 6, goal: "3 Orange", reward: "Sell any number of stocks, gain +$3 per stock sold", requirements: { Orange: 3 } },
-  { id: 7, goal: "3 Yellow", reward: "Gain $7", requirements: { Yellow: 3 } },
-  { id: 8, goal: "3 Purple", reward: "Adjust every stock by +1 or -1 (choose per stock)", requirements: { Purple: 3 } },
-  { id: 9, goal: "2 Blue + 2 Orange", reward: "Gain $8", requirements: { Blue: 2, Orange: 2 } },
-  { id: 10, goal: "2 Blue + 2 Yellow", reward: "Adjust any one stock by ±4", requirements: { Blue: 2, Yellow: 2 } },
-  { id: 11, goal: "2 Blue + 2 Purple", reward: "Adjust any one stock by +3 and another stock by -3", requirements: { Blue: 2, Purple: 2 } },
-  { id: 12, goal: "2 Orange + 2 Yellow", reward: "Swap one of your stock cards with a face-up market card", requirements: { Orange: 2, Yellow: 2 } },
-  { id: 13, goal: "2 Orange + 2 Purple", reward: "Draw 3 cards from the main deck, keep 1, return the others to the bottom", requirements: { Orange: 2, Purple: 2 } },
-  { id: 14, goal: "2 Yellow + 2 Purple", reward: "At the end of the game, gain $10", requirements: { Yellow: 2, Purple: 2 } },
-];
+function industryMono(color) {
+  const label = INDUSTRY[color]?.label || '?';
+  return label.charAt(0);
+}
 
-const insiderTipCards = [
-  { type: "crash", text: "Blue value halved (round down)" },
-  { type: "crash", text: "Blue value halved (round down)" },
-  { type: "crash", text: "Orange value halved (round down)" },
-  { type: "crash", text: "Orange value halved (round down)" },
-  { type: "crash", text: "Yellow value halved (round down)" },
-  { type: "crash", text: "Yellow value halved (round down)" },
-  { type: "crash", text: "Purple value halved (round down)" },
-  { type: "crash", text: "Purple value halved (round down)" },
-  { type: "surge", text: "Blue +4" },
-  { type: "surge", text: "Orange +4" },
-  { type: "surge", text: "Yellow +4" },
-  { type: "surge", text: "Purple +4" },
-  { type: "slump", text: "Blue -2 / Orange -2" },
-  { type: "slump", text: "Orange -2 / Purple -2" },
-  { type: "slump", text: "Purple -2 / Yellow -2" },
-  { type: "slump", text: "Yellow -2 / Blue -2" },
-];
+// =============================================================================
+// SVG icons — paths copied from online/frontend/src/game/theme.tsx.
+// =============================================================================
+function svgIcon(name, size = 28, color = 'currentColor', stroke = 1.6) {
+  const open = `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="${stroke}" stroke-linecap="round" stroke-linejoin="round">`;
+  const paths = {
+    rail:
+      `<rect x="5" y="3" width="14" height="13" rx="2.5"/>` +
+      `<line x1="5" y1="9" x2="19" y2="9"/>` +
+      `<circle cx="9" cy="13" r="1.2" fill="${color}" stroke="none"/>` +
+      `<circle cx="15" cy="13" r="1.2" fill="${color}" stroke="none"/>` +
+      `<line x1="8" y1="16" x2="6" y2="20"/>` +
+      `<line x1="16" y1="16" x2="18" y2="20"/>` +
+      `<line x1="3" y1="20" x2="21" y2="20"/>`,
+    steel:
+      `<path d="M4 20 L12 4 L20 20 Z"/>` +
+      `<path d="M4 20 L20 20"/>` +
+      `<path d="M8 14 L16 14"/>` +
+      `<path d="M12 4 L12 20"/>`,
+    oil:
+      `<path d="M12 3 C 8 9, 6 12, 6 15 a6 6 0 0 0 12 0 c 0 -3 -2 -6 -6 -12 Z"/>` +
+      `<path d="M10 14 c 0 1.5 1 2.5 2 2.5"/>`,
+    auto:
+      `<path d="M3 16 L4.5 11 C 5 9.5 6 9 7.5 9 L 16.5 9 C 18 9 19 9.5 19.5 11 L 21 16"/>` +
+      `<rect x="3" y="16" width="18" height="3.5" rx="1"/>` +
+      `<circle cx="7" cy="19" r="1.4" fill="${color}" stroke="none"/>` +
+      `<circle cx="17" cy="19" r="1.4" fill="${color}" stroke="none"/>` +
+      `<path d="M6 9 L 7.5 6 L 16.5 6 L 18 9"/>`,
+    wild:
+      `<path d="M12 3 L14 9 L20 9 L15 13 L17 19 L12 15 L7 19 L9 13 L4 9 L10 9 Z"/>`,
+  };
+  return open + (paths[name] || '') + '</svg>';
+}
 
-const loanCards = Array.from({ length: 6 }, () => ({
-  name: "Bank Loan",
-  text: "Take $10 from the bank now. Worth -$12 at game end.",
-}));
+// =============================================================================
+// Data loading
+// =============================================================================
+async function loadAllCards() {
+  const fetchJson = async (file) => {
+    const r = await fetch(file);
+    if (!r.ok) throw new Error(`Failed to load ${file}: ${r.status}`);
+    return r.json();
+  };
+  const [stocks, actions, tips, goals, loans, hotTips] = await Promise.all([
+    fetchJson('stock_cards.json'),
+    fetchJson('action_cards.json'),
+    fetchJson('insider_tip_cards.json'),
+    fetchJson('goal_cards.json'),
+    fetchJson('loan_cards.json'),
+    fetchJson('peek_cards.json'),
+  ]);
+  return {
+    stocks,
+    actions,
+    tips: tips.cards,
+    goals: goals.cards,
+    loans: loans.cards,
+    hotTips: hotTips.cards,
+  };
+}
 
-const peekCards = Array.from({ length: 6 }, () => ({
-  name: "Hot Tip",
-  text: "Single-use: look at the top Insider Tip card, then discard this card.",
-}));
-
-function renderStockCards(showBasic, showSpecial, showWild) {
-    let html = '<div class="cards-container">';
-    const filtered = stockCards.filter(c =>
-        (showBasic && c.type === 'blank') ||
-        (showSpecial && c.type !== 'blank' && c.type !== 'wild') ||
-        (showWild && c.type === 'wild')
-    );
-    for (const card of filtered) {
-        const abilityText = card.ability || '';
-        const abilityClass = abilityText ? '' : 'empty';
-        const nameHtml = card.type !== 'blank'
-            ? `<div class="special-name">${SPECIAL_NAMES[card.type]}</div>` : '';
-        html += `
+// =============================================================================
+// Renderers
+// =============================================================================
+function renderStockCards(stocks, showBasic, showSpecial, showWild) {
+  let html = '<div class="cards-container">';
+  const filtered = stocks.filter(c =>
+    (showBasic && c.type === 'blank') ||
+    (showSpecial && c.type !== 'blank' && c.type !== 'wild') ||
+    (showWild && c.type === 'wild')
+  );
+  for (const card of filtered) {
+    const ind = INDUSTRY[card.color] || INDUSTRY.Wild;
+    const cls = industryClass(card.color);
+    const isWild = card.type === 'wild';
+    const specialName = card.name || SPECIAL_NAMES[card.type];
+    const ability = relabelColors(card.ability || '');
+    const abilityClass = ability ? '' : 'empty';
+    const specialRow = (card.type !== 'blank')
+      ? `<div class="special-name">${escapeHtml(specialName)}</div>`
+      : '';
+    const company = isWild
+      ? ''
+      : `<div class="ticket-company">${escapeHtml(ind.long)}</div>`;
+    html += `
         <div class="card">
             <div class="card-header">Stock</div>
-            ${nameHtml}
+            ${specialRow}
             <div class="stock-badge">
-                <div class="stock-ticket ${card.color}">
-                    <div class="card-color ${card.color}">${card.color}</div>
+                <div style="display:flex; flex-direction:column; align-items:center; width:100%;">
+                    <div class="stock-ticket ${cls}">
+                        ${svgIcon(ind.icon, 20, ind.accent, 1.8)}
+                        <div class="ticket-label ${cls}">${escapeHtml(ind.label)}</div>
+                    </div>
+                    ${company}
                 </div>
             </div>
-            <div class="card-ability ${abilityClass}">${abilityText}</div>
+            <div class="card-ability ${abilityClass}">${escapeHtml(ability)}</div>
         </div>`;
-    }
-    html += '</div>';
-    return html;
+  }
+  html += '</div>';
+  return html;
 }
 
-function renderActionCards() {
-    let html = '';
-    for (const card of actionCards) {
-        const tagHtml = card.persistent ? '<div class="action-tag">Persistent</div>' : '';
-        html += `
+function renderActionCards(actions) {
+  let html = '';
+  for (const card of actions) {
+    const tag = card.persistent ? '<div class="action-tag">Persistent</div>' : '';
+    html += `
         <div class="card">
             <div class="card-header">Action</div>
-            <div class="action-name">${card.name}</div>
+            <div class="action-name">${escapeHtml(card.name)}</div>
             <div class="action-body">
-                <div class="action-desc">${card.description}</div>
-                ${tagHtml}
+                <div class="action-desc">${escapeHtml(card.description)}</div>
+                ${tag}
             </div>
         </div>`;
-    }
-    return html;
+  }
+  return html;
 }
 
-function renderInsiderTipCards() {
-    let html = '';
-    for (const card of insiderTipCards) {
-        html += `
+function renderInsiderTipCards(tips) {
+  let html = '';
+  for (const card of tips) {
+    const text = relabelColors(card.text);
+    html += `
         <div class="card">
             <div class="card-header">Insider Tip</div>
-            <div class="tip-name">${card.type.replace('_', ' ')}</div>
+            <div class="tip-name">${escapeHtml(card.type.replace('_', ' '))}</div>
             <div class="tip-body">
-                <div class="tip-text">${card.text}</div>
+                <div class="tip-text">${escapeHtml(text)}</div>
             </div>
         </div>`;
-    }
-    return html;
+  }
+  return html;
 }
 
-function renderGoalCards() {
-    let html = '';
-    for (const card of goalCards) {
-        let symbolsHtml = '';
-        const colors = Object.entries(card.requirements);
-        colors.forEach(([color, count], colorIdx) => {
-            if (colorIdx > 0) symbolsHtml += '<span class="goal-plus">+</span>';
-            for (let i = 0; i < count; i++) {
-                symbolsHtml += `<div class="card-symbol ${color}"></div>`;
-            }
-        });
-        html += `
+function renderGoalCards(goals) {
+  let html = '';
+  for (const card of goals) {
+    const reqs = card.goal?.parsed?.requirements || {};
+    const reward = relabelColors(card.reward?.text || '');
+    let symbols = '';
+    const entries = Object.entries(reqs);
+    entries.forEach(([color, count], idx) => {
+      if (idx > 0) symbols += '<span class="goal-plus">+</span>';
+      const cls = industryClass(color);
+      const mono = industryMono(color);
+      for (let i = 0; i < count; i++) {
+        symbols += `<div class="card-symbol ${cls}">${escapeHtml(mono)}</div>`;
+      }
+    });
+    html += `
         <div class="card">
             <div class="card-header">Goal</div>
             <div class="goal-body">
-                <div class="goal-cards-row">${symbolsHtml}</div>
-                <div class="goal-reward">${card.reward}</div>
+                <div class="goal-cards-row">${symbols}</div>
+                <div class="goal-reward">${escapeHtml(reward)}</div>
             </div>
         </div>`;
-    }
-    return html;
+  }
+  return html;
 }
 
-function renderPlainCards(cards, header) {
-    let html = '';
-    for (const card of cards) {
-        html += `
+function renderLoanCards(loans) {
+  let html = '';
+  for (const card of loans) {
+    const onTake = card.cashOnTake;
+    const endVal = card.endGameValue;
+    const endStr = endVal < 0 ? `-$${Math.abs(endVal)}` : `$${endVal}`;
+    const text = `Take $${onTake} from the bank now. Worth ${endStr} at game end.`;
+    html += `
         <div class="card">
-            <div class="card-header">${header}</div>
+            <div class="card-header">Loan</div>
             <div class="plain-body">
                 <div>
-                    <div class="plain-name">${card.name}</div>
-                    <div class="plain-text">${card.text}</div>
+                    <div class="plain-name">${escapeHtml(card.name)}</div>
+                    <div class="plain-text">${escapeHtml(text)}</div>
                 </div>
             </div>
         </div>`;
-    }
-    return html;
+  }
+  return html;
 }
+
+function renderHotTipCards(hotTips) {
+  let html = '';
+  for (const card of hotTips) {
+    html += `
+        <div class="card">
+            <div class="card-header">Hot Tip</div>
+            <div class="plain-body">
+                <div>
+                    <div class="plain-name">${escapeHtml(card.name)}</div>
+                    <div class="plain-text">${escapeHtml(card.description)}</div>
+                </div>
+            </div>
+        </div>`;
+  }
+  return html;
+}
+
+function escapeHtml(s) {
+  if (s == null) return '';
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+// =============================================================================
+// Page controller
+// =============================================================================
+let cardData = null;
 
 function render() {
-    const content = document.getElementById('content');
-    let html = '';
+  const content = document.getElementById('content');
+  if (!cardData) {
+    content.innerHTML = '<div class="loading">Loading cards…</div>';
+    return;
+  }
 
-    const showBasic = document.getElementById('toggle-stock-basic').checked;
-    const showSpecial = document.getElementById('toggle-stock-special').checked;
-    const showWild = document.getElementById('toggle-stock-wild').checked;
-    if (showBasic || showSpecial || showWild) {
-        html += `<div class="section visible">${renderStockCards(showBasic, showSpecial, showWild)}</div>`;
-    }
-    let otherCards = '';
-    if (document.getElementById('toggle-action').checked) otherCards += renderActionCards();
-    if (document.getElementById('toggle-insider').checked) otherCards += renderInsiderTipCards();
-    if (document.getElementById('toggle-goal').checked) otherCards += renderGoalCards();
-    if (document.getElementById('toggle-loan').checked) otherCards += renderPlainCards(loanCards, 'Loan');
-    if (document.getElementById('toggle-peek').checked) otherCards += renderPlainCards(peekCards, 'Hot Tip');
-    if (otherCards) {
-        html += `<div class="section visible"><div class="cards-container">${otherCards}</div></div>`;
-    }
-    content.innerHTML = html;
+  const showBasic = document.getElementById('toggle-stock-basic').checked;
+  const showSpecial = document.getElementById('toggle-stock-special').checked;
+  const showWild = document.getElementById('toggle-stock-wild').checked;
+  const showAction = document.getElementById('toggle-action').checked;
+  const showInsider = document.getElementById('toggle-insider').checked;
+  const showGoal = document.getElementById('toggle-goal').checked;
+  const showLoan = document.getElementById('toggle-loan').checked;
+  const showPeek = document.getElementById('toggle-peek').checked;
+
+  let html = '';
+
+  if (showBasic || showSpecial || showWild) {
+    html += '<div class="section visible">';
+    html += '<div class="section-title">Stock Cards</div>';
+    html += renderStockCards(cardData.stocks, showBasic, showSpecial, showWild);
+    html += '</div>';
+  }
+  if (showAction) {
+    html += '<div class="section visible">';
+    html += '<div class="section-title">Action Cards</div>';
+    html += `<div class="cards-container">${renderActionCards(cardData.actions)}</div>`;
+    html += '</div>';
+  }
+  if (showInsider) {
+    html += '<div class="section visible">';
+    html += '<div class="section-title">Insider Tip Cards</div>';
+    html += `<div class="cards-container">${renderInsiderTipCards(cardData.tips)}</div>`;
+    html += '</div>';
+  }
+  if (showGoal) {
+    html += '<div class="section visible">';
+    html += '<div class="section-title">Goal Cards</div>';
+    html += `<div class="cards-container">${renderGoalCards(cardData.goals)}</div>`;
+    html += '</div>';
+  }
+  if (showLoan) {
+    html += '<div class="section visible">';
+    html += '<div class="section-title">Loan Cards</div>';
+    html += `<div class="cards-container">${renderLoanCards(cardData.loans)}</div>`;
+    html += '</div>';
+  }
+  if (showPeek) {
+    html += '<div class="section visible">';
+    html += '<div class="section-title">Hot Tip Cards</div>';
+    html += `<div class="cards-container">${renderHotTipCards(cardData.hotTips)}</div>`;
+    html += '</div>';
+  }
+
+  content.innerHTML = html || '<div class="loading">Toggle a category above to see cards.</div>';
 }
 
-render();
+async function bootstrap() {
+  try {
+    cardData = await loadAllCards();
+  } catch (err) {
+    const isFileScheme = location.protocol === 'file:';
+    const hint = isFileScheme
+      ? `It looks like you opened this page directly from the filesystem. Browsers block <code>fetch()</code> from <code>file://</code>. Serve the cards folder locally and reload:<br><br><code>cd cards &amp;&amp; python3 -m http.server 8000</code><br><br>Then open <code>http://localhost:8000/visualize.html</code>.`
+      : `<code>${escapeHtml(err.message)}</code>`;
+    document.getElementById('content').innerHTML =
+      `<div class="error"><strong>Couldn't load card JSON.</strong><br><br>${hint}</div>`;
+    return;
+  }
 
-document.querySelectorAll('.controls input[type="checkbox"]').forEach(cb => {
-    cb.addEventListener('change', render);
-});
-
-const params = new URLSearchParams(window.location.search);
-const showParam = params.get('show');
-if (showParam) {
+  // URL ?show=... pre-selects which sections are visible.
+  const params = new URLSearchParams(window.location.search);
+  const showParam = params.get('show');
+  if (showParam) {
     const types = showParam.split(',');
     const allToggles = ['stock-basic', 'stock-special', 'stock-wild', 'action', 'insider', 'goal', 'loan', 'peek'];
     for (const t of allToggles) {
-        const shown = types.includes(t) || (t.startsWith('stock-') && types.includes('stock'));
-        document.getElementById(`toggle-${t}`).checked = shown;
+      const shown = types.includes(t) || (t.startsWith('stock-') && types.includes('stock'));
+      document.getElementById(`toggle-${t}`).checked = shown;
     }
-    render();
+  }
+
+  render();
 }
+
+document.querySelectorAll('.controls input[type="checkbox"]').forEach(cb => {
+  cb.addEventListener('change', render);
+});
+
+bootstrap();
 </script>
 
 </body>
