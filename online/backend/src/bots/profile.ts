@@ -59,6 +59,12 @@ export interface BotProfile {
    * 50/50 per bot. Undefined ⇒ never plays the card.
    */
   buyCardStrategy?: 'pairs' | 'goal';
+  /**
+   * Emergency-sell trigger: sell a stock for cash when `cash < emergencySellCash`
+   * (a param) AND `loans >= emergencySellMinLoans`. Defaults to 1 (today's
+   * behavior). Exposed so the sell threshold can be A/B-tested.
+   */
+  emergencySellMinLoans?: number;
 }
 
 export function createBotProfile(rng: Rng): BotProfile {

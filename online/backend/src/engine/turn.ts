@@ -7,7 +7,7 @@ import type {
   PlayerPrivate,
   StockCard
 } from '@insider-trading/shared';
-import { COLORS } from '@insider-trading/shared';
+import { COLORS, MAX_LOANS, LOAN_CASH } from '@insider-trading/shared';
 import { adjust } from '../domain/prices.js';
 import { reshuffleDiscardIfNeeded } from '../domain/deck.js';
 import type { MutationResult } from '../domain/mutate.js';
@@ -34,8 +34,10 @@ export function payBank(player: PlayerPrivate, amount: number, events: GameLogEn
     return;
   }
   const owed = amount - player.cash;
-  const loansNeeded = Math.ceil(owed / 10);
-  player.cash += loansNeeded * 10;
+  // Respect the hard loan cap: never issue beyond MAX_LOANS. Callers must gate
+  // spends with maxAffordableSpend() so this clamp is never actually binding.
+  const loansNeeded = Math.min(Math.ceil(owed / LOAN_CASH), Math.max(0, MAX_LOANS - player.loans));
+  player.cash += loansNeeded * LOAN_CASH;
   player.loans += loansNeeded;
   player.cash -= amount;
   events.push(

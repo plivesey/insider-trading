@@ -208,6 +208,20 @@ export const DEFAULT_RULES: RulesConfig = {
   tipReduction: 0
 };
 
+/**
+ * Hard cap on how many loans a single player may ever hold. Players cannot take
+ * a 4th loan, and cannot bid/spend in a way that would require one. A loan is
+ * $10 cash, so a player's maximum committable spend is
+ * `cash + (MAX_LOANS - loans) * 10`.
+ */
+export const MAX_LOANS = 3;
+export const LOAN_CASH = 10;
+
+/** Maximum a player can commit to a payment given the loan cap. */
+export function maxAffordableSpend(cash: number, loans: number): number {
+  return cash + Math.max(0, MAX_LOANS - loans) * LOAN_CASH;
+}
+
 export interface GameLogEntry {
   /** Monotonic sequence within the game. */
   seq: number;

@@ -12,7 +12,7 @@ import type {
   StockCard,
   TurnActionRequest
 } from '@insider-trading/shared';
-import { COLORS } from '@insider-trading/shared';
+import { COLORS, maxAffordableSpend } from '@insider-trading/shared';
 import type { Rng } from '../domain/rng.js';
 import type { BotProfile } from './profile.js';
 import type { BotParams } from './botParams.js';
@@ -57,9 +57,10 @@ function effectiveBidCeiling(
 ): number {
   const adjusted = perceived - params.winnerMargin;
   if (adjusted <= cash) return adjusted;
-  // Otherwise we'd need a loan to bid this high.
-  if (adjusted - nextLoanCost(currentLoans, params.loanCostOffset) > cash) {
-    return Math.min(adjusted, cash + 10);
+  // Otherwise we'd need a loan. Never bid beyond the loan cap (max 3 loans).
+  const maxAfford = maxAffordableSpend(cash, currentLoans);
+  if (maxAfford > cash && adjusted - nextLoanCost(currentLoans, params.loanCostOffset) > cash) {
+    return Math.min(adjusted, cash + 10, maxAfford);
   }
   return cash;
 }
@@ -261,7 +262,7 @@ function decideTurnAction(
   // Sell-on-low-cash: cash < $10 AND has ≥1 loan AND owns a sellable stock.
   // Sell the stock with the highest ACTUAL current price (not perceived value)
   // — we want immediate cash, not future expectation.
-  if (bot.cash < profile.params.emergencySellCash && bot.loans >= 1) {
+  if (bot.cash < profile.params.emergencySellCash && bot.loans >= (profile.emergencySellMinLoans ?? 1)) {
     // Sell the LEAST goal-useful stock (so we don't dump a near-goal piece we
     // just took a loan to win), tie-broken by highest current price.
     const useful = goalHoldUsefulnessByColor(state, bot.playerId);

@@ -9,6 +9,7 @@ import type {
   StockCard,
   TurnPhase
 } from '@insider-trading/shared';
+import { maxAffordableSpend } from '@insider-trading/shared';
 import type { MutationResult } from '../domain/mutate.js';
 import { adjust } from '../domain/prices.js';
 import { event } from './events.js';
@@ -42,6 +43,9 @@ export function startAuction(
   if (player.playerId !== playerId) return { ok: false, error: `not ${playerId}'s turn`, events };
   if (initialBid < 0 || !Number.isInteger(initialBid)) {
     return { ok: false, error: 'initialBid must be a non-negative integer', events };
+  }
+  if (initialBid > maxAffordableSpend(player.cash, player.loans)) {
+    return { ok: false, error: 'bid exceeds loan limit (max 3 loans)', events };
   }
   const cardIdx = state.market.findIndex(c => c.uid === cardUid);
   if (cardIdx < 0) return { ok: false, error: 'card not in market', events };
@@ -220,6 +224,9 @@ export function bid(state: GameState, playerId: PlayerId, amount: number): Mutat
   }
   if (amount === auction.currentHigh && !hasPreferred) {
     return { ok: false, error: 'bid must beat current high', events };
+  }
+  if (amount > maxAffordableSpend(bidder.cash, bidder.loans)) {
+    return { ok: false, error: 'bid exceeds loan limit (max 3 loans)', events };
   }
   // Accept the bid.
   auction.currentHigh = amount;

@@ -9,7 +9,7 @@ import type {
   StockCard,
   InsiderTipCard
 } from '@insider-trading/shared';
-import { COLORS } from '@insider-trading/shared';
+import { COLORS, maxAffordableSpend } from '@insider-trading/shared';
 import type { MutationResult } from '../domain/mutate.js';
 import { adjust, setPrice } from '../domain/prices.js';
 import { event } from './events.js';
@@ -341,6 +341,18 @@ export function respondToPrompt(
         }
         const color = target.color as Color;
         const price = state.stockPrices[color];
+        if (price > maxAffordableSpend(player.cash, player.loans)) {
+          // Can't afford within the loan cap — fizzle gracefully (card already
+          // discarded), rather than forcing an illegal 4th loan.
+          clearPrompt(state, playerId);
+          events.push(
+            event('market_order_unaffordable', `${player.name}'s Market Order fizzles — can't afford ${color} within the loan limit`, {
+              actor: playerId,
+              payload: { cardUid: target.uid, price }
+            })
+          );
+          return { ok: true, events };
+        }
         state.market.splice(mIdx, 1);
         player.hand.push(target);
         payBank(player, price, events);
