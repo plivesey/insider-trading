@@ -45,12 +45,21 @@ interface Variant {
   name: string;
   rules: Partial<RulesConfig>;
 }
+// Rule fragments (3 and 4 both set tipReduction → mutually exclusive).
+const r1: Partial<RulesConfig> = { startingBuyCard: true }; // buy card
+const r2: Partial<RulesConfig> = { extraGoals: 1, goalStopCount: 2 }; // +1 goal, stop@2
+const r3: Partial<RulesConfig> = { tipReduction: 1 };
+const r4: Partial<RulesConfig> = { tipReduction: 2 };
 const VARIANTS: Variant[] = [
   { name: 'baseline', rules: {} },
-  { name: 'rule1: starting buy card', rules: { startingBuyCard: true } },
-  { name: 'rule2: +1 goal, stop@2', rules: { extraGoals: 1, goalStopCount: 2 } },
-  { name: 'rule3: tips -1', rules: { tipReduction: 1 } },
-  { name: 'rule4: tips -2', rules: { tipReduction: 2 } }
+  { name: '1 (buy card)', rules: { ...r1 } },
+  { name: '4 (tips-2)', rules: { ...r4 } },
+  { name: '1+2', rules: { ...r1, ...r2 } },
+  { name: '1+3', rules: { ...r1, ...r3 } },
+  { name: '2+3', rules: { ...r2, ...r3 } },
+  { name: '1+2+3', rules: { ...r1, ...r2, ...r3 } },
+  { name: '1+4', rules: { ...r1, ...r4 } },
+  { name: '1+2+4', rules: { ...r1, ...r2, ...r4 } }
 ];
 
 function pctile(sorted: number[], p: number): number {

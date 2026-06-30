@@ -1,6 +1,6 @@
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { loadCards, type GameState, type ActionCard, type GoalCard, type Color, type StockCard, type HandCard } from '@insider-trading/shared';
+import { loadCards, CLASSIC_RULES, type GameState, type ActionCard, type GoalCard, type Color, type StockCard, type HandCard } from '@insider-trading/shared';
 import { createGameState } from '../../src/domain/setup.js';
 import { submitFreeAction, processNextFreeAction } from '../../src/engine/freeActions.js';
 import { respondToPrompt } from '../../src/engine/promptResponse.js';
@@ -22,7 +22,8 @@ function mkState(seed = 1): GameState {
     ],
     seed,
     gameId: 'g',
-    startedAt: '2026-01-01T00:00:00.000Z'
+    startedAt: '2026-01-01T00:00:00.000Z',
+    rules: CLASSIC_RULES // engine-mechanics tests use the classic setup (empty hand, end at 1 goal)
   });
 }
 

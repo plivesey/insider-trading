@@ -24,10 +24,11 @@ describe('createGameState', () => {
     });
     expect(g.players).toHaveLength(3);
     expect(g.market).toHaveLength(5);
-    expect(g.insiderTipDeck).toHaveLength(6); // 2*3
-    expect(g.activeGoals).toHaveLength(5); // 3+2
-    expect(g.mainDeck).toHaveLength(36 + 13 - 5);
+    expect(g.insiderTipDeck).toHaveLength(5); // default ruleset: max(4, 2*3 - 1)
+    expect(g.activeGoals).toHaveLength(6); // default ruleset: 3 + 2 + 1
+    expect(g.mainDeck).toHaveLength(36 + 13 - 5); // buy card isn't drawn from the deck
     expect(g.players.every(p => p.cash === 30)).toBe(true);
+    expect(g.players.every(p => p.hand.length === 1)).toBe(true); // each starts with a Market Order
     expect(g.players.every(p => p.hotTipAvailable)).toBe(true);
     expect(g.stockPrices).toEqual({ Blue: 4, Orange: 4, Yellow: 4, Purple: 4 });
     expect(g.gameOver).toBeNull();
@@ -99,13 +100,14 @@ describe('createGameState', () => {
     expect(new Set(uids).size).toBe(uids.length);
   });
 
-  it('different player counts produce expected tip/goal sizes', () => {
+  it('different player counts produce expected tip/goal sizes (default ruleset)', () => {
+    // [players, tips = max(4, 2*players - 1), goals = players + 3]
     const counts: Array<[number, number, number]> = [
-      [2, 4, 4],
-      [3, 6, 5],
-      [4, 8, 6],
-      [5, 10, 7],
-      [6, 12, 8]
+      [2, 4, 5],
+      [3, 5, 6],
+      [4, 7, 7],
+      [5, 9, 8],
+      [6, 11, 9]
     ];
     for (const [n, tips, goals] of counts) {
       const ps = Array.from({ length: n }, (_, i) => ({

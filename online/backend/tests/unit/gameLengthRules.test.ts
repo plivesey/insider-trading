@@ -2,6 +2,8 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
   loadCards,
+  CLASSIC_RULES,
+  DEFAULT_RULES,
   type GameState,
   type RulesConfig,
   type StockCard
@@ -30,45 +32,65 @@ function mkState(rules?: Partial<RulesConfig>, seed = 1): GameState {
   });
 }
 
-describe('RulesConfig plumbing (game-length experiment)', () => {
-  it('defaults preserve V4 counts and no starting card', () => {
-    const s = mkState();
-    expect(s.insiderTipDeck).toHaveLength(2 * 3);
-    expect(s.activeGoals).toHaveLength(3 + 2);
-    expect(s.players.every(p => p.hand.length === 0)).toBe(true);
-    expect(s.rules).toEqual({ startingBuyCard: false, goalStopCount: 1, extraGoals: 0, tipReduction: 0 });
+describe('RulesConfig plumbing', () => {
+  it('the shipped default ruleset is 1+2+3', () => {
+    const s = mkState(); // no override → DEFAULT_RULES
+    expect(s.rules).toEqual(DEFAULT_RULES);
+    expect(s.insiderTipDeck).toHaveLength(5); // max(4, 2*3 - 1)
+    expect(s.activeGoals).toHaveLength(6); // 3 + 2 + 1
+    expect(s.players.every(p => p.hand.length === 1)).toBe(true); // a Market Order each
+    const c = s.players[0].hand[0];
+    expect(c.category === 'action' && c.effect.type).toBe('buy_from_market');
   });
 
-  it('tipReduction shrinks the insider-tip deck', () => {
-    expect(mkState({ tipReduction: 1 }).insiderTipDeck).toHaveLength(2 * 3 - 1);
-    expect(mkState({ tipReduction: 2 }).insiderTipDeck).toHaveLength(2 * 3 - 2);
+  it('CLASSIC_RULES restores the original game', () => {
+    const s = mkState(CLASSIC_RULES);
+    expect(s.insiderTipDeck).toHaveLength(2 * 3); // full deck
+    expect(s.activeGoals).toHaveLength(3 + 2);
+    expect(s.players.every(p => p.hand.length === 0)).toBe(true);
+  });
+
+  it('insider tips floor at MIN_TIPS (2-player stays at 4)', () => {
+    const two = createGameState({
+      catalog,
+      players: [
+        { playerId: 'p1', name: 'A' },
+        { playerId: 'p2', name: 'B' }
+      ],
+      seed: 1,
+      gameId: 'g',
+      startedAt: '2026-01-01T00:00:00.000Z'
+    });
+    expect(two.insiderTipDeck).toHaveLength(4); // max(4, 2*2 - 1) = 4, not 3
+  });
+
+  it('tipReduction shrinks the deck, floored at 4', () => {
+    expect(mkState({ tipReduction: 0 }).insiderTipDeck).toHaveLength(6); // 2*3
+    expect(mkState({ tipReduction: 2 }).insiderTipDeck).toHaveLength(4); // max(4, 4)
+    expect(mkState({ tipReduction: 3 }).insiderTipDeck).toHaveLength(4); // floored
   });
 
   it('extraGoals grows the active goals', () => {
-    expect(mkState({ extraGoals: 1 }).activeGoals).toHaveLength(3 + 2 + 1);
+    expect(mkState({ extraGoals: 0 }).activeGoals).toHaveLength(5); // 3+2
+    expect(mkState({ extraGoals: 2 }).activeGoals).toHaveLength(7); // 3+2+2
   });
 
-  it('startingBuyCard deals one Market Order to every player', () => {
-    const s = mkState({ startingBuyCard: true });
-    for (const p of s.players) {
-      expect(p.hand).toHaveLength(1);
-      const c = p.hand[0];
-      expect(c.category).toBe('action');
-      expect(c.category === 'action' && c.effect.type).toBe('buy_from_market');
-    }
+  it('startingBuyCard:false deals no card', () => {
+    expect(mkState({ startingBuyCard: false }).players.every(p => p.hand.length === 0)).toBe(true);
   });
 
   it('goalStopCount controls the end condition', () => {
-    // Default: 2 goals remaining is NOT game over; 1 remaining is.
-    const sDefault = mkState();
-    sDefault.activeGoals = sDefault.activeGoals.slice(0, 2);
-    checkEndConditions(sDefault, []);
-    expect(sDefault.gameOver).toBeNull();
+    // goalStopCount 1: 2 goals remaining is NOT game over.
+    const s1 = mkState({ goalStopCount: 1 });
+    s1.activeGoals = s1.activeGoals.slice(0, 2);
+    checkEndConditions(s1, []);
+    expect(s1.gameOver).toBeNull();
 
-    const sStop2 = mkState({ goalStopCount: 2 });
-    sStop2.activeGoals = sStop2.activeGoals.slice(0, 2);
-    checkEndConditions(sStop2, []);
-    expect(sStop2.gameOver).not.toBeNull();
+    // goalStopCount 2 (the default): 2 goals remaining ends the game.
+    const s2 = mkState({ goalStopCount: 2 });
+    s2.activeGoals = s2.activeGoals.slice(0, 2);
+    checkEndConditions(s2, []);
+    expect(s2.gameOver).not.toBeNull();
   });
 });
 

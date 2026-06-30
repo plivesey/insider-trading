@@ -77,33 +77,34 @@ These moves happen on **every** purchase and **every** sale, including sales mad
 
 1. **Build the main deck:** Shuffle all **36 stock cards** and **11 action cards** into one **47-card** face-down main deck.
 2. **Reveal the market:** Turn up **5 cards** from the main deck side by side. This is the market.
-3. **Build the Insider Tip deck:** Shuffle all **16 Insider Tip cards**, then deal **(2 × number of players)** of them face-down into a draw pile. Set the remaining tips aside (still face-down) — they may surface later via auctions. *(This deck size is a tuning value and may change with playtesting.)*
+3. **Build the Insider Tip deck:** Shuffle all **16 Insider Tip cards**, then deal **max(4, 2 × players − 1)** of them face-down into a draw pile (minimum 4, so 2-player games still get 4). Set the remaining tips aside (still face-down) — they may surface later via auctions.
 
    | Players | Insider Tip deck |
    |---------|------------------|
-   | 2 | 3 |
+   | 2 | 4 |
    | 3 | 5 |
    | 4 | 7 |
    | 5 | 9 |
    | 6 | 11 |
 
-4. **Display goals:** Shuffle the 14 goal cards and reveal **(players + 2)** of them face-up.
+4. **Display goals:** Shuffle the 14 goal cards and reveal **(players + 3)** of them face-up.
 
    | Players | Goals in play |
    |---------|---------------|
-   | 2 | 4 |
-   | 3 | 5 |
-   | 4 | 6 |
-   | 5 | 7 |
-   | 6 | 8 |
+   | 2 | 5 |
+   | 3 | 6 |
+   | 4 | 7 |
+   | 5 | 8 |
+   | 6 | 9 |
 
 5. **Bank:** Give each player **$30**.
 6. **Prices:** Set all four stock prices to **$4**.
 7. **Hot Tips:** Give each player **one Hot Tip card**.
-8. **Loans:** Place the **6 loan cards** face-up within reach of all players.
-9. **First player:** Choose randomly. Play proceeds clockwise.
+8. **Market Order:** Give each player **one Market Order card** (a single-use action: buy one stock from the market at its current price; that color still rises +1).
+9. **Loans:** Place the loan cards face-up within reach of all players (max **3 loans per player** — see Loans).
+10. **First player:** Choose randomly. Play proceeds clockwise.
 
-**Players start with $30, one Hot Tip, and ZERO stocks.** All stocks must be acquired through auctions or card effects.
+**Players start with $30, one Hot Tip, one Market Order, and ZERO stocks.** All stocks must be acquired through auctions or card effects.
 
 ---
 
@@ -215,7 +216,7 @@ Special powers (**Scout**, **Informant**, **Hot Tip**) let players peek at the t
 The game ends **immediately** the moment **either** condition is met. The current action finishes resolving, then the game is over — there are **no final turns**.
 
 1. **The Insider Tip deck is exhausted** — the last Insider Tip card has been flipped and resolved.
-2. **All goals but one have been claimed** — once only **one** goal card remains in play, the game ends.
+2. **Only two goals remain** — once just **two** goal cards are left face-up, the game ends.
 
 ---
 
@@ -223,11 +224,13 @@ The game ends **immediately** the moment **either** condition is met. The curren
 
 You may **bid or spend more money than you currently hold.**
 
-- The instant a payment exceeds your cash, you are **automatically issued loan cards**. Each loan card gives you **$10** immediately. Take as many $10 loans as needed to cover the payment.
+- The instant a payment exceeds your cash, you are **automatically issued loan cards**. Each loan card gives you **$10** immediately. Take as many $10 loans as needed to cover the payment — **up to a maximum of 3 loans per player.** You cannot bid or commit to a payment beyond `cash + (3 − loans held) × $10`.
 - Loans are **never taken voluntarily** and **cannot be repaid**.
 - **End-game cost is escalating per player.** Your **1st** loan counts **−$12**, your **2nd** loan **−$13**, your **3rd** loan **−$14**, and so on (the n-th loan you personally take costs $(11 + n)). The escalation is per-player, not shared — every player's first loan is −$12. Two loans total = −$25; three = −$39; four = −$54.
 
-So your first loan is +$10 now for −$12 later (net $2 cost), but each successive loan grows more expensive: the second nets you $3, the third $4, etc. There are 6 loan cards; this is intended to be effectively unlimited.
+So your first loan is +$10 now for −$12 later (net $2 cost), but each successive loan grows more expensive: the second nets you $3, the third $4, etc.
+
+- **Loan cap: 3 per player.** You can never hold more than **3 loans**, and you may not bid or commit to a payment you couldn't cover with cash + up to 3 loans (max spend = cash + (3 − loans your already hold) × $10).
 
 ---
 
@@ -264,8 +267,8 @@ If the main deck runs out, shuffle the **discard pile** to form a new main deck 
 
 **Prices move:** buy a stock → its color +1; sell a stock → its color −1. (Wild Shares move nothing.)
 
-**Game ends immediately when:** the Insider Tip deck empties, OR only one goal remains in play.
+**Game ends immediately when:** the Insider Tip deck empties, OR only two goals remain in play.
 
-**Starting conditions:** $30 cash, one Hot Tip, 0 stocks; all prices $4; 5 market cards; Insider Tip deck = 2 × players; goals in play = players + 2.
+**Starting conditions:** $30 cash, one Hot Tip, one Market Order, 0 stocks; all prices $4; 5 market cards; Insider Tip deck = max(4, 2 × players − 1); goals in play = players + 3.
 
-**Wealth = cash + (stocks × price) + end-game goal bonuses − escalating loan penalty (n-th loan costs $(11 + n)).**
+**Wealth = cash + (stocks × price) + end-game goal bonuses − escalating loan penalty (n-th loan costs $(11 + n)); max 3 loans per player.**

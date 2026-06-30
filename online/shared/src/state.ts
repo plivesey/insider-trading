@@ -187,21 +187,35 @@ export interface GameState {
 }
 
 /**
- * Tunable game-balance rules used to experiment with game length. Defaults
- * reproduce the shipped V4 game.
+ * Game-balance rule knobs. `DEFAULT_RULES` is the live, shipped ruleset (the
+ * "1+2+3" config: starting Market Order card, +1 goal & end at 2 remaining, and
+ * one fewer insider tip). Pass a partial override to `createGameState` to run a
+ * different configuration (e.g. the classic game, or game-length experiments).
  */
 export interface RulesConfig {
   /** Deal every player a free single-use "buy a market stock at current price" card. */
   startingBuyCard: boolean;
-  /** End the game when this many goals (or fewer) remain. Default 1. */
+  /** End the game when this many goals (or fewer) remain visible. */
   goalStopCount: number;
-  /** Extra active goals beyond the default players+2. Default 0. */
+  /** Extra active goals beyond players+2. */
   extraGoals: number;
-  /** Reduce the insider-tip deck by this many cards (from 2×players). Default 0. */
+  /** Reduce the insider-tip deck by this many cards from 2×players (floored at MIN_TIPS). */
   tipReduction: number;
 }
 
+/** Minimum insider tips dealt regardless of reduction (keeps 2-player games playable). */
+export const MIN_TIPS = 4;
+
+/** The live, shipped ruleset. */
 export const DEFAULT_RULES: RulesConfig = {
+  startingBuyCard: true,
+  goalStopCount: 2,
+  extraGoals: 1,
+  tipReduction: 1
+};
+
+/** The original V4 ruleset (no starting card, end at 1 goal, full tip deck). */
+export const CLASSIC_RULES: RulesConfig = {
   startingBuyCard: false,
   goalStopCount: 1,
   extraGoals: 0,

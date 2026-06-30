@@ -141,6 +141,28 @@ goals didn't matter.
   4.4/5.5; avg turns 31.8/40.3 (was 38.6/48.7, ~18% shorter, tighter p90); loans/player down to ~0.8.
 - Params (`bot_params.json`) still frozen; only the net + sell heuristic + features changed.
 
+### Loan cap + emergency-sell experiment (DONE — 2026-06-30)
+- [x] **3-loan hard cap**: `MAX_LOANS=3` + `maxAffordableSpend()` in shared/state.ts, enforced in
+  `auction.bid`/`startAuction` (reject over-cap bids), `payBank` (never issues a 4th loan),
+  buy-from-market (fizzle if unaffordable), and bots' `effectiveBidCeiling`. Tests in `loanCap.test.ts`.
+- [x] **Emergency-sell A/B** (`scripts/abSell.ts`, `emergencySellMinLoans` on BotProfile): current
+  trigger (cash<10 & ≥1 loan) beat all variants (<5&1, <10&2, <5&2) → NO change to selling.
+
+### Game permanent ruleset = "1+2+3" (DONE — 2026-06-30)
+Game-length experiment (`scripts/measureGameLength.ts`) on the goal-pursuing model: combos stack;
+`1+2` and `1+2+3` shorten ~25-27% while staying goal-driven (72-88% goal endings). User chose **1+2+3**.
+- [x] **Made permanent**: `DEFAULT_RULES` (shared/state.ts) = `{startingBuyCard:true, goalStopCount:2,
+  extraGoals:1, tipReduction:1}`; added `MIN_TIPS=4` floor (2-player keeps 4 tips, not 3). Added
+  `CLASSIC_RULES` for engine-mechanics unit tests. Production/replay/training all use DEFAULT_RULES.
+  Per-count: tips = max(4, 2p−1) = 4/5/7/9/11; goals = p+3 = 5/6/7/8/9; game ends at 2 goals remaining.
+- [x] Updated `rules.md` + `CLAUDE.md` to the new rules. Fixed unit tests (setup/turnEngine/freeActions
+  use CLASSIC_RULES; gameLengthRules rewritten). 127 tests pass.
+- [x] **Docs**: `scripts/README.md` — how to train (trainSelfPlay/trainStockValueNet/trainBotParams),
+  evaluate (abNets/abWinRate/abBotParams), and run experiments (measureGameLength/analyzeGoals/abSell);
+  includes the non-transitivity lesson.
+- Note: Market Order buy card works for humans via the generic action-play + pick_market_card UI
+  (minor polish: the buy modal lists non-stock cards too, which the engine rejects).
+
 ### Deferred (optional)
 - [ ] ~7-8% of games end with a just-completed goal unclaimed (end-of-turn timing; minor).
 - [ ] 2p only at par — could train a 2p-specific net or boost goal rewards if heads-up matters.

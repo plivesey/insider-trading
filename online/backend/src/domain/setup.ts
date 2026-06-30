@@ -8,7 +8,7 @@ import type {
   PlayerId,
   RulesConfig
 } from '@insider-trading/shared';
-import { DEFAULT_RULES } from '@insider-trading/shared';
+import { DEFAULT_RULES, MIN_TIPS } from '@insider-trading/shared';
 import { shuffle } from './deck.js';
 import { makeRng, type Rng } from './rng.js';
 
@@ -45,7 +45,7 @@ export function createGameState(input: SetupInput): GameState {
   const rules: RulesConfig = { ...DEFAULT_RULES, ...input.rules };
 
   const numPlayers = players.length;
-  const numTips = Math.max(0, 2 * numPlayers - rules.tipReduction);
+  const numTips = Math.max(MIN_TIPS, 2 * numPlayers - rules.tipReduction);
   const numGoals = numPlayers + 2 + rules.extraGoals;
 
   const mainDeck: DeckCard[] = shuffle<DeckCard>(
