@@ -61,6 +61,10 @@ export function shouldPlayActionCard(
     case 'auction_unused_tip':
       // Black Market triggers from the market on reveal, not from hand.
       return false;
+    case 'buy_from_market':
+      // Market Order is played via a dedicated strategy path (chooseBuyTarget),
+      // not the generic value-ranked path.
+      return false;
   }
 }
 

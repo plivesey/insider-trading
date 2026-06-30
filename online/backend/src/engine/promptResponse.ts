@@ -15,7 +15,15 @@ import { adjust, setPrice } from '../domain/prices.js';
 import { event } from './events.js';
 import { resolveTip } from './insiderTip.js';
 import { clearPrompt, getPrompt, setPrompt } from './prompts.js';
-import { describeCard, drawTopOfDeck, findPlayer, receiveBank, refillMarketIfNeeded } from './turn.js';
+import {
+  describeCard,
+  drawTopOfDeck,
+  findPlayer,
+  payBank,
+  receiveBank,
+  refillMarketIfNeeded,
+  resolveStockSpecialOnBuy
+} from './turn.js';
 
 export function respondToPrompt(
   state: GameState,
@@ -321,6 +329,32 @@ export function respondToPrompt(
           'Pick one of your cards to swap with the chosen market card.',
           { marketCardUid: cardUid }
         );
+        return { ok: true, events };
+      }
+      if (mode === 'buy_from_market') {
+        // Market Order: pay the chosen stock's current price (auto-loan if
+        // short) and take it; the purchase raises that color +1, then the
+        // stock's special-on-buy ability resolves — same as a normal buy.
+        const target = state.market[mIdx];
+        if (target.category !== 'stock' || target.color === 'Wild') {
+          return { ok: false, error: 'Market Order must buy a colored stock', events };
+        }
+        const color = target.color as Color;
+        const price = state.stockPrices[color];
+        state.market.splice(mIdx, 1);
+        player.hand.push(target);
+        payBank(player, price, events);
+        adjust(state.stockPrices, color, 1);
+        events.push(
+          event(
+            'market_order_buy',
+            `${player.name} buys ${color}${target.name ? ` (${target.name})` : ''} from market for $${price}`,
+            { actor: playerId, payload: { cardUid: target.uid, color, price, newPrice: state.stockPrices[color] } }
+          )
+        );
+        clearPrompt(state, playerId);
+        resolveStockSpecialOnBuy(state, player, target, events);
+        refillMarketIfNeeded(state, events);
         return { ok: true, events };
       }
       return { ok: false, error: 'unknown pick_market_card mode', events };

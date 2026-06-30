@@ -179,7 +179,34 @@ export interface GameState {
   eventCounter: number;
   /** Track which players are currently connected (cosmetic). */
   connected: Record<PlayerId, boolean>;
+  /**
+   * Experimental rule toggles for game-length tuning. Optional — absent means
+   * the default ruleset (see DEFAULT_RULES / createGameState).
+   */
+  rules?: RulesConfig;
 }
+
+/**
+ * Tunable game-balance rules used to experiment with game length. Defaults
+ * reproduce the shipped V4 game.
+ */
+export interface RulesConfig {
+  /** Deal every player a free single-use "buy a market stock at current price" card. */
+  startingBuyCard: boolean;
+  /** End the game when this many goals (or fewer) remain. Default 1. */
+  goalStopCount: number;
+  /** Extra active goals beyond the default players+2. Default 0. */
+  extraGoals: number;
+  /** Reduce the insider-tip deck by this many cards (from 2×players). Default 0. */
+  tipReduction: number;
+}
+
+export const DEFAULT_RULES: RulesConfig = {
+  startingBuyCard: false,
+  goalStopCount: 1,
+  extraGoals: 0,
+  tipReduction: 0
+};
 
 export interface GameLogEntry {
   /** Monotonic sequence within the game. */

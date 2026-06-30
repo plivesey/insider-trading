@@ -3,7 +3,8 @@ import type {
   GameLogEntry,
   GameOverBreakdownEntry,
   GameState,
-  PlayerId
+  PlayerId,
+  RulesConfig
 } from '@insider-trading/shared';
 import { createGameState } from '../domain/setup.js';
 import { makeRng, type Rng } from '../domain/rng.js';
@@ -26,6 +27,8 @@ export interface SelfPlayResult {
   ticks: number;
   finished: boolean; // reached a game-over state
   stuck: boolean; // a tick produced no action (livelock / invalid action / engine cap)
+  turnNumber: number; // total player-turns when the game ended (game-length metric)
+  endReason: 'insider_tip_deck_empty' | 'one_goal_remaining' | null;
   breakdown: GameOverBreakdownEntry[];
   winnerPlayerIds: PlayerId[];
 }
@@ -120,6 +123,8 @@ export function driveSelfPlay(
     ticks,
     finished: !!state.gameOver,
     stuck,
+    turnNumber: state.turnNumber,
+    endReason: state.gameOver?.reason ?? null,
     breakdown: state.gameOver?.breakdown ?? [],
     winnerPlayerIds: state.gameOver?.winnerPlayerIds ?? []
   };
@@ -134,13 +139,15 @@ export function playOneGame(opts: {
   gameId?: string;
   startedAt?: string;
   maxTicks?: number;
+  rules?: Partial<RulesConfig>;
 }): SelfPlayResult {
   const state = createGameState({
     catalog: opts.catalog,
     players: opts.seats.map(s => ({ playerId: s.playerId, name: s.name, isBot: true })),
     seed: opts.gameSeed,
     gameId: opts.gameId ?? `sp-${opts.gameSeed}`,
-    startedAt: opts.startedAt ?? '2026-01-01T00:00:00.000Z'
+    startedAt: opts.startedAt ?? '2026-01-01T00:00:00.000Z',
+    rules: opts.rules
   });
   const profiles = new Map<PlayerId, BotProfile>();
   for (const s of opts.seats) profiles.set(s.playerId, s.profile);

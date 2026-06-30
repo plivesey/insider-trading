@@ -52,6 +52,13 @@ export interface BotProfile {
    * over these.
    */
   params: BotParams;
+  /**
+   * Strategy for the experimental "Market Order" buy-from-market card (only
+   * relevant when rules.startingBuyCard is on). 'pairs' = buy when the market
+   * shows two of a color; 'goal' = buy a stock that completes a goal. Assigned
+   * 50/50 per bot. Undefined ⇒ never plays the card.
+   */
+  buyCardStrategy?: 'pairs' | 'goal';
 }
 
 export function createBotProfile(rng: Rng): BotProfile {
@@ -68,7 +75,8 @@ export function createBotProfile(rng: Rng): BotProfile {
     knownPeekedTips: [],
     auctionCeilings: {},
     auctionBidOffsets: {},
-    params: { ...defaultBotParams(), stockOffset, actionOffset, hotTipThreshold, wildShareValue }
+    params: { ...defaultBotParams(), stockOffset, actionOffset, hotTipThreshold, wildShareValue },
+    buyCardStrategy: rng.int(2) === 0 ? 'pairs' : 'goal'
   };
 }
 

@@ -78,7 +78,9 @@ export function rewardCashEquivalent(
     case 'adjust_two_stocks':
       return reward.up * params.rewardAdjustMult;
     case 'set_stock':
-      return params.rewardFlatValue;
+      // Set any one stock to $amount: pump your cheapest toward it (or deny an
+      // opponent). Roughly half the target value in practice.
+      return Math.max(params.rewardFlatValue, reward.amount / 2);
     case 'peek_tips':
       return reward.count * params.rewardPeekMult;
     case 'draw_tips':
@@ -89,9 +91,12 @@ export function rewardCashEquivalent(
     case 'sell_bonus_batch':
       return reward.bonus * params.rewardAdjustMult;
     case 'swap_with_market':
-      return params.rewardFlatValue;
+      // Trade your worst card for the best face-up market card — typically a
+      // strong stock; worth well more than the generic flat value.
+      return 6;
     case 'draw_and_choose':
-      return params.rewardFlatValue;
+      // Draw 3 from the deck, keep the best — ~a good stock's worth.
+      return 6;
   }
 }
 
@@ -358,6 +363,10 @@ function actionCardBaseValue(
       // Black Market never reaches a player's hand (it triggers from market);
       // no perceived hand-value. Bid valuation for the SIDE-auction happens
       // separately in decide.ts when the bid prompt arrives.
+      return 0;
+    case 'buy_from_market':
+      // Market Order is never auctioned; the bot plays it via a dedicated
+      // strategy path (see chooseBuyTarget in decide.ts), not by value.
       return 0;
   }
 }

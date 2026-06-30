@@ -62,12 +62,12 @@ for (let n = MIN_SEATS; n <= MAX_SEATS; n++) COUNTS.push(n);
 const VAL_EVERY = flag('valEvery', 10);
 const VAL_GAMES_PER_COUNT = flag('valGamesPerCount', 200);
 const PROMOTE_THRESHOLD = flag('promoteThreshold', 0.01); // min avgEdge over champ to promote
-// A candidate only counts as an improvement if it doesn't regress at ANY table
-// size: its worst-count edge vs the champion must be >= this floor (slightly
-// negative to tolerate validation noise). This stops avgEdge from rewarding a
-// net that crushes 3-5p while losing heads-up at 2p. Selection then maximizes
-// avgEdge among such strictly-dominating candidates.
-const MIN_EDGE_FLOOR = flag('minEdgeFloor', -0.01);
+// Selection maximizes AVERAGE edge across counts; a per-count (e.g. 2p)
+// regression is acceptable if the average improves a lot (one net can't be
+// optimal at every player count).
+// Anneal sigma/lr down to this fraction of their initial value over a round, so
+// ES settles into a good region instead of drifting back out of it.
+const ANNEAL_TO = flag('annealTo', 0.3);
 const MAX_ROUNDS = flag('maxRounds', 6);
 const SEED = flag('seed', 1);
 const CHAMP_PATH = strFlag('champion', path.join(NETS_DIR, 'champion.json'));
@@ -75,9 +75,27 @@ const PARAMS_PATH = strFlag('params', path.join(NETS_DIR, 'bot_params.json'));
 const OUT_DIR = strFlag('out', NETS_DIR);
 const VAL_SEED_BASE = 100_000_007; // held-out: disjoint from training seeds
 
+const ZERO_INPUTS = strFlag('zeroInputs', '')
+  .split(',')
+  .map(s => parseInt(s.trim(), 10))
+  .filter(n => Number.isInteger(n));
+
 const catalog = loadCards(CARDS_DIR);
 const trainedParams = JSON.parse(fs.readFileSync(PARAMS_PATH, 'utf8')) as BotParams;
 const startingChampion = JSON.parse(fs.readFileSync(CHAMP_PATH, 'utf8')) as ValueNetWeights;
+// Zero specific input columns of w1 so newly-added features start with no effect:
+// the seed then behaves identically to the deployed champion, and self-play
+// learns their weights from a clean baseline. Also save the seed for A/B.
+if (ZERO_INPUTS.length) {
+  for (const i of ZERO_INPUTS) {
+    for (let h = 0; h < startingChampion.hiddenDim; h++) {
+      startingChampion.w1[h * startingChampion.inputDim + i] = 0;
+    }
+  }
+  fs.mkdirSync(OUT_DIR, { recursive: true });
+  fs.writeFileSync(path.join(OUT_DIR, 'champion_seed.json'), JSON.stringify(startingChampion));
+  console.log(`zeroed w1 input columns [${ZERO_INPUTS.join(',')}] → seed saved to champion_seed.json`);
+}
 const INPUT_DIM = startingChampion.inputDim;
 const HIDDEN = startingChampion.hiddenDim;
 const OUT_SCALE = startingChampion.outScale;
@@ -200,10 +218,13 @@ function main(): void {
     for (let gen = 0; gen < GENERATIONS; gen++) {
       const t0 = Date.now();
       const gg = buildGenGames(hashSeed(SEED, round * 10_007 + gen + 1));
+      // Linearly anneal sigma/lr from full → ANNEAL_TO over the round.
+      const frac = GENERATIONS > 1 ? gen / (GENERATIONS - 1) : 0;
+      const decay = 1 - (1 - ANNEAL_TO) * frac;
       const { fits } = esStep(
         theta,
         cand => evalCandidate(decode(cand), frozenField, gg),
-        { popPairs: POP_PAIRS, sigma: SIGMA, lr: LR, noiseRng }
+        { popPairs: POP_PAIRS, sigma: SIGMA * decay, lr: LR * decay, noiseRng }
       );
       const meanFit = fits.reduce((a, b) => a + b, 0) / fits.length;
       const bestFit = Math.max(...fits);
@@ -219,12 +240,13 @@ function main(): void {
         valStr = ` | edgeVsChamp=${(v.avgEdge * 100).toFixed(1)}% min=${(v.minEdge * 100).toFixed(1)}% [${perCountStr}]`;
         const wr = v.perCount.map(r => r.nnWinRate.toFixed(4)).join(',');
         csvVal = `${v.avgEdge.toFixed(4)},${v.minEdge.toFixed(4)},${wr}`;
-        // Only consider candidates that dominate the champion at every count
-        // (no per-count regression); among those, keep the highest avgEdge.
-        if (v.minEdge >= MIN_EDGE_FLOOR && v.avgEdge > bestEdge) {
+        // Keep the best-by-average-edge checkpoint across the whole run, saving
+        // it immediately so a later drift can't lose the peak.
+        if (v.avgEdge > bestEdge) {
           bestEdge = v.avgEdge;
           bestTheta = theta.slice();
-          valStr += ' *best(dominates)';
+          saveNet(path.join(OUT_DIR, 'champion_selfplay.json'), bestTheta);
+          valStr += ' *best';
         }
       }
       console.log(

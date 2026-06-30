@@ -1,10 +1,14 @@
 import type {
+  ActionCard,
   CardCatalog,
   DeckCard,
   GameState,
+  HandCard,
   PlayerPrivate,
-  PlayerId
+  PlayerId,
+  RulesConfig
 } from '@insider-trading/shared';
+import { DEFAULT_RULES } from '@insider-trading/shared';
 import { shuffle } from './deck.js';
 import { makeRng, type Rng } from './rng.js';
 
@@ -14,6 +18,21 @@ export interface SetupInput {
   seed: number;
   gameId: string;
   startedAt: string;
+  /** Experimental rule overrides (game-length tuning). Defaults = shipped V4. */
+  rules?: Partial<RulesConfig>;
+}
+
+/** The "Market Order" buy-from-market card, dealt one per player when enabled. */
+function makeBuyCard(seat: number): ActionCard {
+  return {
+    category: 'action',
+    uid: `buycard-${seat}`,
+    id: 1000 + seat,
+    name: 'Market Order',
+    description: 'Buy one stock from the market at its current price (that color rises +1).',
+    persistent: false,
+    effect: { type: 'buy_from_market' }
+  };
 }
 
 /** Mirror of /playtest/init.js but seeded + typed. */
@@ -23,10 +42,11 @@ export function createGameState(input: SetupInput): GameState {
     throw new Error(`Player count must be 2..6, got ${players.length}`);
   }
   const rng: Rng = makeRng(seed);
+  const rules: RulesConfig = { ...DEFAULT_RULES, ...input.rules };
 
   const numPlayers = players.length;
-  const numTips = 2 * numPlayers;
-  const numGoals = numPlayers + 2;
+  const numTips = Math.max(0, 2 * numPlayers - rules.tipReduction);
+  const numGoals = numPlayers + 2 + rules.extraGoals;
 
   const mainDeck: DeckCard[] = shuffle<DeckCard>(
     [...catalog.stocks, ...catalog.actions],
@@ -42,11 +62,11 @@ export function createGameState(input: SetupInput): GameState {
   // Random first player.
   const firstPlayerIndex = rng.int(numPlayers);
 
-  const playerStates: PlayerPrivate[] = players.map(p => ({
+  const playerStates: PlayerPrivate[] = players.map((p, seat) => ({
     playerId: p.playerId,
     name: p.name,
     cash: 30,
-    hand: [],
+    hand: (rules.startingBuyCard ? [makeBuyCard(seat) as HandCard] : []) as HandCard[],
     hotTipAvailable: true,
     persistentEffects: [],
     loans: 0,
@@ -103,6 +123,7 @@ export function createGameState(input: SetupInput): GameState {
       }
     ],
     eventCounter: 1,
-    connected
+    connected,
+    rules
   };
 }

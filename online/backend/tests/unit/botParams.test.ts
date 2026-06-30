@@ -73,7 +73,7 @@ describe('default params reproduce the original hard-coded constants', () => {
     expect(rewardCashEquivalent({ type: 'set_stock', amount: 6 }, 4)).toBe(3); // flat
     expect(rewardCashEquivalent({ type: 'peek_tips', count: 2 }, 4)).toBe(4); // ×2
     expect(rewardCashEquivalent({ type: 'draw_tips', count: 2 }, 4)).toBe(6); // ×3
-    expect(rewardCashEquivalent({ type: 'swap_with_market' }, 4)).toBe(3); // flat
+    expect(rewardCashEquivalent({ type: 'swap_with_market' }, 4)).toBe(6); // best market card
     expect(rewardCashEquivalent({ type: 'steal_from_all', amount: 2 }, 4)).toBe(6); // ×(n−1)
   });
 });

@@ -247,5 +247,32 @@ export function startActionCard(
       }
       return;
     }
+    case 'buy_from_market': {
+      // Market Order: buy one colored stock from the market at its current
+      // price (the buy itself raises that color +1). The card is consumed
+      // whether or not a buy completes; if the market has no colored stock, it
+      // fizzles. Resolution happens on the pick_market_card response.
+      state.discardPile.push(card);
+      const hasColoredStock = state.market.some(
+        c => c.category === 'stock' && c.color !== 'Wild'
+      );
+      if (!hasColoredStock) {
+        events.push(
+          event('market_order_no_stock', `${player.name} plays Market Order but the market has no colored stock — fizzles`, {
+            actor: player.playerId,
+            payload: { uid: card.uid }
+          })
+        );
+        return;
+      }
+      setPrompt(
+        state,
+        player.playerId,
+        'pick_market_card',
+        'Market Order: pick a market stock to buy at its current price.',
+        { sourceUid: card.uid, mode: 'buy_from_market' }
+      );
+      return;
+    }
   }
 }

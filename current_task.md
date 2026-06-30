@@ -117,8 +117,34 @@ Retrained it IN the new environment via iterated self-play vs the current champi
   at startup, so the copy is the deploy.
 - Params (`bot_params.json`) frozen throughout; only the net changed.
 
+### Goal pursuit: bots now complete goals (DONE — 2026-06-30)
+Problem: bot games ended ~90% on the insider-tip deck, ~10% on goals — human games end on goals.
+Root causes found: (a) bots SOLD their own goal stocks — emergency-sell dumped the highest-priced
+stock with no goal awareness, so a bot would loan to win a goal stock then panic-sell it; (b) goal
+features were weak/clipped so the net never valued finishing cards; (c) the net was trained where
+goals didn't matter.
+- [x] **Emergency-sell fix** (`decide.ts`): sell the LEAST goal-useful stock (color not committed to
+  a completable/one-away goal), tie-broken by highest price. Sell-on-bad-news left unchanged
+  (crashing stock always worth dumping). New `goalHoldUsefulnessByColor` helper + `botSell.test.ts`.
+- [x] **Sharper goal features** (`valueNetFeatures.ts`): x[38]=goal-completion signal (spikes for a
+  finishing card, scaled by reward), x[39]=advancement; normalize ÷12 so $9/$11 goals don't clip.
+  `rewardCashEquivalent` raised for swap/draw (3→6). Goal-aware auction targeting
+  (`goalTargetBoostByColor`) so the auctioneer favors completing/advancing colors.
+- [x] **Trainer upgrades** (`trainSelfPlay.ts`): keep best-by-avgEdge checkpoint across the whole
+  run (peak never lost); anneal sigma/lr; `--zeroInputs 38,39` makes the seed ≡ deployed behavior.
+- [x] **Key lesson — self-play is NON-TRANSITIVE.** Round-over-round edges (+12.7/+20.6/+19.7/+9.6)
+  were illusory: round 1 "beat round 0 +20.6%" yet LOST to the seed badly. Always A/B each round's
+  net DIRECTLY vs the seed (`abNets`). Round 3 won that (+17.5% avg).
+- [x] **PROMOTED round-3 net → champion.json.** Build clean, 122 tests pass. vs deployed (1000/ct):
+  2p 48 (par) / 3p 49.5 / 4p 49.3 / 5p 51.6 (fair 50/33/25/20) — 3-5p crushed, 2p at par (acceptable).
+  100-game goal measurement: 4p **59% goal endings** (was 10.7%), 5p **63%** (was ~6%); goals/game
+  4.4/5.5; avg turns 31.8/40.3 (was 38.6/48.7, ~18% shorter, tighter p90); loans/player down to ~0.8.
+- Params (`bot_params.json`) still frozen; only the net + sell heuristic + features changed.
+
 ### Deferred (optional)
-- [ ] gitignore scratch (`nets/*_log.csv`); keep `champion.json` + `bot_params.json`.
+- [ ] ~7-8% of games end with a just-completed goal unclaimed (end-of-turn timing; minor).
+- [ ] 2p only at par — could train a 2p-specific net or boost goal rewards if heads-up matters.
+- [ ] Optional: per-color "goal demand across goals" feature (needs feature-vector growth + migration).
 - [ ] Could iterate self-play again later (each major env change makes the net stale).
 
 ## Key commands (run in `online/backend`)

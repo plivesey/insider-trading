@@ -2,4 +2,6 @@
 # Production (serverState.ts) requires champion.json + bot_params.json.
 *_log.csv
 champion_selfplay.json
+champion_seed.json
+champion_round*.json
 latest.json

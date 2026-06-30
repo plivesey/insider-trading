@@ -26,7 +26,8 @@ export type ActionEffect =
   | { type: 'steal_stock' }
   | { type: 'adjust_all_stocks'; amount: number }
   | { type: 'draw_tip' }
-  | { type: 'auction_unused_tip' };
+  | { type: 'auction_unused_tip' }
+  | { type: 'buy_from_market' };
 
 export interface ActionCard {
   category: 'action';

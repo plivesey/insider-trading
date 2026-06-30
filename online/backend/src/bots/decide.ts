@@ -135,6 +135,20 @@ export function decideBotAction(
     return { kind: 'free_action', request: { kind: 'use_hot_tip' } };
   }
 
+  // 3c. Market Order (experimental buy-from-market card): play it the moment the
+  // bot's buy strategy finds a target in the market.
+  if (profile.buyCardStrategy) {
+    const buyCard = bot.hand.find(
+      c => c.category === 'action' && (c as ActionCard).effect.type === 'buy_from_market'
+    );
+    if (buyCard && chooseBuyTarget(state, profile, botId) !== null) {
+      return {
+        kind: 'free_action',
+        request: { kind: 'play_action_card', cardUid: buyCard.uid }
+      };
+    }
+  }
+
   // 4. Single-use action card in hand worth playing.
   const cardToPlay = chooseActionCardToPlay(state, profile, botId);
   if (cardToPlay) {
@@ -248,11 +262,17 @@ function decideTurnAction(
   // Sell the stock with the highest ACTUAL current price (not perceived value)
   // — we want immediate cash, not future expectation.
   if (bot.cash < profile.params.emergencySellCash && bot.loans >= 1) {
-    let best: { uid: string; price: number } | null = null;
+    // Sell the LEAST goal-useful stock (so we don't dump a near-goal piece we
+    // just took a loan to win), tie-broken by highest current price.
+    const useful = goalHoldUsefulnessByColor(state, bot.playerId);
+    let best: { uid: string; useful: number; price: number } | null = null;
     for (const c of bot.hand) {
       if (c.category !== 'stock' || c.color === 'Wild') continue;
+      const u = useful[c.color];
       const price = state.stockPrices[c.color];
-      if (!best || price > best.price) best = { uid: c.uid, price };
+      if (!best || u < best.useful || (u === best.useful && price > best.price)) {
+        best = { uid: c.uid, useful: u, price };
+      }
     }
     if (best) {
       return { kind: 'turn_action', action: { type: 'sell_stock', stockUid: best.uid } };
@@ -267,9 +287,13 @@ function decideTurnAction(
   for (const c of bot.hand) {
     if (c.category === 'stock' && c.color !== 'Wild') ownedCounts[c.color]++;
   }
+  // Goal-aware targeting: strongly prefer auctioning a color that would COMPLETE
+  // an active goal, and nudge toward colors that ADVANCE a near goal. (Bidding/
+  // winning stays model-driven; this only steers which card the bot puts up.)
+  const goalBoost = goalTargetBoostByColor(state, bot.playerId);
   const weights = state.market.map(c => {
     if (c.category === 'stock' && c.color !== 'Wild') {
-      return 1 + profile.params.ownedColorWeight * ownedCounts[c.color];
+      return 1 + profile.params.ownedColorWeight * ownedCounts[c.color] + goalBoost[c.color];
     }
     return 1;
   });
@@ -592,6 +616,25 @@ function respondToPrompt(
     }
 
     case 'pick_market_card': {
+      // Market Order buy: pick the strategy-driven target (pairs / goal). The
+      // engine only accepts a colored stock here, so the fallback is the
+      // highest-priced colored market stock (never an action card).
+      if (payload.mode === 'buy_from_market') {
+        let target = chooseBuyTarget(state, profile, botId);
+        if (!target) {
+          const auctionedUid = state.auction?.cardUid;
+          let best: { uid: string; price: number } | null = null;
+          for (const c of state.market) {
+            if (c.category !== 'stock' || c.color === 'Wild' || c.uid === auctionedUid) continue;
+            const price = state.stockPrices[c.color];
+            if (!best || price > best.price) best = { uid: c.uid, price };
+          }
+          target = best?.uid ?? null;
+        }
+        if (target) {
+          return { kind: 'prompt_response', promptId: prompt.promptId, response: { cardUid: target } };
+        }
+      }
       // Corner the Market / swap_with_market: pick the market card with the
       // highest perceived value. Exclude the card currently under auction — the
       // engine forbids grabbing it (promptResponse.ts), so picking it is invalid.
@@ -723,4 +766,162 @@ function bestColorByGoal(state: GameState, profile: BotProfile, botId: PlayerId)
     }
   }
   return best;
+}
+
+// -----------------------------------------------------------------------------
+// Market Order (experimental buy-from-market card) target selection.
+// -----------------------------------------------------------------------------
+
+/** Special-ability desirability rank for the "prefer the better bonus" tiebreak. */
+function stockSpecialRank(type: StockCard['type']): number {
+  switch (type) {
+    case 'extra_up':
+      return 4; // Boom
+    case 'other_up':
+      return 3; // Tip-Off
+    case 'peek_buy':
+      return 2; // Scout
+    case 'peek_sell':
+      return 1; // Informant
+    default:
+      return 0; // blank / wild
+  }
+}
+
+// Auction-targeting boosts (heuristic action-selection, not pricing): how much
+// to prefer starting an auction on a color, by its goal usefulness.
+const COMPLETE_TARGET_BOOST = 12; // color would finish a goal now
+const ADVANCE_TARGET_BOOST = 4; // color brings a near goal one card closer
+
+/**
+ * Per-color weight boost for choosing which market card to auction: high if
+ * acquiring that color would complete an active goal, smaller if it advances a
+ * near goal (down to ≤1 card away). Colors the bot doesn't need score 0.
+ */
+function goalTargetBoostByColor(state: GameState, botId: PlayerId): Record<Color, number> {
+  const out: Record<Color, number> = { Blue: 0, Orange: 0, Yellow: 0, Purple: 0 };
+  const bot = state.players.find(p => p.playerId === botId);
+  if (!bot) return out;
+  const owned: Record<Color, number> = { Blue: 0, Orange: 0, Yellow: 0, Purple: 0 };
+  let wild = 0;
+  for (const c of bot.hand) {
+    if (c.category !== 'stock') continue;
+    if (c.color === 'Wild') wild++;
+    else owned[c.color]++;
+  }
+  for (const g of state.activeGoals) {
+    const req = g.goal.parsed.requirements;
+    let rawGap = 0;
+    for (const col of COLORS) {
+      const r = req[col] ?? 0;
+      if (r > owned[col]) rawGap += r - owned[col];
+    }
+    const gapNow = Math.max(0, rawGap - wild);
+    if (gapNow === 0) continue;
+    const gapAfter = gapNow - 1;
+    for (const col of COLORS) {
+      if ((req[col] ?? 0) <= owned[col]) continue; // don't need this color
+      if (gapAfter === 0) out[col] = Math.max(out[col], COMPLETE_TARGET_BOOST);
+      else if (gapAfter <= 1) out[col] = Math.max(out[col], ADVANCE_TARGET_BOOST);
+    }
+  }
+  return out;
+}
+
+/**
+ * Per-color "don't sell this" usefulness: how much a HELD stock of each color is
+ * committed to a goal the bot can complete or is one card away from. Used by
+ * emergency-sell to dump the least goal-useful stock instead of the priciest.
+ * A color counts as useful only if the bot isn't already holding surplus of it
+ * beyond what a near goal needs (so an extra 3rd Blue is still sellable).
+ */
+function goalHoldUsefulnessByColor(state: GameState, botId: PlayerId): Record<Color, number> {
+  const out: Record<Color, number> = { Blue: 0, Orange: 0, Yellow: 0, Purple: 0 };
+  const bot = state.players.find(p => p.playerId === botId);
+  if (!bot) return out;
+  const owned: Record<Color, number> = { Blue: 0, Orange: 0, Yellow: 0, Purple: 0 };
+  let wild = 0;
+  for (const c of bot.hand) {
+    if (c.category !== 'stock') continue;
+    if (c.color === 'Wild') wild++;
+    else owned[c.color]++;
+  }
+  for (const g of state.activeGoals) {
+    const req = g.goal.parsed.requirements;
+    let rawGap = 0;
+    for (const col of COLORS) {
+      const r = req[col] ?? 0;
+      if (r > owned[col]) rawGap += r - owned[col];
+    }
+    const gapNow = Math.max(0, rawGap - wild);
+    if (gapNow > 1) continue; // only protect completable / one-away goals
+    const closeness = gapNow === 0 ? 3 : 2;
+    for (const col of COLORS) {
+      const r = req[col] ?? 0;
+      if (r > 0 && owned[col] <= r) out[col] = Math.max(out[col], closeness);
+    }
+  }
+  return out;
+}
+
+/** Can the goal be satisfied using these colored+wild stocks? */
+function canSatisfyGoal(stocks: StockCard[], goal: GoalCard): boolean {
+  const counts: Record<Color, number> = { Blue: 0, Orange: 0, Yellow: 0, Purple: 0 };
+  let wild = 0;
+  for (const s of stocks) {
+    if (s.color === 'Wild') wild++;
+    else counts[s.color]++;
+  }
+  let shortfall = 0;
+  for (const c of COLORS) {
+    const req = goal.goal.parsed.requirements[c] ?? 0;
+    if (req > counts[c]) shortfall += req - counts[c];
+  }
+  return wild >= shortfall;
+}
+
+/**
+ * Pick which market stock the bot should buy with its Market Order, per its
+ * `buyCardStrategy`, or null if no trigger fires. Used both to decide whether to
+ * play the card and to answer the resulting pick_market_card prompt.
+ *   'pairs': market shows ≥2 of a color → buy the best-bonus one of those.
+ *   'goal' : a market stock that, added to hand (+Wilds), completes a goal.
+ * The card under auction is excluded (the engine forbids buying it).
+ */
+export function chooseBuyTarget(
+  state: GameState,
+  profile: BotProfile,
+  botId: PlayerId
+): string | null {
+  const strat = profile.buyCardStrategy;
+  if (!strat) return null;
+  const bot = state.players.find(p => p.playerId === botId);
+  if (!bot) return null;
+  const auctionedUid = state.auction?.cardUid;
+  const eligible = state.market.filter(
+    (c): c is StockCard => c.category === 'stock' && c.color !== 'Wild' && c.uid !== auctionedUid
+  );
+  if (eligible.length === 0) return null;
+
+  if (strat === 'pairs') {
+    const countByColor: Record<string, number> = {};
+    for (const c of eligible) countByColor[c.color] = (countByColor[c.color] ?? 0) + 1;
+    const paired = eligible.filter(c => countByColor[c.color] >= 2);
+    if (paired.length === 0) return null;
+    paired.sort(
+      (a, b) =>
+        stockSpecialRank(b.type) - stockSpecialRank(a.type) ||
+        state.stockPrices[b.color as Color] - state.stockPrices[a.color as Color]
+    );
+    return paired[0].uid;
+  }
+
+  // strat === 'goal'
+  const handStocks = bot.hand.filter((c): c is StockCard => c.category === 'stock');
+  for (const c of eligible) {
+    for (const g of state.activeGoals) {
+      if (canSatisfyGoal([...handStocks, c], g)) return c.uid;
+    }
+  }
+  return null;
 }

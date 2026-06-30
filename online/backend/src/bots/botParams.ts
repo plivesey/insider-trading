@@ -251,5 +251,8 @@ export function makeProductionBotProfile(
   }
   // Hot Tip timing: redraw 0..2 (when in the game the bot spends its peek).
   params.hotTipThreshold = rng.int(3);
-  return makeBotProfile(params, net);
+  const profile = makeBotProfile(params, net);
+  // Market Order strategy (only used when rules.startingBuyCard is on): 50/50.
+  profile.buyCardStrategy = rng.int(2) === 0 ? 'pairs' : 'goal';
+  return profile;
 }

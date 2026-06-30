@@ -242,7 +242,7 @@ export function checkEndConditions(state: GameState, events: GameLogEntry[]): vo
   if (state.gameOver) return;
   let reason: 'insider_tip_deck_empty' | 'one_goal_remaining' | null = null;
   if (state.insiderTipDeck.length === 0) reason = 'insider_tip_deck_empty';
-  else if (state.activeGoals.length <= 1) reason = 'one_goal_remaining';
+  else if (state.activeGoals.length <= (state.rules?.goalStopCount ?? 1)) reason = 'one_goal_remaining';
   if (!reason) return;
   const breakdown = computeBreakdown(state);
   const winners = selectWinners(breakdown);

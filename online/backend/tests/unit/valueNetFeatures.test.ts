@@ -71,6 +71,24 @@ describe('valueNetFeatures encoder', () => {
     expect(encodeStockCardFeatures(state, wild, 'a', profile())[5]).toBe(1);
     expect(encodeStockCardFeatures(state, blue, 'a', profile())[5]).toBe(0);
   });
+
+  test('goal-completion feature x[38] spikes for a finishing card only', () => {
+    const state = freshGame();
+    const a = state.players.find(p => p.playerId === 'a')!;
+    // Force a single "2 Blue" goal so we know the requirement.
+    const blueGoal = catalog.goals.find(
+      g => (g.goal.parsed.requirements.Blue ?? 0) === 2 &&
+        Object.values(g.goal.parsed.requirements).reduce((s, n) => s + (n as number), 0) === 2
+    )!;
+    state.activeGoals = [blueGoal];
+    // Bot holds one Blue: buying a second Blue COMPLETES the goal.
+    a.hand = [catalog.stocks.find(s => s.color === 'Blue' && s.type === 'blank')!];
+    const blueX = encodeColorFeatures(state, 'Blue', false, 'a', profile());
+    expect(blueX[38]).toBeGreaterThan(0); // finishing card
+    // Orange does nothing for a Blue goal.
+    const orangeX = encodeColorFeatures(state, 'Orange', false, 'a', profile());
+    expect(orangeX[38]).toBe(0);
+  });
 });
 
 describe('valuation net integration', () => {

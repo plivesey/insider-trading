@@ -5,6 +5,7 @@ import {
   bestGoalBump,
   effectivePrices,
   goalBumpPerStock,
+  rewardCashEquivalent,
   visibleCount
 } from './valuation.js';
 
@@ -126,7 +127,38 @@ export function encodeColorFeatures(
   x[35] = profile.stockOffset / 2;
   x[36] = profile.wildShareValue / 6;
   x[37] = profile.knownPeekedTips.length / 4;
-  // x[38], x[39] reserved (zero) for future features.
+
+  // Sharp goal signals: how much would acquiring THIS card (one of `color`, or a
+  // Wild) help finish an active goal? x[38] spikes for a *finishing* card (gap
+  // 1→0), scaled by the goal's reward; x[39] rewards advancing a big, near goal.
+  // The diffuse goalBump features (x10/x24/x34) never expressed "this completes a
+  // goal now" — these do, so the net can learn to chase finishing cards.
+  {
+    let bestCompletion = 0;
+    let bestAdvance = 0;
+    for (const g of state.activeGoals) {
+      const req = g.goal.parsed.requirements;
+      let rawGap = 0;
+      for (const col of COLORS) {
+        const r = req[col] ?? 0;
+        if (r > owned[col]) rawGap += r - owned[col];
+      }
+      const gapNow = Math.max(0, rawGap - wildOwned);
+      if (gapNow === 0) continue; // already claimable — nothing to advance here
+      // Does acquiring this one card reduce the gap?
+      const reduces = isWild ? true : color ? (req[color] ?? 0) > owned[color] : false;
+      if (!reduces) continue;
+      const gapAfter = gapNow - 1;
+      const reward = rewardCashEquivalent(g.reward.parsed, numPlayers, profile.params);
+      if (gapAfter === 0 && reward > bestCompletion) bestCompletion = reward;
+      const adv = reward / (gapAfter + 1);
+      if (adv > bestAdvance) bestAdvance = adv;
+    }
+    // Normalize by 12 (not 8) so the biggest goals ($9/$11 rewards) don't clip
+    // at 1.0 — the net should see "this is a HUGE goal" distinctly from a $5 one.
+    x[38] = Math.min(1, bestCompletion / 12);
+    x[39] = Math.min(1, bestAdvance / 12);
+  }
 
   return x;
 }
