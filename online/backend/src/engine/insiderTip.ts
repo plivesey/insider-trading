@@ -10,12 +10,27 @@ import { event } from './events.js';
 export function flipAndResolveTopTip(state: GameState, events: GameLogEntry[]): void {
   if (state.insiderTipDeck.length === 0) return;
   const tip = state.insiderTipDeck.shift()!;
+  resolveTip(state, tip, events, 'die_flip');
+}
+
+/**
+ * Resolve a specific Insider Tip card (already removed from the deck), apply
+ * its effect, and add it to resolvedInsiderTips. Used by both the end-of-turn
+ * die flip and Insider Source plays from hand.
+ */
+export function resolveTip(
+  state: GameState,
+  tip: InsiderTipCard,
+  events: GameLogEntry[],
+  source: 'die_flip' | 'played_from_hand'
+): void {
   const before = { ...state.stockPrices };
   applyTipEffect(state, tip);
   state.resolvedInsiderTips.push(tip);
+  const verb = source === 'die_flip' ? 'flipped' : 'played from hand';
   events.push(
-    event('insider_tip_resolved', `Insider Tip flipped: ${tip.text}`, {
-      payload: { uid: tip.uid, tipType: tip.type, text: tip.text, before, after: { ...state.stockPrices } }
+    event('insider_tip_resolved', `Insider Tip ${verb}: ${tip.text}`, {
+      payload: { uid: tip.uid, tipType: tip.type, text: tip.text, source, before, after: { ...state.stockPrices } }
     })
   );
 }

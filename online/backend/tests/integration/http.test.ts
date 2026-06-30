@@ -19,7 +19,10 @@ describe('HTTP layer', () => {
       snapshotPath: path.join(tmpDir, 'game_state.json'),
       logsDir: path.join(tmpDir, 'game_logs'),
       cardsDir: CARDS_DIR,
-      silent: true
+      silent: true,
+      // Fixed seed avoids flaky test behavior when a Black Market gets dealt
+      // into the initial market (which would trigger an immediate side-auction).
+      defaultSeed: 1
     });
   });
 
@@ -109,7 +112,26 @@ describe('HTTP layer', () => {
     const currentPid = state.players[state.currentPlayerIndex].playerId;
     const currentAgent = currentPid === state.myPlayer.playerId ? a : b;
     const otherAgent = currentAgent === a ? b : a;
-    const cardUid = state.market[0].uid;
+    // If a Black Market triggered an auto side-auction at game start, drain
+    // it first (everyone passes) so the test can run its scripted turn flow.
+    if (state.auction) {
+      for (let i = 0; i < 10; i++) {
+        const sA = (await a.get('/api/state')).body.state;
+        const sB = (await b.get('/api/state')).body.state;
+        if (!sA.auction) break;
+        if (sA.myPrompt?.type === 'auction_bid') {
+          await a.post('/api/auction-bid').send({ type: 'pass' });
+        } else if (sB.myPrompt?.type === 'auction_bid') {
+          await b.post('/api/auction-bid').send({ type: 'pass' });
+        } else {
+          break;
+        }
+      }
+      state = (await a.get('/api/state')).body.state;
+    }
+    const cardUid = state.market.find((c: any) =>
+      !(c.category === 'action' && c.effect?.type === 'auction_unused_tip')
+    ).uid;
     const r = await currentAgent.post('/api/turn-action').send({
       type: 'start_auction',
       cardUid,
@@ -121,18 +143,32 @@ describe('HTTP layer', () => {
     expect(otherState.myPrompt?.type).toBe('auction_bid');
     const p = await otherAgent.post('/api/auction-bid').send({ type: 'pass' });
     expect(p.status).toBe(200);
-    // Resolve any sub-prompts (Tip-Off color, Scout peek) on the current player.
+    // Resolve any sub-prompts (Tip-Off color, Scout peek) and drain any
+    // Black Market side-auction triggered by the post-resolve market refill.
     let cur = (await currentAgent.get('/api/state')).body.state;
     let safety = 0;
-    while (cur.myPrompt && safety < 5) {
+    while ((cur.myPrompt || cur.auction) && safety < 15) {
       const pr = cur.myPrompt;
-      let body: any = {};
-      if (pr.type === 'peek_ack') body = {};
-      else if (pr.type === 'pick_color') {
-        const exclude = pr.payload?.exclude;
-        body = { color: ['Blue', 'Orange', 'Yellow', 'Purple'].find(c => c !== exclude) };
+      if (pr) {
+        let body: any = {};
+        if (pr.type === 'peek_ack') body = {};
+        else if (pr.type === 'pick_color') {
+          const exclude = pr.payload?.exclude;
+          body = { color: ['Blue', 'Orange', 'Yellow', 'Purple'].find(c => c !== exclude) };
+        } else if (pr.type === 'auction_bid') {
+          await currentAgent.post('/api/auction-bid').send({ type: 'pass' });
+          cur = (await currentAgent.get('/api/state')).body.state;
+          safety++;
+          continue;
+        }
+        await currentAgent.post('/api/prompt-response').send({ promptId: pr.promptId, response: body });
+      } else if (cur.auction) {
+        // Auction in flight but no prompt on currentAgent — let other agent pass.
+        const sB = (await otherAgent.get('/api/state')).body.state;
+        if (sB.myPrompt?.type === 'auction_bid') {
+          await otherAgent.post('/api/auction-bid').send({ type: 'pass' });
+        }
       }
-      await currentAgent.post('/api/prompt-response').send({ promptId: pr.promptId, response: body });
       cur = (await currentAgent.get('/api/state')).body.state;
       safety++;
     }

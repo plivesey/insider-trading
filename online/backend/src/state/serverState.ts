@@ -1,12 +1,16 @@
+import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { v4 as uuidv4 } from 'uuid';
-import { loadCards, type CardCatalog, type GameState, type LobbyMember, type PlayerId } from '@insider-trading/shared';
+import { loadCards, type CardCatalog, type GameLogEntry, type GameState, type LobbyMember, type PlayerId } from '@insider-trading/shared';
 import { MutateQueue } from '../domain/mutate.js';
 import { createGameState } from '../domain/setup.js';
+import { advance } from '../engine/advance.js';
 import { openLog, closeLog, appendLog } from '../domain/gameLog.js';
 import { makeRng, type Rng } from '../domain/rng.js';
-import { createBotProfile, pickBotName, type BotProfile } from '../bots/profile.js';
+import { pickBotName, type BotProfile } from '../bots/profile.js';
+import { makeProductionBotProfile, type BotParams } from '../bots/botParams.js';
+import type { ValueNetWeights } from '../bots/valueNet.js';
 
 export interface LobbyEntry {
   playerId: PlayerId;
@@ -17,6 +21,24 @@ export interface LobbyEntry {
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const DEFAULT_CARDS_DIR = path.resolve(HERE, '../../../../cards');
+const NETS_DIR = path.resolve(HERE, '../../nets');
+
+/**
+ * Trained bot artifacts, loaded once at startup. The stock-valuation net
+ * (champion.json) + the optimized hand-coded constants (bot_params.json) are
+ * required in production — every bot is built from them via
+ * makeProductionBotProfile. Fail loud if either is missing.
+ */
+function loadTrainedNet(): ValueNetWeights {
+  const p = path.join(NETS_DIR, 'champion.json');
+  return JSON.parse(fs.readFileSync(p, 'utf8')) as ValueNetWeights;
+}
+function loadTrainedParams(): BotParams {
+  const p = path.join(NETS_DIR, 'bot_params.json');
+  return JSON.parse(fs.readFileSync(p, 'utf8')) as BotParams;
+}
+const TRAINED_NET: ValueNetWeights = loadTrainedNet();
+const TRAINED_PARAMS: BotParams = loadTrainedParams();
 
 export class ServerHub {
   catalog: CardCatalog;
@@ -61,7 +83,10 @@ export class ServerHub {
       isBot: true
     };
     this.lobby.push(entry);
-    this.botProfiles.set(entry.playerId, createBotProfile(this.botRng));
+    this.botProfiles.set(
+      entry.playerId,
+      makeProductionBotProfile(this.botRng, TRAINED_NET, TRAINED_PARAMS)
+    );
     return entry;
   }
 
@@ -127,11 +152,11 @@ export class ServerHub {
     return entry;
   }
 
-  startGame(seed?: number): Promise<{ ok: boolean; error?: string }> {
+  async startGame(seed?: number): Promise<{ ok: boolean; error?: string }> {
     if (this.getGame() && !this.getGame()!.gameOver) {
-      return Promise.resolve({ ok: false, error: 'game already in progress' });
+      return { ok: false, error: 'game already in progress' };
     }
-    if (this.lobby.length < 2) return Promise.resolve({ ok: false, error: 'need at least 2 players' });
+    if (this.lobby.length < 2) return { ok: false, error: 'need at least 2 players' };
     const gameId = uuidv4();
     const startedAt = new Date().toISOString();
     const realSeed = seed ?? this.defaultSeed ?? Date.now();
@@ -148,7 +173,14 @@ export class ServerHub {
     // not setup.
     for (const ev of state.log) appendLog(ev);
     this.queue.setState(state);
-    return Promise.resolve({ ok: true });
+    // Run advance() once to resolve any setup-time triggers (e.g. a Black
+    // Market dealt into the initial market). If none fire this is a no-op.
+    await this.queue.run('post_setup_advance', s => {
+      const events: GameLogEntry[] = [];
+      advance(s, events);
+      return { ok: true, events };
+    });
+    return { ok: true };
   }
 
   reset(): void {

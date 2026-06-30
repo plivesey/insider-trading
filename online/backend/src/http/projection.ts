@@ -1,5 +1,6 @@
 import type {
   GameState,
+  HandCard,
   PlayerId,
   PlayerPublic,
   ProjectedGameState
@@ -20,6 +21,11 @@ export function projectState(game: GameState, viewerId: PlayerId | null): Projec
   }));
   const my = viewerId ? game.players.find(p => p.playerId === viewerId) ?? null : null;
   const myPrompt = viewerId ? game.pendingPrompts[viewerId] ?? null : null;
+  let revealedHands: Record<PlayerId, HandCard[]> | undefined;
+  if (game.status === 'finished') {
+    revealedHands = {};
+    for (const p of game.players) revealedHands[p.playerId] = p.hand;
+  }
   return {
     gameId: game.gameId,
     startedAt: game.startedAt,
@@ -38,6 +44,7 @@ export function projectState(game: GameState, viewerId: PlayerId | null): Projec
     activeGoals: game.activeGoals,
     auction: game.auction,
     myPrompt,
-    gameOver: game.gameOver
+    gameOver: game.gameOver,
+    revealedHands
   };
 }

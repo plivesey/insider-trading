@@ -10,12 +10,12 @@ describe('Deck Composition (V4)', () => {
     expect(stockCards.length).toBe(36);
   });
 
-  test('action cards should be 10', () => {
-    expect(actionCards.length).toBe(10);
+  test('action cards should be 13', () => {
+    expect(actionCards.length).toBe(13);
   });
 
-  test('main deck should be 46 cards (36 stock + 10 action)', () => {
-    expect(stockCards.length + actionCards.length).toBe(46);
+  test('main deck should be 49 cards (36 stock + 13 action)', () => {
+    expect(stockCards.length + actionCards.length).toBe(49);
   });
 
   test('insider tip pool should be 16', () => {
@@ -34,28 +34,28 @@ describe('Deck Composition (V4)', () => {
     expect(peekData.cards.length).toBe(6);
   });
 
-  test('total component cards should be 88', () => {
+  test('total component cards should be 91', () => {
     const total = stockCards.length + actionCards.length
       + insiderTipData.cards.length + goalData.cards.length
       + loanData.cards.length + peekData.cards.length;
-    expect(total).toBe(88);
+    expect(total).toBe(91);
   });
 
   test('there are no crisis cards in V4', () => {
     expect(() => require('../cards/crisis_cards.json')).toThrow();
   });
 
-  test('insider tip deck per game = 2 x players - 1', () => {
-    expect(2 * 2 - 1).toBe(3);
-    expect(2 * 3 - 1).toBe(5);
-    expect(2 * 4 - 1).toBe(7);
-    expect(2 * 5 - 1).toBe(9);
-    expect(2 * 6 - 1).toBe(11);
+  test('insider tip deck per game = 2 x players', () => {
+    expect(2 * 2).toBe(4);
+    expect(2 * 3).toBe(6);
+    expect(2 * 4).toBe(8);
+    expect(2 * 5).toBe(10);
+    expect(2 * 6).toBe(12);
   });
 
   test('insider tip deck never exceeds the 16-card pool', () => {
     for (let players = 2; players <= 6; players++) {
-      expect(2 * players - 1).toBeLessThanOrEqual(insiderTipData.cards.length);
+      expect(2 * players).toBeLessThanOrEqual(insiderTipData.cards.length);
     }
   });
 

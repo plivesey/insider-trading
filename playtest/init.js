@@ -39,7 +39,7 @@ const mainDeck = shuffle([...taggedStocks, ...taggedActions]);
 
 // --- Determine player count ---
 const numPlayers = parseInt(process.argv[2]) || 3;
-const numTips = 2 * numPlayers - 1;   // Insider Tip deck size (2 x players - 1)
+const numTips = 2 * numPlayers;       // Insider Tip deck size (2 x players)
 const numGoals = numPlayers + 2;      // Goals displayed
 
 // --- Player configs (up to 6) ---
@@ -53,7 +53,7 @@ const playerConfigs = [
   { name: "Rockefeller", personality: "aggressive" },
 ];
 
-// --- Build the Insider Tip deck (2 x players - 1, face-down) ---
+// --- Build the Insider Tip deck (2 x players, face-down) ---
 const insiderTipDeck = shuffle(taggedInsiderTips).slice(0, numTips);
 
 // --- Select goal cards (players + 2) ---

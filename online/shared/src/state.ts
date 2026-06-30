@@ -49,13 +49,21 @@ export interface AuctionState {
   activeBidders: PlayerId[];
   /** Whose decision (bid or pass) the auction is waiting on. */
   awaitingBidderId: PlayerId | null;
+  /**
+   * Set when this is a Black Market side-auction for a face-down Insider Tip
+   * drawn from the unused pool. The winner takes this tip into their hand
+   * (private). The auctioned tip is NOT in `state.market`; when the auction
+   * resolves we skip the market-splice path used for normal auctions.
+   */
+  sideAuctionTip?: InsiderTipCard;
+  /** When `sideAuctionTip` is set, restore this turnPhase after resolution. */
+  resumePhase?: TurnPhase;
 }
 
 export type PromptType =
   | 'auction_bid'
   | 'pick_color' // Tip-Off
-  | 'peek_ack' // Scout / Informant / Hot Tip / Inside Track / Wiretap / 2P peek_tips
-  | 'reorder_tips'
+  | 'peek_ack' // Scout / Informant / Hot Tip / 2P peek_tips
   | 'pick_color_amount' // The Squeeze, Rumor Mill per-color, 3 Purple, 2B+2Y, 2B+2P (per side)
   | 'pick_stock_from_hand' // Pump and Dump, sell_bonus_batch
   | 'pick_target_player' // Hostile Takeover step 1
@@ -65,7 +73,8 @@ export type PromptType =
   | 'pick_market_card' // Corner the Market, swap_with_market step 1
   | 'pick_hand_stock_for_swap' // swap_with_market step 2
   | 'set_stock_choice' // 2Y goal
-  | 'adjust_two_stocks_choice'; // 2B+2P
+  | 'adjust_two_stocks_choice' // 2B+2P
+  | 'final_tip_play_choice'; // Insider Source drew the LAST tip — play it now or let game end
 
 export interface PromptEnvelope {
   promptId: string;
@@ -78,6 +87,7 @@ export interface PromptEnvelope {
 
 export type FreeActionRequest =
   | { kind: 'play_action_card'; cardUid: string; payload?: Record<string, unknown> }
+  | { kind: 'play_insider_tip'; cardUid: string }
   | { kind: 'use_hot_tip' }
   | { kind: 'claim_goal'; goalUid: string; stockAssignment: StockAssignment };
 
@@ -153,6 +163,11 @@ export interface GameState {
   discardPile: (StockCard | ActionCard | HotTipCard)[];
   insiderTipDeck: InsiderTipCard[];
   resolvedInsiderTips: InsiderTipCard[];
+  /**
+   * Tips from the 16-card pool that weren't dealt into `insiderTipDeck` at
+   * setup. Black Market side-auctions draw a random tip from here.
+   */
+  unusedInsiderTipPool: InsiderTipCard[];
   activeGoals: GoalCard[];
   freeActionQueue: FreeActionQueueEntry[];
   /** Active per-player prompts. Only one entry per player. */
@@ -203,4 +218,6 @@ export interface ProjectedGameState {
   auction: AuctionState | null;
   myPrompt: PromptEnvelope | null;
   gameOver: GameOver | null;
+  /** Populated only when the game is finished — every player's full hand. */
+  revealedHands?: Record<PlayerId, HandCard[]>;
 }

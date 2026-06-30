@@ -2,6 +2,7 @@ import type {
   ActionCard,
   GameLogEntry,
   GameState,
+  InsiderTipCard,
   PlayerId,
   PlayerPrivate,
   StockCard,
@@ -12,6 +13,7 @@ import { event } from './events.js';
 import { setPrompt } from './prompts.js';
 import { startActionCard } from './actionCards.js';
 import { claimGoal } from './goals.js';
+import { resolveTip } from './insiderTip.js';
 import { findPlayer } from './turn.js';
 
 export function submitFreeAction(
@@ -35,6 +37,8 @@ function describe(r: FreeActionRequest): string {
   switch (r.kind) {
     case 'play_action_card':
       return `play action card ${r.cardUid}`;
+    case 'play_insider_tip':
+      return `play Insider Tip ${r.cardUid}`;
     case 'use_hot_tip':
       return 'use Hot Tip';
     case 'claim_goal':
@@ -63,6 +67,9 @@ export function processNextFreeAction(state: GameState, events: GameLogEntry[]):
   switch (entry.request.kind) {
     case 'play_action_card':
       handlePlayActionCard(state, player, entry.request.cardUid, events);
+      break;
+    case 'play_insider_tip':
+      handlePlayInsiderTip(state, player, entry.request.cardUid, events);
       break;
     case 'use_hot_tip':
       handleUseHotTip(state, player, events);
@@ -103,6 +110,32 @@ function handlePlayActionCard(
     })
   );
   startActionCard(state, player, card as ActionCard, events);
+}
+
+function handlePlayInsiderTip(
+  state: GameState,
+  player: PlayerPrivate,
+  cardUid: string,
+  events: GameLogEntry[]
+): void {
+  const idx = player.hand.findIndex(c => c.uid === cardUid);
+  if (idx < 0) {
+    events.push(event('error', `play_insider_tip: ${player.name} does not hold ${cardUid}`, {}));
+    return;
+  }
+  const card = player.hand[idx];
+  if (card.category !== 'insider_tip') {
+    events.push(event('error', `play_insider_tip: ${cardUid} is not an insider tip`, {}));
+    return;
+  }
+  player.hand.splice(idx, 1);
+  events.push(
+    event('insider_tip_played', `${player.name} plays Insider Tip from hand`, {
+      actor: player.playerId,
+      payload: { uid: card.uid }
+    })
+  );
+  resolveTip(state, card as InsiderTipCard, events, 'played_from_hand');
 }
 
 function handleUseHotTip(state: GameState, player: PlayerPrivate, events: GameLogEntry[]): void {

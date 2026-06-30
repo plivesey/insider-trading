@@ -15,18 +15,14 @@ export function App() {
   }, [state?.mode]);
 
   if (!state) {
-    return (
-      <div className="loading">
-        <p>Connecting…</p>
-      </div>
-    );
+    return <div className="loading">Connecting…</div>;
   }
 
   return (
     <div className="app">
-      <div className={`conn-indicator ${connected ? '' : 'disconnected'}`}>
-        {connected ? '● live' : '○ reconnecting…'}
-      </div>
+      {!connected && (
+        <div className="conn-indicator disconnected">○ Reconnecting…</div>
+      )}
       {state.mode === 'lobby' && <Lobby state={state} myName={myName} />}
       {state.mode === 'game_in_progress_spectator' && <GameInProgressBlock />}
       {(state.mode === 'in_game' || state.mode === 'game_over') && (

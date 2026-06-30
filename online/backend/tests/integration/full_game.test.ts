@@ -115,11 +115,9 @@ function drainPrompts(state: GameState, events: any[]): boolean {
         resp = { keepUids: drawn.slice(0, keepCount).map(d => d.uid) };
         break;
       }
-      case 'reorder_tips': {
-        const staged = pr.payload?.stagedUids as string[];
-        resp = { order: staged };
+      case 'final_tip_play_choice':
+        resp = { play: false };
         break;
-      }
       case 'pick_target_player': {
         const target = state.players.find(p => p.playerId !== pid && p.hand.some(c => c.category === 'stock'));
         resp = { targetId: target?.playerId ?? state.players.find(p => p.playerId !== pid)!.playerId };

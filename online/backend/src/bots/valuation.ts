@@ -11,6 +11,11 @@ import type {
 } from '@insider-trading/shared';
 import { COLORS } from '@insider-trading/shared';
 import type { BotProfile } from './profile.js';
+import { valueColor } from './valueNet.js';
+import { defaultBotParams, type BotParams } from './botParams.js';
+
+/** Shared default params, so callers without a profile (and the parity path) match today. */
+const DEFAULTS = defaultBotParams();
 
 /**
  * Apply known peeked tips (in their deck order) to current stockPrices to
@@ -56,30 +61,37 @@ export function visibleCount(state: GameState, color: Color, botId: PlayerId): n
 }
 
 /** Cash-equivalent estimate of a goal reward — drives per-stock goal bumps. */
-export function rewardCashEquivalent(reward: GoalReward, numPlayers: number): number {
+export function rewardCashEquivalent(
+  reward: GoalReward,
+  numPlayers: number,
+  params: BotParams = DEFAULTS
+): number {
   switch (reward.type) {
     case 'gain_cash':
       return reward.amount;
     case 'end_game_cash':
       return reward.amount;
     case 'adjust_stock':
-      return reward.amount * 2;
+      return reward.amount * params.rewardAdjustMult;
     case 'adjust_all_stocks':
-      return reward.amount * 2;
+      return reward.amount * params.rewardAdjustMult;
     case 'adjust_two_stocks':
-      return reward.up * 2;
+      return reward.up * params.rewardAdjustMult;
     case 'set_stock':
-      return 3;
+      return params.rewardFlatValue;
     case 'peek_tips':
-      return reward.count * 2;
+      return reward.count * params.rewardPeekMult;
+    case 'draw_tips':
+      // Drawing tips into hand (playable later) is worth more than a peek.
+      return reward.count * params.rewardDrawTipsMult;
     case 'steal_from_all':
       return reward.amount * Math.max(1, numPlayers - 1);
     case 'sell_bonus_batch':
-      return reward.bonus * 2;
+      return reward.bonus * params.rewardAdjustMult;
     case 'swap_with_market':
-      return 3;
+      return params.rewardFlatValue;
     case 'draw_and_choose':
-      return 3;
+      return params.rewardFlatValue;
   }
 }
 
@@ -98,7 +110,8 @@ export function rewardCashEquivalent(reward: GoalReward, numPlayers: number): nu
 export function goalBumpPerStock(
   state: GameState,
   color: Color,
-  botId: PlayerId
+  botId: PlayerId,
+  params: BotParams = DEFAULTS
 ): number {
   const bot = state.players.find(p => p.playerId === botId);
   if (!bot) return 0;
@@ -126,34 +139,43 @@ export function goalBumpPerStock(
       if (r > o) gap += r - o;
     }
     gap = Math.max(0, gap - wildCount);
-    if (gap > 2) continue;
-    const cash = rewardCashEquivalent(g.reward.parsed, n);
-    bump += Math.floor(cash / (total + 3));
+    if (gap > params.goalGapCutoff) continue;
+    const cash = rewardCashEquivalent(g.reward.parsed, n, params);
+    bump += Math.floor(cash / (total + params.goalBumpDivisorOffset));
   }
   return bump;
 }
 
 /** Best (max across colors) per-stock goal bump — used as the value of a Wild Share. */
-export function bestGoalBump(state: GameState, botId: PlayerId): number {
+export function bestGoalBump(
+  state: GameState,
+  botId: PlayerId,
+  params: BotParams = DEFAULTS
+): number {
   let best = 0;
   for (const c of COLORS) {
-    const b = goalBumpPerStock(state, c, botId);
+    const b = goalBumpPerStock(state, c, botId, params);
     if (b > best) best = b;
   }
   return best;
 }
 
-const SPECIAL_BUMP: Record<StockType, number> = {
-  blank: 0,
-  extra_up: 2,
-  other_up: 2,
-  peek_buy: 1,
-  peek_sell: 1,
-  wild: 0
-};
-
-export function perceivedStockSpecialBump(stockType: StockType): number {
-  return SPECIAL_BUMP[stockType] ?? 0;
+export function perceivedStockSpecialBump(
+  stockType: StockType,
+  params: BotParams = DEFAULTS
+): number {
+  switch (stockType) {
+    case 'extra_up':
+      return params.bumpExtraUp;
+    case 'other_up':
+      return params.bumpOtherUp;
+    case 'peek_buy':
+      return params.bumpPeekBuy;
+    case 'peek_sell':
+      return params.bumpPeekSell;
+    default:
+      return 0;
+  }
 }
 
 /**
@@ -167,10 +189,17 @@ export function perceivedStockValue(
   color: Color,
   botId: PlayerId
 ): number {
+  // Trained net (if any) replaces the heuristic base value for a colored stock.
+  // The special-ability bump is still added by perceivedStockCardValue, and is
+  // NOT a net feature, so there is no double counting. Floor to an integer: the
+  // whole bidding pipeline deals in whole dollars (a $10.7 value ⇒ max bid $10).
+  if (profile.valueNet) {
+    return Math.floor(valueColor(profile.valueNet, state, color, false, botId, profile));
+  }
   const prices = effectivePrices(state, profile.knownPeekedTips);
   const base = prices[color];
   const visible = visibleCount(state, color, botId);
-  const goal = goalBumpPerStock(state, color, botId);
+  const goal = goalBumpPerStock(state, color, botId, profile.params);
   return Math.max(0, base + visible + goal + profile.stockOffset);
 }
 
@@ -186,7 +215,10 @@ export function perceivedWildShareValue(
   profile: BotProfile,
   botId: PlayerId
 ): number {
-  return Math.max(profile.wildShareValue, bestGoalBump(state, botId));
+  if (profile.valueNet) {
+    return Math.floor(valueColor(profile.valueNet, state, null, true, botId, profile));
+  }
+  return Math.max(profile.wildShareValue, bestGoalBump(state, botId, profile.params));
 }
 
 /**
@@ -200,7 +232,10 @@ export function perceivedStockCardValue(
   botId: PlayerId
 ): number {
   if (card.color === 'Wild') return perceivedWildShareValue(state, profile, botId);
-  return perceivedStockValue(state, profile, card.color, botId) + perceivedStockSpecialBump(card.type);
+  return (
+    perceivedStockValue(state, profile, card.color, botId) +
+    perceivedStockSpecialBump(card.type, profile.params)
+  );
 }
 
 // ---- Action card valuation ----------------------------------------------------
@@ -220,7 +255,7 @@ function secondHighestMarketStock(
     if (c.category !== 'stock') continue;
     values.push(perceivedStockCardValue(state, profile, c as StockCard, botId));
   }
-  if (values.length === 0) return 3;
+  if (values.length === 0) return profile.params.secondHighestFallback;
   values.sort((a, b) => b - a);
   return values[1] ?? values[0];
 }
@@ -271,6 +306,7 @@ function actionCardBaseValue(
   profile: BotProfile,
   botId: PlayerId
 ): number {
+  const p = profile.params;
   switch (card.effect.type) {
     case 'draw_and_choose':
       // Tipster's Choice: 2nd-highest market stock proxy.
@@ -278,39 +314,51 @@ function actionCardBaseValue(
     case 'take_face_up': {
       // Corner the Market: max perceivedValue of any market card. We must NOT
       // recurse into another take_face_up card (mutual recursion); fall back
-      // to a flat $4 estimate for those.
+      // to a flat estimate for those.
       let best = 0;
       for (const c of state.market) {
         let v: number;
         if (c.category === 'stock') {
           v = perceivedStockCardValue(state, profile, c as StockCard, botId);
         } else if ((c as ActionCard).effect.type === 'take_face_up') {
-          v = 4;
+          v = p.takeFaceUpBase;
         } else {
           v = actionCardBaseValue(c as ActionCard, state, profile, botId);
         }
         if (v > best) best = v;
       }
-      return Math.max(4, best);
+      return Math.max(p.takeFaceUpBase, best);
     }
     case 'sell_double':
-      // Pump and Dump: max($6, max stockPrice of owned colors), floor of $6.
-      return Math.max(6, maxOwnedStockPrice(state, botId));
+      // Pump and Dump: max(floor, max stockPrice of owned colors).
+      return Math.max(p.sellDoubleFloor, maxOwnedStockPrice(state, botId));
+    case 'sell_same_bonus':
+      // Liquidation: bonus dollars ≈ count of the most-owned color (the +$1
+      // per stock you'd realize dumping that whole color in one free action).
+      return Math.max(p.sellSameBonusFloor, maxColorCount(state, botId));
     case 'adjust_stock':
-      // The Squeeze: min($6, 2 × max-count-of-one-color owned). Up to $6.
-      return Math.min(6, 2 * maxColorCount(state, botId));
+      // The Squeeze: min(cap, 2 × max-count-of-one-color owned).
+      return Math.min(p.adjustStockCap, 2 * maxColorCount(state, botId));
     case 'flip_and_adjust':
-      return 4; // Wild Speculation flat.
+      return p.flipAndAdjustFlat; // Wild Speculation flat.
     case 'tie_breaker':
-      return 3; // Preferred Bidder flat.
+      return p.tieBreakerFlat; // Preferred Bidder flat.
     case 'steal_stock':
-      // Hostile Takeover: 2nd-highest market stock proxy + $1.
-      return secondHighestMarketStock(state, profile, botId) + 1;
+      // Hostile Takeover: 2nd-highest market stock proxy + bonus.
+      return secondHighestMarketStock(state, profile, botId) + p.stealStockBonus;
     case 'adjust_all_stocks':
-      // Rumor Mill: max($1, count of bot's colored stocks).
-      return Math.max(1, ownedColoredStockCount(state, botId));
-    case 'peek_reorder_tips':
-      return 3; // Inside Track / Wiretap flat.
+      // Rumor Mill: max(floor, count of bot's colored stocks).
+      return Math.max(p.adjustAllFloor, ownedColoredStockCount(state, botId));
+    case 'draw_tip':
+      // Insider Source: knowing the next tip lets the bot react; valuable but
+      // not dramatically so when the deck is full. Worth less if deck is small
+      // (game ends sooner) but still useful.
+      return state.insiderTipDeck.length > 0 ? p.drawTipValue : 0;
+    case 'auction_unused_tip':
+      // Black Market never reaches a player's hand (it triggers from market);
+      // no perceived hand-value. Bid valuation for the SIDE-auction happens
+      // separately in decide.ts when the bid prompt arrives.
+      return 0;
   }
 }
 

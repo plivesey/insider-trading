@@ -180,6 +180,32 @@ function makeMutationRng(state: GameState) {
   return nextRng(state);
 }
 
+/**
+ * Draw the top card of the main (auction) deck into `player`'s hand,
+ * reshuffling the discard pile in if the deck is empty. Returns the drawn
+ * card, or null if no card could be drawn (deck and discard both empty).
+ */
+export function drawTopOfDeck(
+  state: GameState,
+  player: PlayerPrivate,
+  events: GameLogEntry[]
+): (StockCard | ActionCard) | null {
+  if (state.mainDeck.length === 0) {
+    const reshufflable = state.discardPile.filter(
+      (c): c is import('@insider-trading/shared').DeckCard =>
+        c.category === 'stock' || c.category === 'action'
+    );
+    if (reshufflable.length > 0) {
+      reshuffleDiscardIfNeeded(state.mainDeck, reshufflable, 1, makeMutationRng(state));
+      state.discardPile = state.discardPile.filter(c => c.category === 'hot_tip');
+    }
+  }
+  if (state.mainDeck.length === 0) return null;
+  const card = state.mainDeck.shift()!;
+  player.hand.push(card);
+  return card;
+}
+
 export function describeCard(card: { category: string; color?: string; name?: string; uid: string }): string {
   if (card.category === 'stock') return `${(card as StockCard).color}${(card as StockCard).name ? ` ${(card as StockCard).name}` : ''}`;
   if (card.category === 'action') return `Action: ${(card as ActionCard).name}`;

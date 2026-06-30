@@ -38,6 +38,9 @@ export function shouldPlayActionCard(
     }
     case 'sell_double':
       return ownsAnyColoredStock(state, botId);
+    case 'sell_same_bonus':
+      // Liquidation — worth playing once the bot holds ≥2 of a single color.
+      return maxColorCount(state, botId) >= 2;
     case 'adjust_stock':
       // The Squeeze — only useful if bot owns ≥1 colored stock.
       return maxColorCount(state, botId) >= 1;
@@ -51,8 +54,13 @@ export function shouldPlayActionCard(
       );
     }
     case 'adjust_all_stocks':
-    case 'peek_reorder_tips':
       return true;
+    case 'draw_tip':
+      // Insider Source — only play if there's a tip to draw.
+      return state.insiderTipDeck.length > 0;
+    case 'auction_unused_tip':
+      // Black Market triggers from the market on reveal, not from hand.
+      return false;
   }
 }
 

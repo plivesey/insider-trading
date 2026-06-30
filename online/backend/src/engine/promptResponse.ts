@@ -1,5 +1,6 @@
 import type {
   Color,
+  DeckCard,
   GameLogEntry,
   GameState,
   HandCard,
@@ -12,8 +13,9 @@ import { COLORS } from '@insider-trading/shared';
 import type { MutationResult } from '../domain/mutate.js';
 import { adjust, setPrice } from '../domain/prices.js';
 import { event } from './events.js';
+import { resolveTip } from './insiderTip.js';
 import { clearPrompt, getPrompt, setPrompt } from './prompts.js';
-import { findPlayer, receiveBank, refillMarketIfNeeded } from './turn.js';
+import { describeCard, drawTopOfDeck, findPlayer, receiveBank, refillMarketIfNeeded } from './turn.js';
 
 export function respondToPrompt(
   state: GameState,
@@ -145,9 +147,10 @@ export function respondToPrompt(
     case 'pick_stock_from_hand': {
       const stockUid = response.stockUid as string | undefined;
       const mode = payload.mode as string;
-      // sell_bonus_batch lets the player stop at any time. Sending `{done:true}`
-      // with no stockUid ends the batch; other modes require a stockUid.
-      if (mode === 'sell_bonus_batch' && response.done && !stockUid) {
+      // sell_bonus_batch / sell_same_bonus let the player stop at any time.
+      // Sending `{done:true}` with no stockUid ends the batch; other modes
+      // require a stockUid.
+      if ((mode === 'sell_bonus_batch' || mode === 'sell_same_bonus') && response.done && !stockUid) {
         clearPrompt(state, playerId);
         events.push(event('sell_bonus_done', `${player.name} ends sell bonus batch`, { actor: playerId }));
         return { ok: true, events };
@@ -190,7 +193,16 @@ export function respondToPrompt(
         }
         return { ok: true, events };
       }
-      if (mode === 'sell_bonus_batch') {
+      if (mode === 'sell_bonus_batch' || mode === 'sell_same_bonus') {
+        // sell_same_bonus (Liquidation) locks the batch to a single color: the
+        // first sale sets lockedColor; later sales must match it.
+        if (mode === 'sell_same_bonus') {
+          const locked = payload.lockedColor as Color | undefined;
+          if (locked && locked !== card.color) {
+            return { ok: false, error: `Liquidation locked to ${locked}; cannot sell ${card.color}`, events };
+          }
+          if (!locked) payload.lockedColor = card.color;
+        }
         const bonus = payload.bonus as number;
         const payout = price + bonus;
         receiveBank(player, payout);
@@ -222,14 +234,16 @@ export function respondToPrompt(
       if (!target) return { ok: false, error: 'unknown target', events };
       const stocks = target.hand.filter(c => c.category === 'stock');
       if (stocks.length === 0) {
-        // No stocks; target gets compensation, free action ends.
-        receiveBank(target, payload.compensation as number);
+        // No stocks; target draws the top card of the deck instead, free action ends.
+        const drawn = drawTopOfDeck(state, target, events);
         clearPrompt(state, playerId);
         events.push(
           event(
             'hostile_takeover_noop',
-            `${target.name} has no stocks; receives $${payload.compensation} regardless`,
-            { actor: playerId }
+            drawn
+              ? `${target.name} has no stocks; draws ${describeCard(drawn)} from the deck instead`
+              : `${target.name} has no stocks; deck is empty, no draw`,
+            { actor: playerId, payload: drawn ? { drawnUid: drawn.uid } : {} }
           )
         );
         return { ok: true, events };
@@ -245,8 +259,7 @@ export function respondToPrompt(
             uid: s.uid,
             color: (s as StockCard).color,
             name: (s as StockCard).name
-          })),
-          compensation: payload.compensation
+          }))
         }
       );
       return { ok: true, events };
@@ -255,20 +268,19 @@ export function respondToPrompt(
     case 'pick_stock_from_target': {
       const stockUid = response.stockUid as string | undefined;
       const targetId = payload.targetId as PlayerId;
-      const compensation = payload.compensation as number;
       const target = state.players.find(p => p.playerId === targetId)!;
       if (!stockUid) return { ok: false, error: 'stockUid required', events };
       const tIdx = target.hand.findIndex(c => c.uid === stockUid);
       if (tIdx < 0) return { ok: false, error: 'stock not in target hand', events };
       const card = target.hand.splice(tIdx, 1)[0];
       player.hand.push(card);
-      receiveBank(target, compensation);
+      const drawn = drawTopOfDeck(state, target, events);
       clearPrompt(state, playerId);
       events.push(
         event(
           'hostile_takeover_stole',
-          `${player.name} steals ${(card as StockCard).color}${(card as StockCard).name ? ` ${(card as StockCard).name}` : ''} from ${target.name}; bank pays ${target.name} $${compensation}`,
-          { actor: playerId, payload: { targetId, stockUid: card.uid, compensation } }
+          `${player.name} steals ${(card as StockCard).color}${(card as StockCard).name ? ` ${(card as StockCard).name}` : ''} from ${target.name}; ${target.name} ${drawn ? `draws ${describeCard(drawn)} from the deck` : 'cannot draw (deck empty)'}`,
+          { actor: playerId, payload: { targetId, stockUid: card.uid, drawnUid: drawn?.uid } }
         )
       );
       return { ok: true, events };
@@ -301,12 +313,12 @@ export function respondToPrompt(
         return { ok: true, events };
       }
       if (mode === 'swap_with_market_stage1') {
-        // Stage 2: pick a hand stock to swap with this market card.
+        // Stage 2: pick any hand card to swap with this market card.
         setPrompt(
           state,
           playerId,
           'pick_hand_stock_for_swap',
-          'Pick one of your stocks to swap with the chosen market card.',
+          'Pick one of your cards to swap with the chosen market card.',
           { marketCardUid: cardUid }
         );
         return { ok: true, events };
@@ -323,7 +335,11 @@ export function respondToPrompt(
       if (hIdx < 0 || mIdx < 0) return { ok: false, error: 'card not found', events };
       const handCard = player.hand[hIdx];
       const marketCard = state.market[mIdx];
-      if (handCard.category !== 'stock') return { ok: false, error: 'must swap a stock', events };
+      // Any hand card may be swapped (need not be a stock), except an Insider
+      // Tip — the market only holds stock/action cards.
+      if (handCard.category === 'insider_tip') {
+        return { ok: false, error: 'cannot swap an Insider Tip into the market', events };
+      }
       // Swap.
       player.hand[hIdx] = marketCard;
       state.market[mIdx] = handCard;
@@ -357,14 +373,14 @@ export function respondToPrompt(
 
     case 'draw_and_keep': {
       const keepUids = response.keepUids as string[] | undefined;
-      const stagedCards = payload.stagedCards as HandCard[] | undefined;
+      const stagedCards = payload.stagedCards as DeckCard[] | undefined;
       const keepCount = payload.keepCount as number;
       if (!keepUids || !Array.isArray(keepUids) || keepUids.length !== keepCount) {
         return { ok: false, error: `must keep exactly ${keepCount}`, events };
       }
       if (!stagedCards) return { ok: false, error: 'staged cards missing', events };
-      const kept: HandCard[] = [];
-      const returnedToBottom: HandCard[] = [];
+      const kept: DeckCard[] = [];
+      const returnedToBottom: DeckCard[] = [];
       for (const c of stagedCards) {
         if (keepUids.includes(c.uid)) kept.push(c);
         else returnedToBottom.push(c);
@@ -385,31 +401,37 @@ export function respondToPrompt(
       return { ok: true, events };
     }
 
-    case 'reorder_tips': {
-      const order = response.order as string[] | undefined;
-      const stagedUids = payload.stagedUids as string[];
-      if (!order || order.length !== stagedUids.length) {
-        return { ok: false, error: 'order length mismatch', events };
+    case 'final_tip_play_choice': {
+      const tipUid = payload.tipUid as string;
+      const play = response.play as boolean | undefined;
+      if (play !== true && play !== false) {
+        return { ok: false, error: 'response.play must be boolean', events };
       }
-      const all = new Set(stagedUids);
-      for (const id of order) {
-        if (!all.has(id)) return { ok: false, error: `unknown tip uid ${id}`, events };
-      }
-      // Rebuild the top of the insider tip deck in the chosen order.
-      const top: InsiderTipCard[] = [];
-      for (const uid of order) {
-        const t = state.insiderTipDeck.find(t => t.uid === uid)!;
-        top.push(t);
-      }
-      const rest = state.insiderTipDeck.filter(t => !all.has(t.uid));
-      state.insiderTipDeck = [...top, ...rest];
       clearPrompt(state, playerId);
-      events.push(
-        event('tips_reordered', `${player.name} reordered the top insider tips`, {
-          actor: playerId,
-          payload: { order }
-        })
-      );
+      if (play) {
+        const idx = player.hand.findIndex(c => c.uid === tipUid);
+        if (idx < 0) {
+          // Edge case: tip somehow already gone from hand. Log + proceed.
+          events.push(event('error', `final_tip: ${player.name} no longer holds ${tipUid}`, {}));
+        } else {
+          const tip = player.hand.splice(idx, 1)[0] as InsiderTipCard;
+          events.push(
+            event('insider_tip_played', `${player.name} plays the final Insider Tip`, {
+              actor: playerId,
+              payload: { uid: tip.uid, final: true }
+            })
+          );
+          resolveTip(state, tip, events, 'played_from_hand');
+        }
+      } else {
+        events.push(
+          event('final_tip_declined', `${player.name} declines to play the final Insider Tip`, {
+            actor: playerId,
+            payload: { uid: tipUid }
+          })
+        );
+      }
+      // Either way, the deck is empty; advance() will end the game.
       return { ok: true, events };
     }
   }

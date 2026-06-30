@@ -76,10 +76,8 @@ async function promptResponseFor(pr: any): Promise<Record<string, unknown>> {
       const keepCount = pr.payload?.keepCount ?? 1;
       return { keepUids: drawn.slice(0, keepCount).map((d: any) => d.uid) };
     }
-    case 'reorder_tips': {
-      const tips = pr.payload?.tips ?? [];
-      return { order: tips.map((t: any) => t.uid) };
-    }
+    case 'final_tip_play_choice':
+      return { play: false };
     case 'pick_market_card':
       return { cardUid: pr.payload?.market?.[0]?.uid ?? '' };
     case 'pick_hand_stock_for_swap':

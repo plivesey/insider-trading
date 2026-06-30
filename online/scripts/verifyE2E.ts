@@ -136,10 +136,8 @@ function buildPromptResponse(pr: any, myPlayer: any, state: any): Record<string,
       const keepCount = pr.payload?.keepCount ?? 1;
       return { keepUids: drawn.slice(0, keepCount).map((d: any) => d.uid) };
     }
-    case 'reorder_tips': {
-      const tips = pr.payload?.tips ?? [];
-      return { order: tips.map((t: any) => t.uid) };
-    }
+    case 'final_tip_play_choice':
+      return { play: false };
     case 'pick_market_card':
       return { cardUid: (pr.payload?.market ?? state.market)?.[0]?.uid ?? state.market[0]?.uid };
     case 'pick_hand_stock_for_swap':

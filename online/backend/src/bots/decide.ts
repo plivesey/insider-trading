@@ -1,4 +1,5 @@
 import type {
+  ActionCard,
   AuctionBidRequest,
   Color,
   FreeActionRequest,
@@ -14,6 +15,7 @@ import type {
 import { COLORS } from '@insider-trading/shared';
 import type { Rng } from '../domain/rng.js';
 import type { BotProfile } from './profile.js';
+import type { BotParams } from './botParams.js';
 import { chooseActionCardToPlay } from './actionHeuristics.js';
 import {
   bestOwnedColor,
@@ -28,28 +30,52 @@ import {
 } from './valuation.js';
 
 /**
- * Auction tuning. WINNER_MARGIN is the discount from perceived value the bot
+ * Auction tuning. `winnerMargin` is the discount from perceived value the bot
  * keeps as its "winner's curse" buffer — bidding to exactly your private
- * valuation has zero expected profit. LOAN_COST is the net $ penalty of a
- * single loan ($12 owed at end − $10 cash received).
+ * valuation has zero expected profit. The next-loan cost is escalating: the
+ * n-th loan a player takes costs (11 + n) at game end vs. $10 cash now, so the
+ * marginal net cost of taking a loan when you already hold L loans is about
+ * L + `loanCostOffset`. Both come from BotParams (see botParams.ts).
  */
-const WINNER_MARGIN = 1;
-const LOAN_COST = 2;
+function nextLoanCost(currentLoans: number, loanCostOffset: number): number {
+  return currentLoans + loanCostOffset;
+}
 
 /**
- * Given the bot's perceived value of a card and current cash, return the
- * maximum bid the bot is willing to make. Encodes both the winner-curse
- * discount (#2) and the EV-based loan gate (#3): a loan is only worth taking
- * if the perceived value above current cash exceeds LOAN_COST.
+ * Given the bot's perceived value of a card, current cash, and existing loan
+ * count, return the maximum bid the bot is willing to make. Encodes both the
+ * winner-curse discount and an EV-based loan gate: a new loan is only worth
+ * taking if the perceived value above current cash exceeds the *next* loan's
+ * marginal cost (which grows with each loan already held). The `+10` is the
+ * game's fixed loan cash amount (a rule constant, not a bot knob).
  */
-function effectiveBidCeiling(perceived: number, cash: number): number {
-  const adjusted = perceived - WINNER_MARGIN;
+function effectiveBidCeiling(
+  perceived: number,
+  cash: number,
+  currentLoans: number,
+  params: BotParams
+): number {
+  const adjusted = perceived - params.winnerMargin;
   if (adjusted <= cash) return adjusted;
   // Otherwise we'd need a loan to bid this high.
-  if (adjusted - LOAN_COST > cash) {
+  if (adjusted - nextLoanCost(currentLoans, params.loanCostOffset) > cash) {
     return Math.min(adjusted, cash + 10);
   }
   return cash;
+}
+
+/**
+ * Per-auction random bid offset r∈{0..3}, drawn once and cached on the profile.
+ * The bot opens at `maxBid - r` and climbs by the minimum legal raise up to
+ * `maxBid`, so it tries to win below its ceiling rather than slamming the max.
+ */
+function auctionOffset(profile: BotProfile, cardUid: string, rng: Rng): number {
+  let r = profile.auctionBidOffsets[cardUid];
+  if (r === undefined) {
+    r = rng.int(4); // 0..3
+    profile.auctionBidOffsets[cardUid] = r;
+  }
+  return r;
 }
 
 /** What the bot wants to do next. The runner translates each to an engine call. */
@@ -116,6 +142,17 @@ export function decideBotAction(
       kind: 'free_action',
       request: { kind: 'play_action_card', cardUid: cardToPlay }
     };
+  }
+
+  // 4b. Insider Tip in hand worth playing (positive tipScore for the bot).
+  for (const c of bot.hand) {
+    if (c.category !== 'insider_tip') continue;
+    if (tipScoreForBot(state, c, botId) > 0) {
+      return {
+        kind: 'free_action',
+        request: { kind: 'play_insider_tip', cardUid: c.uid }
+      };
+    }
   }
 
   // 5. Turn action — only when it's the bot's turn and we're awaiting one.
@@ -210,7 +247,7 @@ function decideTurnAction(
   // Sell-on-low-cash: cash < $10 AND has ≥1 loan AND owns a sellable stock.
   // Sell the stock with the highest ACTUAL current price (not perceived value)
   // — we want immediate cash, not future expectation.
-  if (bot.cash < 10 && bot.loans >= 1) {
+  if (bot.cash < profile.params.emergencySellCash && bot.loans >= 1) {
     let best: { uid: string; price: number } | null = null;
     for (const c of bot.hand) {
       if (c.category !== 'stock' || c.color === 'Wild') continue;
@@ -232,7 +269,7 @@ function decideTurnAction(
   }
   const weights = state.market.map(c => {
     if (c.category === 'stock' && c.color !== 'Wild') {
-      return 1 + 3 * ownedCounts[c.color];
+      return 1 + profile.params.ownedColorWeight * ownedCounts[c.color];
     }
     return 1;
   });
@@ -248,13 +285,14 @@ function decideTurnAction(
     }
   }
   const target = state.market[chosenIdx];
-  const perceived = perceivedCardValue(target, state, profile, bot.playerId);
-  const discount = ctx.rng.int(2); // 0..1 — minor "fish for a steal" variance
-  let opening = Math.max(0, perceived - discount);
-  // Clamp opening to the EV-positive bid ceiling (handles both winner-curse
-  // discount and loan-cost gating).
-  const ceiling = effectiveBidCeiling(perceived, bot.cash);
-  if (opening > ceiling) opening = Math.max(0, ceiling);
+  // Floor to whole dollars: tuned params make perceived values fractional, but
+  // bids must be integers (a $X.7 valuation ⇒ max bid $X).
+  const perceived = Math.floor(perceivedCardValue(target, state, profile, bot.playerId));
+  // Open at minBid = maxBid − rand(0..3): below the ceiling so the bot can win
+  // cheap, then it climbs by the minimum legal raise up to maxBid on re-bids.
+  const maxBid = effectiveBidCeiling(perceived, bot.cash, bot.loans, profile.params);
+  const offset = auctionOffset(profile, target.uid, ctx.rng);
+  const opening = Math.max(0, Math.min(maxBid, maxBid - offset));
   // Cache the bot's perceived value for this auction so re-bids reuse it.
   profile.auctionCeilings[target.uid] = perceived;
   return {
@@ -280,22 +318,35 @@ function respondToPrompt(
     case 'auction_bid': {
       const auction = state.auction;
       if (!auction) return null;
-      // The card being auctioned.
-      const card = state.market.find(c => c.uid === auction.cardUid);
-      if (!card) {
-        return { kind: 'auction_bid', action: { type: 'pass' } };
-      }
       // Cache the bot's perceived value per auction. We re-derive the bid
       // ceiling each turn because cash changes between bids.
       let perceived = profile.auctionCeilings[auction.cardUid];
       if (perceived === undefined) {
-        perceived = perceivedCardValue(card, state, profile, botId);
+        if (auction.sideAuctionTip) {
+          // Black Market side-auction: tip is face-down (we don't know which).
+          // Value it as the average tipScore over the unused pool + the tip
+          // already pulled — but the pulled one is the actual tip, which the
+          // bot can't see. Use the mean absolute impact across the remaining
+          // pool as a proxy for blind value. Cheap and conservative.
+          perceived = blindTipPerceivedValue(state, botId);
+        } else {
+          const card = state.market.find(c => c.uid === auction.cardUid);
+          if (!card) {
+            return { kind: 'auction_bid', action: { type: 'pass' } };
+          }
+          perceived = Math.floor(perceivedCardValue(card, state, profile, botId));
+        }
         profile.auctionCeilings[auction.cardUid] = perceived;
       }
-      const effectiveCeiling = effectiveBidCeiling(perceived, bot.cash);
-      const next = auction.currentHigh + 1;
-      if (next <= effectiveCeiling) {
-        return { kind: 'auction_bid', action: { type: 'bid', amount: next } };
+      // Recompute maxBid each round (cash changes between bids). minBid =
+      // maxBid − rand(0..3) (offset fixed per auction). Bid the lowest legal
+      // value in [minBid, maxBid] = max(minBid, currentHigh+1); pass if it
+      // would exceed maxBid.
+      const maxBid = effectiveBidCeiling(perceived, bot.cash, bot.loans, profile.params);
+      const minBid = Math.max(0, maxBid - auctionOffset(profile, auction.cardUid, ctx.rng));
+      const candidate = Math.max(minBid, auction.currentHigh + 1);
+      if (candidate <= maxBid) {
+        return { kind: 'auction_bid', action: { type: 'bid', amount: candidate } };
       }
       return { kind: 'auction_bid', action: { type: 'pass' } };
     }
@@ -464,6 +515,41 @@ function respondToPrompt(
           response: { stockUid: best.uid }
         };
       }
+      if (mode === 'sell_same_bonus') {
+        // Liquidation: locked to one color. If not yet locked, pick the color
+        // the bot owns the most of (most +bonus payouts). Then sell one of the
+        // locked color per call until none remain.
+        const locked = payload.lockedColor as Color | undefined;
+        let targetColor = locked;
+        if (!targetColor) {
+          const counts: Record<Color, number> = { Blue: 0, Orange: 0, Yellow: 0, Purple: 0 };
+          for (const c of bot.hand) {
+            if (c.category === 'stock' && c.color !== 'Wild') counts[c.color]++;
+          }
+          let bestN = 0;
+          for (const col of COLORS) {
+            if (counts[col] > bestN) {
+              bestN = counts[col];
+              targetColor = col;
+            }
+          }
+        }
+        const next = targetColor
+          ? bot.hand.find(c => c.category === 'stock' && c.color === targetColor)
+          : undefined;
+        if (!next) {
+          return {
+            kind: 'prompt_response',
+            promptId: prompt.promptId,
+            response: { done: true }
+          };
+        }
+        return {
+          kind: 'prompt_response',
+          promptId: prompt.promptId,
+          response: { stockUid: next.uid }
+        };
+      }
       // Unknown mode — bail.
       return {
         kind: 'prompt_response',
@@ -507,13 +593,16 @@ function respondToPrompt(
 
     case 'pick_market_card': {
       // Corner the Market / swap_with_market: pick the market card with the
-      // highest perceived value.
+      // highest perceived value. Exclude the card currently under auction — the
+      // engine forbids grabbing it (promptResponse.ts), so picking it is invalid.
+      const auctionedUid = state.auction?.cardUid;
+      const eligible = state.market.filter(c => c.uid !== auctionedUid);
       let best: { uid: string; value: number } | null = null;
-      for (const c of state.market) {
+      for (const c of eligible) {
         const v = perceivedCardValue(c, state, profile, botId);
         if (!best || v > best.value) best = { uid: c.uid, value: v };
       }
-      const cardUid = best?.uid ?? state.market[0]?.uid;
+      const cardUid = best?.uid ?? eligible[0]?.uid;
       return {
         kind: 'prompt_response',
         promptId: prompt.promptId,
@@ -542,8 +631,9 @@ function respondToPrompt(
     }
 
     case 'draw_and_keep': {
-      // Keep the highest-perceived-value drawn cards.
-      const drawn = (payload.drawn as Array<{ uid: string; card: HandCard }>) ?? [];
+      // Keep the highest-perceived-value drawn cards. Drawn cards come from the
+      // main deck so they're stocks or actions (never tips).
+      const drawn = (payload.drawn as Array<{ uid: string; card: StockCard | ActionCard }>) ?? [];
       const keepCount = payload.keepCount as number;
       const sorted = drawn
         .map(d => ({
@@ -559,30 +649,38 @@ function respondToPrompt(
       };
     }
 
-    case 'reorder_tips': {
-      // Order from best-for-bot (top) to worst-for-bot (bottom).
-      const stagedUids = (payload.stagedUids as string[]) ?? [];
-      const tips = stagedUids
-        .map(uid => state.insiderTipDeck.find(t => t.uid === uid))
-        .filter((t): t is InsiderTipCard => !!t);
-      // Also capture them as known peeks (we just learned what they are).
-      for (const t of tips) {
-        if (!profile.knownPeekedTips.some(k => k.uid === t.uid)) {
-          profile.knownPeekedTips.push(t);
-        }
-      }
-      const scored = tips
-        .map(t => ({ uid: t.uid, score: tipScoreForBot(state, t, botId) }))
-        .sort((a, b) => b.score - a.score);
-      const order = scored.map(s => s.uid);
+    case 'final_tip_play_choice': {
+      // The bot drew the last Insider Tip. Resolve it iff doing so improves
+      // the bot's score (raises owned colors, lowers no-stake colors, etc.).
+      const tipUid = payload.tipUid as string;
+      const bot = state.players.find(p => p.playerId === botId)!;
+      const tip = bot.hand.find(c => c.uid === tipUid && c.category === 'insider_tip') as
+        | InsiderTipCard
+        | undefined;
+      const score = tip ? tipScoreForBot(state, tip, botId) : 0;
       return {
         kind: 'prompt_response',
         promptId: prompt.promptId,
-        response: { order }
+        response: { play: score > 0 }
       };
     }
   }
   return null;
+}
+
+/**
+ * Bot value for a face-down Insider Tip from the unused pool (Black Market
+ * side-auction). The bot can't see the card. Estimate as the mean of the
+ * bot-perspective tipScore over the remaining pool, clamped to ≥0 — a
+ * conservative speculative ceiling.
+ */
+function blindTipPerceivedValue(state: GameState, botId: PlayerId): number {
+  const pool = state.unusedInsiderTipPool;
+  if (pool.length === 0) return 0;
+  let sum = 0;
+  for (const t of pool) sum += tipScoreForBot(state, t, botId);
+  const mean = sum / pool.length;
+  return Math.max(0, Math.round(mean));
 }
 
 // ---- small helpers -----------------------------------------------------------

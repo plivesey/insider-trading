@@ -10,7 +10,7 @@ import type {
 import { COLORS } from '@insider-trading/shared';
 import { event } from './events.js';
 import { setPrompt } from './prompts.js';
-import { checkEndConditions, findPlayer, receiveBank } from './turn.js';
+import { describeCard, findPlayer, receiveBank } from './turn.js';
 
 /**
  * Attempt to claim `goalUid` from activeGoals. Validates that the stock
@@ -94,10 +94,10 @@ export function claimGoal(
     )
   );
 
-  // Apply reward (may set a prompt).
+  // Apply reward (may set a prompt). End-condition check is deferred to
+  // advance(); if the reward sets a prompt the player needs to resolve it
+  // *before* the game ends, otherwise the reward is lost.
   applyReward(state, player, goal, events);
-  // Goal claim may end the game.
-  checkEndConditions(state, events);
 }
 
 function applyReward(
@@ -183,6 +183,21 @@ function applyReward(
         { amount: r.amount, perColor: true, colors: COLORS, goalReward: true }
       );
       return;
+    case 'draw_tips': {
+      // Draw up to `count` tips from the unused pool into the player's hand;
+      // they can be played later as free actions (like Insider Source).
+      const n = Math.min(r.count, state.unusedInsiderTipPool.length);
+      const drawn = state.unusedInsiderTipPool.splice(0, n);
+      player.hand.push(...drawn);
+      events.push(
+        event(
+          'reward_draw_tips',
+          `${player.name} draws ${n} Insider Tip${n === 1 ? '' : 's'} into hand`,
+          { actor: player.playerId, payload: { count: n, uids: drawn.map(t => t.uid) } }
+        )
+      );
+      return;
+    }
     case 'adjust_two_stocks':
       setPrompt(
         state,
@@ -197,7 +212,7 @@ function applyReward(
         state,
         player.playerId,
         'pick_market_card',
-        'Reward: pick a market card to swap one of your stocks with.',
+        'Reward: pick a market card to swap one of your cards with.',
         { mode: 'swap_with_market_stage1', goalReward: true }
       );
       return;
@@ -220,7 +235,7 @@ function applyReward(
         'draw_and_keep',
         `Reward: choose ${r.keepCount} to keep, return the rest to the bottom.`,
         {
-          drawn: drawn.map(c => ({ uid: c.uid, summary: c.uid, card: c })),
+          drawn: drawn.map(c => ({ uid: c.uid, summary: describeCard(c), card: c })),
           stagedCards: drawn,
           keepCount: r.keepCount,
           goalReward: true

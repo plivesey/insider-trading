@@ -5,6 +5,7 @@ import { createGameState } from '../../src/domain/setup.js';
 import { sellStock, payBank, currentPlayer } from '../../src/engine/turn.js';
 import { startAuction, bid, pass } from '../../src/engine/auction.js';
 import { advance } from '../../src/engine/advance.js';
+import { loanPenaltyFor } from '../../src/engine/scoring.js';
 import { respondToPrompt } from '../../src/engine/promptResponse.js';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
@@ -24,6 +25,27 @@ function mkState(seed = 1): GameState {
     startedAt: '2026-01-01T00:00:00.000Z'
   });
 }
+
+describe('loanPenaltyFor: escalating per-player loan cost', () => {
+  it('0 loans → 0 penalty', () => {
+    expect(loanPenaltyFor(0)).toBe(0);
+  });
+  it('1 loan → $12 (base)', () => {
+    expect(loanPenaltyFor(1)).toBe(12);
+  });
+  it('2 loans → $25 (12 + 13)', () => {
+    expect(loanPenaltyFor(2)).toBe(25);
+  });
+  it('3 loans → $39 (12 + 13 + 14)', () => {
+    expect(loanPenaltyFor(3)).toBe(39);
+  });
+  it('4 loans → $54 (12 + 13 + 14 + 15)', () => {
+    expect(loanPenaltyFor(4)).toBe(54);
+  });
+  it('6 loans → $87 (12 + 13 + 14 + 15 + 16 + 17)', () => {
+    expect(loanPenaltyFor(6)).toBe(87);
+  });
+});
 
 describe('autoLoan via payBank', () => {
   it('issues correct number of loans when cash insufficient', () => {
@@ -93,27 +115,39 @@ describe('full turn drive — start auction, others pass, die roll, advance', ()
     const card = state.market.find(c => c.category === 'stock' && c.color !== 'Wild') ?? state.market[0];
     const r1 = startAuction(state, before, card.uid, 1);
     events.push(...r1.events);
-    while (state.auction) {
-      const awaiting = state.auction.awaitingBidderId!;
-      const r = pass(state, awaiting);
-      events.push(...r.events);
-    }
-    // Sub-prompts may exist (e.g. Tip-Off, Scout). Acknowledge all.
-    while (Object.values(state.pendingPrompts).some(p => p)) {
-      const [id, p] = Object.entries(state.pendingPrompts).find(([_, v]) => v) as [string, any];
-      if (p.type === 'pick_color') {
-        const exclude = p.payload.exclude;
-        const color = ['Blue', 'Orange', 'Yellow', 'Purple'].find(c => c !== exclude)!;
-        const r = respondToPrompt(state, id, p.promptId, { color });
+    // Drain any auctions (including Black Market side-auctions triggered by
+    // refills) by passing every bid. Then resolve any sub-prompts and call
+    // advance() until the next turn lands.
+    for (let i = 0; i < 50; i++) {
+      if (state.auction) {
+        const awaiting = state.auction.awaitingBidderId!;
+        const r = pass(state, awaiting);
         events.push(...r.events);
-      } else if (p.type === 'peek_ack') {
-        const r = respondToPrompt(state, id, p.promptId, {});
-        events.push(...r.events);
-      } else {
+        continue;
+      }
+      const open = Object.entries(state.pendingPrompts).find(([_, v]) => v) as
+        | [string, any]
+        | undefined;
+      if (open) {
+        const [id, p] = open;
+        if (p.type === 'pick_color') {
+          const exclude = p.payload.exclude;
+          const color = ['Blue', 'Orange', 'Yellow', 'Purple'].find(c => c !== exclude)!;
+          const r = respondToPrompt(state, id, p.promptId, { color });
+          events.push(...r.events);
+          continue;
+        }
+        if (p.type === 'peek_ack') {
+          const r = respondToPrompt(state, id, p.promptId, {});
+          events.push(...r.events);
+          continue;
+        }
         throw new Error(`unexpected prompt type ${p.type}`);
       }
+      advance(state, events);
+      if (state.gameOver || state.turnPhase === 'awaiting_turn_action') break;
+      if (!state.auction && !Object.values(state.pendingPrompts).some(p => p)) break;
     }
-    advance(state, events);
     expect(state.gameOver).toBeNull();
     expect(state.turnPhase).toBe('awaiting_turn_action');
     expect(state.turnNumber).toBe(2);
@@ -197,6 +231,33 @@ describe('auctioneer can re-bid after being outbid', () => {
     expect(r4.ok).toBe(true);
     expect(state.auction).toBeNull();
     expect(alice.hand.find(c => c.uid === card.uid)).toBeTruthy();
+  });
+});
+
+describe('bidding rotation', () => {
+  it('cycles poker-style after each bid (auctioneer bids last in the round)', () => {
+    const state = mkState();
+    const alice = currentPlayer(state); // auctioneer
+    const bob = state.players[(state.currentPlayerIndex + 1) % 3];
+    const cam = state.players[(state.currentPlayerIndex + 2) % 3];
+    const card = state.market[0];
+
+    // Alice opens; rotation should be Bob → Cam → Alice → Bob → ...
+    startAuction(state, alice.playerId, card.uid, 1);
+    expect(state.auction!.awaitingBidderId).toBe(bob.playerId);
+
+    expect(bid(state, bob.playerId, 2).ok).toBe(true);
+    expect(state.auction!.awaitingBidderId).toBe(cam.playerId);
+
+    expect(bid(state, cam.playerId, 3).ok).toBe(true);
+    // Bug regression: previously rotated back to Bob here instead of Alice.
+    expect(state.auction!.awaitingBidderId).toBe(alice.playerId);
+
+    expect(bid(state, alice.playerId, 4).ok).toBe(true);
+    expect(state.auction!.awaitingBidderId).toBe(bob.playerId);
+
+    expect(bid(state, bob.playerId, 5).ok).toBe(true);
+    expect(state.auction!.awaitingBidderId).toBe(cam.playerId);
   });
 });
 

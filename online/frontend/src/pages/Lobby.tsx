@@ -6,6 +6,7 @@ import {
   getBackendOverride,
   setBackendOverride
 } from '../lib/api.js';
+import { BrassButton, C, DecoBadge, Monogram } from '../game/theme.js';
 
 interface Props {
   state: Extract<StateResponse, { mode: 'lobby' }>;
@@ -63,67 +64,94 @@ export function Lobby({ state, myName }: Props) {
   const alreadyJoined = !!myName && state.lobby.some(p => p.name === myName);
 
   return (
-    <div className="lobby">
-      <h1>Insider Trading — Playtest</h1>
-      <h2>Lobby</h2>
-      <ul>
-        {state.lobby.length === 0 ? <li><em>No one has joined yet.</em></li> : null}
-        {state.lobby.map(p => (
-          <li key={p.playerId}>
-            {p.name} {p.isBot ? '(bot)' : p.connected ? '' : '(offline)'}{' '}
-            {myName === p.name ? '— you' : ''}
-          </li>
-        ))}
-      </ul>
-      {!alreadyJoined && (
-        <div className="join-row">
-          <input
-            value={name}
-            onChange={e => setName(e.target.value)}
-            placeholder="Your name"
-            onKeyDown={e => e.key === 'Enter' && join()}
-          />
-          <button onClick={join} disabled={busy || !name.trim()}>
-            Join
-          </button>
+    <div className="lobby-shell">
+      <div className="lobby lobby-card">
+        <div className="lobby-card__head">
+          <DecoBadge size={56} />
+          <div>
+            <div className="lobby-card__title">INSIDER TRADING</div>
+            <div className="lobby-card__sub">EST. MCMXX · PLAYTEST LOBBY</div>
+          </div>
         </div>
-      )}
-      {state.lobby.length < 6 && (
-        <button onClick={addBot} className="add-bot-btn">
-          Add Bot
-        </button>
-      )}
-      {state.canStart && (
-        <button onClick={start} className="start-btn">
-          Start Game ({state.lobby.length} players)
-        </button>
-      )}
-      {error && <div className="error">{error}</div>}
-      <p className="hint">
-        Once started, anyone joining later sees only "Game in progress" until the game ends.
-      </p>
-      <details className="backend-config">
-        <summary>
-          Backend: {getBackendOverride() ?? 'default (same origin)'}
-        </summary>
-        <div className="backend-config-row">
-          <input
-            value={backendUrl}
-            onChange={e => setBackendUrl(e.target.value)}
-            placeholder="https://xxxx.ngrok-free.app"
-            onKeyDown={e => e.key === 'Enter' && applyBackend()}
-          />
-          <button onClick={applyBackend} disabled={!backendUrl.trim()}>
-            Apply
-          </button>
-          <button onClick={resetBackend} disabled={!getBackendOverride()}>
-            Reset
-          </button>
+
+        <div className="lobby-card__section-title">At The Table</div>
+        <ul className="lobby-list">
+          {state.lobby.length === 0 && (
+            <li className="is-empty"><em>No one has joined yet.</em></li>
+          )}
+          {state.lobby.map(p => {
+            const isYou = myName === p.name;
+            return (
+              <li key={p.playerId}>
+                <Monogram name={p.name} accent={isYou ? C.brass : C.ivory2} />
+                <span className="lobby-list__name">{p.name}</span>
+                {p.isBot && <span className="lobby-list__tag">· Bot</span>}
+                {!p.connected && !p.isBot && (
+                  <span className="lobby-list__tag lobby-list__tag--offline">· Offline</span>
+                )}
+                {isYou && <span className="lobby-list__tag lobby-list__tag--you">· You</span>}
+              </li>
+            );
+          })}
+        </ul>
+
+        {!alreadyJoined && (
+          <div className="lobby-join">
+            <input
+              className="deco-input"
+              value={name}
+              onChange={e => setName(e.target.value)}
+              placeholder="Your name"
+              onKeyDown={e => e.key === 'Enter' && join()}
+            />
+            <BrassButton
+              label="Join"
+              primary
+              onClick={join}
+              disabled={busy || !name.trim()}
+            />
+          </div>
+        )}
+
+        <div className="lobby-actions">
+          {state.lobby.length < 6 && (
+            <BrassButton label="Add Bot" onClick={addBot} />
+          )}
+          {state.canStart && (
+            <BrassButton
+              label={`Start Game (${state.lobby.length} players)`}
+              primary
+              onClick={start}
+            />
+          )}
         </div>
-        <p className="hint">
-          Stored in sessionStorage; cleared when the tab closes. Page reloads on apply.
+
+        {error && <div className="lobby-error">{error}</div>}
+
+        <p className="lobby-hint">
+          Once started, anyone joining later sees only "Game in progress" until the game ends.
         </p>
-      </details>
+
+        <details className="lobby-backend">
+          <summary>
+            Backend: {getBackendOverride() ?? 'default (same origin)'}
+          </summary>
+          <div className="lobby-backend__row">
+            <input
+              className="deco-input"
+              value={backendUrl}
+              onChange={e => setBackendUrl(e.target.value)}
+              placeholder="https://xxxx.ngrok-free.app"
+              onKeyDown={e => e.key === 'Enter' && applyBackend()}
+            />
+            <BrassButton label="Apply" onClick={applyBackend} disabled={!backendUrl.trim()} />
+            <BrassButton label="Reset" onClick={resetBackend} disabled={!getBackendOverride()} />
+          </div>
+          <p className="lobby-hint">
+            Stored in sessionStorage; cleared when the tab closes. Page reloads on apply.
+          </p>
+        </details>
+      </div>
     </div>
   );
 }

@@ -5,20 +5,20 @@
 A strategic trading and market manipulation board game for 2-6 players set in 1920s Wall Street. Players auction stocks, race for shared goals, and watch prices swing as every buy, sell, dice roll, and Insider Tip moves the market. The game ends when the goals run out or the Insider Tip deck is exhausted.
 
 **Players**: 2-6
-**Victory Condition**: Highest total wealth (cash + stock value at current prices + end-game goal bonuses − $12 per loan)
+**Victory Condition**: Highest total wealth (cash + stock value at current prices + end-game goal bonuses − escalating loan penalty: n-th loan a player took costs $(11 + n) at game end; 1st = $12, 2nd = $13, 3rd = $14, …)
 **Game End**: The Insider Tip deck is exhausted, OR only one goal card remains in play.
 
 ## V4 Key Changes (from V3)
 
 - **Prices move on trade**: every stock bought → that color +1; every stock sold → that color −1.
 - **No End Game Tracker** — removed entirely. Two end conditions instead (see above).
-- **Insider Tips are an event deck**, never held by players. A face-down deck of (2 × players − 1) cards (drawn from a 16-card pool). Only resolved when flipped by the dice; then removed from the game.
+- **Insider Tips are an event deck.** A face-down deck of (2 × players) cards (drawn from a 16-card pool). Resolved when flipped by the dice OR played from hand after being drawn via **Insider Source**; then removed from the game.
 - **A six-sided die** is rolled at the end of every turn: 1 = flip + resolve the top Insider Tip; 6 = all stocks +1; 2-5 = nothing.
 - **Two turn actions only**: start an auction, or sell one stock.
 - **Goal claiming is optional and free** — claim any time you qualify; never costs a turn.
 - **Action cards and the Hot Tip are free** — played any time, never cost a turn.
 - **Crisis cards removed.**
-- **Loan cards**: bid/spend beyond your cash; loans auto-issue $10 each, count −$12 at game end.
+- **Loan cards**: bid/spend beyond your cash; loans auto-issue $10 each. Per-player escalating end-game penalty — your 1st loan costs $12, 2nd $13, 3rd $14, etc.
 - **4 colorless Wild Share stocks**: no value, cannot be sold; substitute for any one color when claiming a goal, then discarded.
 - **New stock specials** (one of each per color): Boom (extra_up), Tip-Off (other_up), Scout (peek_buy), Informant (peek_sell).
 - Players start with $30, one Hot Tip card, and 0 stocks.
@@ -31,15 +31,16 @@ A strategic trading and market manipulation board game for 2-6 players set in 19
 - 4 colorless `wild` (Wild Share) cards
 - All shuffled into the main deck and auctioned
 
-### Action Cards (10) - `cards/action_cards.json`
+### Action Cards (12) - `cards/action_cards.json`
 - Shuffled into the main deck and auctioned; held in hand; played free at any time
-- 1 persistent (Preferred Bidder), 9 single-use
-- Includes two tip-reorder cards (Inside Track, Wiretap)
+- 1 persistent (Preferred Bidder), 11 single-use
+- Two **Insider Source** cards (`draw_tip`): draw the top Insider Tip into the player's hand; play later as a free action. Drawing the deck's last tip ends the game after an optional play.
+- Two **Black Market** cards (`auction_unused_tip`): trigger the instant they flip face-up in the market. A face-down Insider Tip is drawn from the unused-tip pool and side-auctioned ($0 minimum, current player auctioneers). The Black Market card itself is removed from the game on trigger.
 
 ### Insider Tip Cards (16-card pool) - `cards/insider_tip_cards.json`
-- Face-down event deck; never held by players
+- Face-down event deck. Normally not held, but Insider Source draws one into a player's hand.
 - 8 crash (halve a color, 2 per color), 4 surge (+4 to one color), 4 slump (−2/−2 to two colors)
-- Each game uses (2 × players − 1) of them
+- Each game uses (2 × players) of them
 
 ### Goal Cards (14) - `cards/goal_cards.json`
 - Shared/public; displays players+2 per game

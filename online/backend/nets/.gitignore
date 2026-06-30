@@ -1,0 +1,5 @@
+# Training scratch — keep only the shipped artifacts in version control.
+# Production (serverState.ts) requires champion.json + bot_params.json.
+*_log.csv
+champion_selfplay.json
+latest.json

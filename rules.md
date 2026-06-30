@@ -27,7 +27,7 @@ Wild market-event cards. They are **never held by players** — they form a **fa
 Shared public objectives. A set of them is displayed face-up; any player may claim one once they hold the required stocks.
 
 ### Loan Cards (6 cards)
-Face-up on the table. Auto-issued when a player cannot cover a payment. Worth **−$12** at game end.
+Face-up on the table. Auto-issued when a player cannot cover a payment. End-game cost escalates per player: 1st = **−$12**, 2nd = **−$13**, 3rd = **−$14**, … (n-th loan you take costs $(11 + n)).
 
 ### Hot Tip Cards (6 cards)
 Each player starts with one. A single-use power to peek at the top Insider Tip.
@@ -77,7 +77,7 @@ These moves happen on **every** purchase and **every** sale, including sales mad
 
 1. **Build the main deck:** Shuffle all **36 stock cards** and **11 action cards** into one **47-card** face-down main deck.
 2. **Reveal the market:** Turn up **5 cards** from the main deck side by side. This is the market.
-3. **Build the Insider Tip deck:** Shuffle all **16 Insider Tip cards**, then deal **(2 × number of players − 1)** of them face-down into a draw pile. Return the rest to the box unseen. *(This deck size is a tuning value and may change with playtesting.)*
+3. **Build the Insider Tip deck:** Shuffle all **16 Insider Tip cards**, then deal **(2 × number of players)** of them face-down into a draw pile. Set the remaining tips aside (still face-down) — they may surface later via auctions. *(This deck size is a tuning value and may change with playtesting.)*
 
    | Players | Insider Tip deck |
    |---------|------------------|
@@ -180,7 +180,7 @@ A set of **(players + 2)** goal cards is face-up. Each goal shows a stock requir
 
 ---
 
-## Action Cards (11)
+## Action Cards (12)
 
 | Card | Effect |
 |------|--------|
@@ -190,23 +190,23 @@ A set of **(players + 2)** goal cards is face-up. Each goal shows a stock requir
 | **The Squeeze** | Raise one stock +2, OR lower one stock −2. |
 | **Wild Speculation** | Reveal the top main-deck card and put it on the bottom; if it is a colored stock, raise or lower that color by 3 (your choice). If it has no color, reveal again. |
 | **Preferred Bidder** | **Persistent:** for the rest of the game, when you tie the high bid in an auction, you win the tie. |
-| **Hostile Takeover** | Look at another player's hand and take 1 stock of your choice. They receive $6 from the bank. |
+| **Hostile Takeover** | Look at another player's hand and take 1 stock of your choice. They draw the top card of the deck. |
 | **Rumor Mill** | Adjust every stock by +1 or −1 (choose one direction for each stock). |
-| **Inside Track** | Look at the top 2 Insider Tip cards and return them in any order. |
-| **Wiretap** | Look at the top 2 Insider Tip cards and return them in any order. |
+| **Insider Source** ×2 | Draw the top Insider Tip into your hand. You may play it from your hand at any time as a free action (it resolves like a normal Insider Tip), or hold it for the rest of the game and never play it. **Special:** if only one Insider Tip remained in the deck when you played this card, you may optionally play the drawn tip — then the game ends immediately either way. Tips left in hand at game end are never resolved. |
+| **Black Market** ×2 | **Triggers the instant it is revealed face-up in the market** (it is never bought; it is removed from the game on trigger). An auction begins immediately for a face-down Insider Tip drawn at random from the unused-tip pool. The current player auctioneers; minimum bid is $0; bidding rotates poker-style. The winner takes the tip into their hand (private) and may play it later under the Insider Source rules. If the unused pool is empty when this card flips, it fizzles with no auction. |
 
 ---
 
 ## Insider Tip Cards (event deck)
 
-Insider Tips are **wild market events**. They are never held — they sit face-down and only resolve when the **top card is flipped by a dice roll of 1**. Once resolved, the tip is removed from the game permanently.
+Insider Tips are **wild market events**. They sit face-down and resolve when the **top card is flipped by a dice roll of 1** OR when a player plays one they previously drew with **Insider Source**. Once resolved, the tip is removed from the game permanently. A tip drawn via Insider Source moves from the deck into the drawer's private hand and may be played as a free action at any time.
 
 The 16-card pool:
 - **8 Crash cards** — "[Color] stock value is halved, rounded down." 2 per color.
 - **4 Surge cards** — "[Color] +4." One per color.
 - **4 Slump cards** — "[Color] −2 / [Color] −2" to two colors. Each color appears on two Slump cards.
 
-Special powers (**Scout**, **Informant**, **Hot Tip**, **Inside Track**, **Wiretap**) let players peek at, or reorder, the top of this deck — useful for predicting or steering the next dice flip.
+Special powers (**Scout**, **Informant**, **Hot Tip**) let players peek at the top of this deck. **Insider Source** lets a player remove the top tip from the deck into their hand to play (or hold) later.
 
 ---
 
@@ -225,9 +225,9 @@ You may **bid or spend more money than you currently hold.**
 
 - The instant a payment exceeds your cash, you are **automatically issued loan cards**. Each loan card gives you **$10** immediately. Take as many $10 loans as needed to cover the payment.
 - Loans are **never taken voluntarily** and **cannot be repaid**.
-- Each loan card you hold counts **−$12** against your wealth at game end.
+- **End-game cost is escalating per player.** Your **1st** loan counts **−$12**, your **2nd** loan **−$13**, your **3rd** loan **−$14**, and so on (the n-th loan you personally take costs $(11 + n)). The escalation is per-player, not shared — every player's first loan is −$12. Two loans total = −$25; three = −$39; four = −$54.
 
-So a loan is +$10 now for −$12 later: a net cost of $2 for the extra capital. There are 6 loan cards; this is intended to be effectively unlimited.
+So your first loan is +$10 now for −$12 later (net $2 cost), but each successive loan grows more expensive: the second nets you $3, the third $4, etc. There are 6 loan cards; this is intended to be effectively unlimited.
 
 ---
 
@@ -238,7 +238,7 @@ When the game ends, each player totals their wealth:
 - **Cash** on hand, plus
 - **Stock value:** each colored stock × its current price (Wild Shares are worth $0), plus
 - **End-of-game goal bonuses** (e.g., a goal that pays out at game end), minus
-- **$12 for each loan card** held.
+- **Escalating loan penalty:** sum of $(11 + n) over each loan you took (your 1st loan is −$12, 2nd −$13, 3rd −$14, …).
 
 **Highest total wealth wins.**
 
@@ -266,6 +266,6 @@ If the main deck runs out, shuffle the **discard pile** to form a new main deck 
 
 **Game ends immediately when:** the Insider Tip deck empties, OR only one goal remains in play.
 
-**Starting conditions:** $30 cash, one Hot Tip, 0 stocks; all prices $4; 5 market cards; Insider Tip deck = 2 × players − 1; goals in play = players + 2.
+**Starting conditions:** $30 cash, one Hot Tip, 0 stocks; all prices $4; 5 market cards; Insider Tip deck = 2 × players; goals in play = players + 2.
 
-**Wealth = cash + (stocks × price) + end-game goal bonuses − $12 per loan.**
+**Wealth = cash + (stocks × price) + end-game goal bonuses − escalating loan penalty (n-th loan costs $(11 + n)).**

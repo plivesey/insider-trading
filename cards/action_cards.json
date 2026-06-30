@@ -2,7 +2,7 @@
   {
     "id": 1,
     "name": "Tipster's Choice",
-    "description": "Draw 2 cards from the main deck, keep 1, return the other to the bottom",
+    "description": "Draw 2 cards, keep 1, return the other to the bottom.",
     "persistent": false,
     "effect": {
       "type": "draw_and_choose",
@@ -11,9 +11,19 @@
     }
   },
   {
+    "id": 7,
+    "name": "Liquidation",
+    "description": "Sell any number of stocks of a single color; gain +$1 per stock sold.",
+    "persistent": false,
+    "effect": {
+      "type": "sell_same_bonus",
+      "bonus": 1
+    }
+  },
+  {
     "id": 2,
     "name": "Corner the Market",
-    "description": "Take any one face-up market stock for free (not bought: no price move, no ability)",
+    "description": "Take one face-up market stock for free (no price move, no ability).",
     "persistent": false,
     "effect": {
       "type": "take_face_up"
@@ -22,7 +32,7 @@
   {
     "id": 3,
     "name": "Pump and Dump",
-    "description": "Sell 1 stock at double its current price (still a sale: that color falls -1)",
+    "description": "Sell 1 stock at double its price.",
     "persistent": false,
     "effect": {
       "type": "sell_double",
@@ -32,7 +42,7 @@
   {
     "id": 4,
     "name": "The Squeeze",
-    "description": "Raise one stock by +2 OR lower one stock by -2",
+    "description": "Raise one stock +2, or lower one stock -2.",
     "persistent": false,
     "effect": {
       "type": "adjust_stock",
@@ -42,7 +52,7 @@
   {
     "id": 5,
     "name": "Wild Speculation",
-    "description": "Reveal the top main-deck card and put it on the bottom; if it is a colored stock, raise or lower that color by 3 (your choice). If it has no color, reveal again",
+    "description": "Reveal the top deck card to the bottom. If colored, raise or lower that color by 3; if not, reveal again.",
     "persistent": false,
     "effect": {
       "type": "flip_and_adjust",
@@ -52,7 +62,7 @@
   {
     "id": 6,
     "name": "Preferred Bidder",
-    "description": "For rest of game, when you tie the winning bid, you win",
+    "description": "For the rest of the game, you win any bid you tie.",
     "persistent": true,
     "effect": {
       "type": "tie_breaker"
@@ -61,17 +71,16 @@
   {
     "id": 8,
     "name": "Hostile Takeover",
-    "description": "Look at another player's hand and take 1 stock of your choice. They receive $6 from the bank",
+    "description": "Look at another player's hand and take 1 stock. They draw the top deck card.",
     "persistent": false,
     "effect": {
-      "type": "steal_stock",
-      "compensation": 6
+      "type": "steal_stock"
     }
   },
   {
     "id": 9,
     "name": "Rumor Mill",
-    "description": "Adjust every stock by +1 or -1 (choose per stock)",
+    "description": "Adjust every stock +1 or -1 (your choice per stock).",
     "persistent": false,
     "effect": {
       "type": "adjust_all_stocks",
@@ -80,22 +89,38 @@
   },
   {
     "id": 10,
-    "name": "Inside Track",
-    "description": "Look at the top 2 Insider Tip cards and return them in any order",
+    "name": "Insider Source",
+    "description": "Draw the top Insider Tip into your hand; play it as a free action anytime.",
     "persistent": false,
     "effect": {
-      "type": "peek_reorder_tips",
-      "count": 2
+      "type": "draw_tip"
     }
   },
   {
     "id": 11,
-    "name": "Wiretap",
-    "description": "Look at the top 2 Insider Tip cards and return them in any order",
+    "name": "Insider Source",
+    "description": "Draw the top Insider Tip into your hand; play it as a free action anytime.",
     "persistent": false,
     "effect": {
-      "type": "peek_reorder_tips",
-      "count": 2
+      "type": "draw_tip"
+    }
+  },
+  {
+    "id": 12,
+    "name": "Black Market",
+    "description": "When revealed in the market, auction a face-down Insider Tip from the unused pool.",
+    "persistent": false,
+    "effect": {
+      "type": "auction_unused_tip"
+    }
+  },
+  {
+    "id": 13,
+    "name": "Black Market",
+    "description": "When revealed in the market, auction a face-down Insider Tip from the unused pool.",
+    "persistent": false,
+    "effect": {
+      "type": "auction_unused_tip"
     }
   }
 ]

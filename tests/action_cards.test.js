@@ -1,8 +1,8 @@
 const cards = require('../cards/action_cards.json');
 
 describe('Action Cards', () => {
-  test('should have exactly 10 cards', () => {
-    expect(cards).toHaveLength(10);
+  test('should have exactly 13 cards', () => {
+    expect(cards).toHaveLength(13);
   });
 
   test('should have unique ids', () => {
@@ -10,9 +10,11 @@ describe('Action Cards', () => {
     expect(new Set(ids).size).toBe(ids.length);
   });
 
-  test('should have unique names', () => {
+  test('names are unique except for duplicates explicitly allowed in the deck', () => {
+    // Insider Source and Black Market each have two copies by design.
     const names = cards.map(c => c.name);
-    expect(new Set(names).size).toBe(names.length);
+    const duplicates = names.filter((n, i) => names.indexOf(n) !== i).sort();
+    expect(duplicates).toEqual(['Black Market', 'Insider Source']);
   });
 
   test('should have required fields on every card', () => {
@@ -33,9 +35,9 @@ describe('Action Cards', () => {
     expect(persistent).toHaveLength(1);
   });
 
-  test('should have exactly 9 single-use cards', () => {
+  test('should have exactly 12 single-use cards', () => {
     const singleUse = cards.filter(c => c.persistent === false);
-    expect(singleUse).toHaveLength(9);
+    expect(singleUse).toHaveLength(12);
   });
 
   test('the persistent card should be Preferred Bidder', () => {
@@ -47,9 +49,16 @@ describe('Action Cards', () => {
     expect(cards.find(c => c.name === 'Connected Broker')).toBeUndefined();
   });
 
-  test('should include two tip-reorder cards', () => {
-    const reorder = cards.filter(c => c.effect.type === 'peek_reorder_tips');
-    expect(reorder).toHaveLength(2);
+  test('should include two Insider Source cards (draw_tip)', () => {
+    const draw = cards.filter(c => c.effect.type === 'draw_tip');
+    expect(draw).toHaveLength(2);
+    expect(draw.every(c => c.name === 'Insider Source')).toBe(true);
+  });
+
+  test('should include two Black Market cards (auction_unused_tip)', () => {
+    const bm = cards.filter(c => c.effect.type === 'auction_unused_tip');
+    expect(bm).toHaveLength(2);
+    expect(bm.every(c => c.name === 'Black Market')).toBe(true);
   });
 
   test('effect should have a type field', () => {

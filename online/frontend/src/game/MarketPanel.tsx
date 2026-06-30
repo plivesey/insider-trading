@@ -1,25 +1,26 @@
 import type { ActionCard, StockCard } from '@insider-trading/shared';
-import { colorClass, describeCard } from './cardLabel.js';
+import { Panel } from './theme.js';
+import { CardTile } from './CardTile.js';
 
 interface Props {
   market: (StockCard | ActionCard)[];
+  onPick?: (uid: string) => void;
+  selectedUid?: string | null;
 }
 
-export function MarketPanel({ market }: Props) {
+export function MarketPanel({ market, onPick, selectedUid }: Props) {
   return (
-    <div className="section">
-      <h3>Market</h3>
+    <Panel title="The Market">
       <div className="card-row">
-        {market.map(c => {
-          const d = describeCard(c as any);
-          return (
-            <div key={c.uid} className={colorClass(c as any)}>
-              <div className="name">{d.title}</div>
-              <div className="desc">{d.sub}</div>
-            </div>
-          );
-        })}
+        {market.map(c => (
+          <CardTile
+            key={c.uid}
+            card={c}
+            onClick={onPick ? () => onPick(c.uid) : undefined}
+            className={selectedUid === c.uid ? 'card-tile--selected' : ''}
+          />
+        ))}
       </div>
-    </div>
+    </Panel>
   );
 }

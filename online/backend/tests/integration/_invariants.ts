@@ -1,5 +1,6 @@
 import type { GameState } from '@insider-trading/shared';
 import { expect } from '@jest/globals';
+import { loanPenaltyFor } from '../../src/engine/scoring.js';
 
 /**
  * Post-game invariants reused across full-game integration tests
@@ -24,9 +25,10 @@ export function assertGameOverInvariants(state: GameState): void {
     expect(b.stockValue).toBe(stockValue);
     expect(b.cash).toBe(player.cash);
     expect(b.endGameBonus).toBe(player.endGameCashBonus);
-    expect(b.loanPenalty).toBe(player.loans * 12);
+    const expectedLoanPenalty = loanPenaltyFor(player.loans);
+    expect(b.loanPenalty).toBe(expectedLoanPenalty);
     expect(b.total).toBe(
-      player.cash + stockValue + player.endGameCashBonus - player.loans * 12
+      player.cash + stockValue + player.endGameCashBonus - expectedLoanPenalty
     );
   }
   if (reason === 'insider_tip_deck_empty') {

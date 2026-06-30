@@ -110,6 +110,28 @@ export function startActionCard(
       );
       return;
     }
+    case 'sell_same_bonus': {
+      state.discardPile.push(card);
+      const sellable = player.hand.some(c => c.category === 'stock' && c.color !== 'Wild');
+      if (!sellable) {
+        events.push(
+          event(
+            'liquidation_no_stock',
+            `${player.name} plays Liquidation but has no colored stocks to sell — fizzles`,
+            { actor: player.playerId }
+          )
+        );
+        return;
+      }
+      setPrompt(
+        state,
+        player.playerId,
+        'pick_stock_from_hand',
+        `Liquidation: sell any number of stocks of ONE color; gain $${card.effect.bonus} per stock sold (color falls −1 each).`,
+        { sourceUid: card.uid, mode: 'sell_same_bonus', bonus: card.effect.bonus, multiple: true }
+      );
+      return;
+    }
     case 'adjust_stock': {
       state.discardPile.push(card);
       setPrompt(
@@ -124,7 +146,7 @@ export function startActionCard(
     case 'flip_and_adjust': {
       // Wild Speculation: reveal until colored stock or deck cap, then prompt.
       state.discardPile.push(card);
-      const revealed: HandCard[] = [];
+      const revealed: (StockCard | ActionCard)[] = [];
       let stockRevealed: StockCard | null = null;
       const maxIter = state.mainDeck.length;
       for (let i = 0; i < maxIter; i++) {
@@ -163,7 +185,7 @@ export function startActionCard(
         player.playerId,
         'pick_target_player',
         'Hostile Takeover: pick a target player.',
-        { sourceUid: card.uid, compensation: card.effect.compensation }
+        { sourceUid: card.uid }
       );
       return;
     }
@@ -178,20 +200,51 @@ export function startActionCard(
       );
       return;
     }
-    case 'peek_reorder_tips': {
+    case 'auction_unused_tip': {
+      // Black Market triggers from the market on reveal, not from a player's
+      // hand. If somehow this card ends up being played from hand (shouldn't
+      // happen — it's removed from the game on trigger), log and discard.
       state.discardPile.push(card);
-      const n = Math.min(card.effect.count, state.insiderTipDeck.length);
-      const top = state.insiderTipDeck.slice(0, n);
-      setPrompt(
-        state,
-        player.playerId,
-        'reorder_tips',
-        `Look at the top ${n} Insider Tip${n > 1 ? 's' : ''} and choose an order.`,
-        {
-          tips: top.map(t => ({ uid: t.uid, text: t.text, type: t.type })),
-          stagedUids: top.map(t => t.uid)
-        }
+      events.push(
+        event(
+          'black_market_in_hand_noop',
+          `${player.name} plays Black Market from hand — no effect`,
+          { actor: player.playerId, payload: { uid: card.uid } }
+        )
       );
+      return;
+    }
+    case 'draw_tip': {
+      state.discardPile.push(card);
+      if (state.insiderTipDeck.length === 0) {
+        // Shouldn't happen — game would have ended — but guard anyway.
+        events.push(
+          event('insider_source_empty', `${player.name} plays Insider Source but the tip deck is empty`, {
+            actor: player.playerId
+          })
+        );
+        return;
+      }
+      const tip = state.insiderTipDeck.shift()!;
+      player.hand.push(tip);
+      const wasLast = state.insiderTipDeck.length === 0;
+      events.push(
+        event('insider_tip_drawn', `${player.name} draws an Insider Tip into hand`, {
+          actor: player.playerId,
+          payload: { uid: tip.uid, wasLast }
+        })
+      );
+      if (wasLast) {
+        // Drawing the last tip empties the deck, which triggers game end. Give
+        // the drawer one chance to play (resolve) it first.
+        setPrompt(
+          state,
+          player.playerId,
+          'final_tip_play_choice',
+          `Insider Source drew the LAST Insider Tip. Play "${tip.text}" now (resolves it) or decline — either way the game ends.`,
+          { tipUid: tip.uid, tipText: tip.text, tipType: tip.type }
+        );
+      }
       return;
     }
   }

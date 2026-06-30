@@ -19,12 +19,14 @@ export type ActionEffect =
   | { type: 'draw_and_choose'; drawCount: number; keepCount: number }
   | { type: 'take_face_up' }
   | { type: 'sell_double'; count: number }
+  | { type: 'sell_same_bonus'; bonus: number }
   | { type: 'adjust_stock'; amount: number }
   | { type: 'flip_and_adjust'; amount: number }
   | { type: 'tie_breaker' }
-  | { type: 'steal_stock'; compensation: number }
+  | { type: 'steal_stock' }
   | { type: 'adjust_all_stocks'; amount: number }
-  | { type: 'peek_reorder_tips'; count: number };
+  | { type: 'draw_tip' }
+  | { type: 'auction_unused_tip' };
 
 export interface ActionCard {
   category: 'action';
@@ -56,6 +58,7 @@ export type GoalReward =
   | { type: 'adjust_stock'; amount: number }
   | { type: 'set_stock'; amount: number }
   | { type: 'peek_tips'; count: number }
+  | { type: 'draw_tips'; count: number }
   | { type: 'steal_from_all'; amount: number }
   | { type: 'sell_bonus_batch'; bonus: number }
   | { type: 'adjust_all_stocks'; amount: number }
@@ -102,7 +105,7 @@ export interface HotTipCard {
 
 export type AnyCard = StockCard | ActionCard | InsiderTipCard | GoalCard | LoanCard | HotTipCard;
 export type DeckCard = StockCard | ActionCard;
-export type HandCard = StockCard | ActionCard;
+export type HandCard = StockCard | ActionCard | InsiderTipCard;
 
 export const COLORS: Color[] = ['Blue', 'Orange', 'Yellow', 'Purple'];
 

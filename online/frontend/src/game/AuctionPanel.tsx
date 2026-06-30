@@ -9,6 +9,7 @@ import type {
 import { api } from '../lib/api.js';
 import { showError } from '../lib/toast.js';
 import { describeCard } from './cardLabel.js';
+import { BrassButton } from './theme.js';
 
 interface Props {
   auction: AuctionState;
@@ -25,12 +26,9 @@ export function AuctionPanel({ auction, players, myPrompt, myPlayerId, market }:
     : auction.cardUid;
   const me = players.find(p => p.playerId === myPlayerId);
   const hasPreferred = !!me?.persistentEffects.some(e => e.effect.type === 'tie_breaker');
-  // Lowest legal bid: currentHigh if Preferred Bidder (can tie), else currentHigh + 1.
   const minBid = hasPreferred ? auction.currentHigh : auction.currentHigh + 1;
 
   const [amount, setAmount] = useState<number>(minBid);
-  // Re-default to the lowest legal bid whenever currentHigh changes (e.g. another
-  // player just raised). This avoids carrying a stale value into the next prompt.
   useEffect(() => {
     setAmount(minBid);
   }, [auction.currentHigh, hasPreferred]);
@@ -55,28 +53,32 @@ export function AuctionPanel({ auction, players, myPrompt, myPlayerId, market }:
   }
 
   return (
-    <div className="panel">
-      <h3>Auction</h3>
-      <div>
-        Card: <strong>{cardLabel}</strong> · High: <strong>${auction.currentHigh}</strong> by{' '}
-        <strong>{high?.name ?? '?'}</strong>
+    <div className={`turn-plaque${myTurn ? ' turn-plaque--mine' : ''}`}>
+      <div className="turn-plaque__head">
+        <div className="turn-plaque__title">Auction</div>
       </div>
-      <div>Awaiting: {awaiting?.name ?? '(resolving)'}</div>
+      <div className="auction-meta">
+        <span>Card: <span className="auction-meta__card">{cardLabel}</span></span>
+        <span>· High: <span className="auction-meta__amount">${auction.currentHigh}</span></span>
+        <span>by <span className="auction-meta__by">{high?.name ?? '?'}</span></span>
+      </div>
+      <div className="auction-await">Awaiting: {awaiting?.name ?? '(resolving)'}</div>
       {myTurn && (
-        <div style={{ marginTop: 8 }}>
+        <div className="auction-controls">
           <input
+            className="deco-input"
             type="number"
             value={amount}
             min={minBid}
             onChange={e => setAmount(parseInt(e.target.value || '0', 10))}
           />
-          <button onClick={bid}>Bid</button>
-          <button onClick={pass}>Pass</button>
-          {hasPreferred && (
-            <div style={{ fontSize: 11, color: '#aaa', marginTop: 4 }}>
-              Preferred Bidder: you may tie at ${auction.currentHigh}.
-            </div>
-          )}
+          <BrassButton label="Bid" primary onClick={bid} />
+          <BrassButton label="Pass" onClick={pass} />
+        </div>
+      )}
+      {myTurn && hasPreferred && (
+        <div className="auction-hint">
+          Preferred Bidder: you may tie at ${auction.currentHigh}.
         </div>
       )}
     </div>

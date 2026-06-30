@@ -1,4 +1,5 @@
 import type { GameLogEntry, GameState } from '@insider-trading/shared';
+import { tryFireBlackMarketTrigger } from './auction.js';
 import { hasBlockingPrompt, setPrompt } from './prompts.js';
 import {
   advanceTurn,
@@ -28,6 +29,16 @@ export function advance(state: GameState, events: GameLogEntry[]): void {
       processNextFreeAction(state, events);
       continue;
     }
+    // Black Market: if a trigger card sits face-up in the market and no
+    // auction is in flight, fire it before any other turn progression. The
+    // helper may either start a side-auction (sets state.auction) or fizzle
+    // (no auction; loop continues to next step).
+    if (tryFireBlackMarketTrigger(state, events)) continue;
+    // Free actions (e.g. claim_goal) can change end-state. Check here, after
+    // the queue drains AND any reward prompts they set have been resolved
+    // (those are caught by hasBlockingPrompt above).
+    checkEndConditions(state, events);
+    if (state.gameOver) return;
     if (state.turnPhase === 'awaiting_die_roll') {
       rollEndOfTurnDie(state, events);
       checkEndConditions(state, events);

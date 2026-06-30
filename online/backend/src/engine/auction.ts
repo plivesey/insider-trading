@@ -3,14 +3,17 @@ import type {
   AuctionState,
   GameLogEntry,
   GameState,
+  InsiderTipCard,
   PlayerId,
   PlayerPrivate,
-  StockCard
+  StockCard,
+  TurnPhase
 } from '@insider-trading/shared';
 import type { MutationResult } from '../domain/mutate.js';
 import { adjust } from '../domain/prices.js';
 import { event } from './events.js';
 import { hasAnyPendingPrompt, setPrompt } from './prompts.js';
+import { nextRng } from './rng.js';
 import {
   currentPlayer,
   describeCard,
@@ -79,6 +82,106 @@ export function startAuction(
   return { ok: true, events };
 }
 
+/**
+ * If a Black Market card is face-up in the market and no auction is in flight,
+ * remove it (single-use trigger; the card leaves the game), refill that slot,
+ * draw a random tip from the unused pool, and start a side-auction for it.
+ * If the unused pool is empty, the trigger fizzles (card still removed).
+ * Returns true if a side-auction was started.
+ */
+export function tryFireBlackMarketTrigger(
+  state: GameState,
+  events: GameLogEntry[]
+): boolean {
+  if (state.auction) return false;
+  const idx = state.market.findIndex(
+    c =>
+      c.category === 'action' &&
+      (c as ActionCard).effect.type === 'auction_unused_tip'
+  );
+  if (idx < 0) return false;
+  const card = state.market.splice(idx, 1)[0] as ActionCard;
+  events.push(
+    event('black_market_revealed', `Black Market flips face-up — side-auction triggered`, {
+      payload: { uid: card.uid }
+    })
+  );
+  // Refill the slot the Black Market vacated. A second Black Market dealt
+  // into that slot will be caught on a later trigger pass (after this side-
+  // auction resolves).
+  refillMarketIfNeeded(state, events);
+  if (state.unusedInsiderTipPool.length === 0) {
+    events.push(
+      event(
+        'black_market_fizzle',
+        'Black Market fizzles: no unused Insider Tips left to auction',
+        {}
+      )
+    );
+    return false;
+  }
+  // The phase to restore after the side-auction resolves. If the previous
+  // phase was `in_auction` (e.g., trigger fires mid-turn via market refill),
+  // we collapse it to awaiting_die_roll since the original market auction
+  // already concluded by the time refill ran.
+  const resumePhase: TurnPhase =
+    state.turnPhase === 'in_auction' ? 'awaiting_die_roll' : state.turnPhase;
+  const rng = nextRng(state);
+  const tipIdx = rng.int(state.unusedInsiderTipPool.length);
+  const tip = state.unusedInsiderTipPool.splice(tipIdx, 1)[0];
+  startSideAuction(state, tip, resumePhase, events);
+  return true;
+}
+
+/**
+ * Begin a Black Market side-auction for a face-down Insider Tip. The current
+ * player is the auctioneer; bidding rotates poker-style; min bid is $0
+ * (auctioneer can take it for free if no one else raises). The auctioned tip
+ * is NOT placed in market — it sits inside the auction state.
+ */
+export function startSideAuction(
+  state: GameState,
+  tip: InsiderTipCard,
+  resumePhase: TurnPhase,
+  events: GameLogEntry[]
+): void {
+  const auctioneer = currentPlayer(state);
+  const n = state.players.length;
+  const order: PlayerId[] = [];
+  for (let i = 1; i < n; i++) {
+    order.push(state.players[(state.currentPlayerIndex + i) % n].playerId);
+  }
+  order.push(auctioneer.playerId);
+  const auction: AuctionState = {
+    cardUid: tip.uid,
+    auctioneerId: auctioneer.playerId,
+    initialBid: 0,
+    currentHigh: 0,
+    currentHighBidderId: auctioneer.playerId,
+    activeBidders: order,
+    awaitingBidderId: order[0] ?? null,
+    sideAuctionTip: tip,
+    resumePhase
+  };
+  state.auction = auction;
+  state.turnPhase = 'in_auction';
+  events.push(
+    event(
+      'side_auction_started',
+      `Black Market: ${auctioneer.name} opens a side-auction for a face-down Insider Tip at $0`,
+      {
+        actor: auctioneer.playerId,
+        payload: { tipUid: tip.uid, initialBid: 0, order, resumePhase }
+      }
+    )
+  );
+  if (auction.awaitingBidderId) {
+    promptForBid(state, auction);
+  } else {
+    resolveAuction(state, events);
+  }
+}
+
 function promptForBid(state: GameState, auction: AuctionState): void {
   if (!auction.awaitingBidderId) return;
   const bidder = findPlayer(state, auction.awaitingBidderId);
@@ -129,7 +232,9 @@ export function bid(state: GameState, playerId: PlayerId, amount: number): Mutat
       payload: { amount }
     })
   );
-  advanceAuction(state, events);
+  // Rotate starting from after the bidder's slot.
+  const fromIdx = auction.activeBidders.indexOf(playerId);
+  advanceAuction(state, events, fromIdx);
   return { ok: true, events };
 }
 
@@ -141,12 +246,15 @@ export function pass(state: GameState, playerId: PlayerId): MutationResult {
     return { ok: false, error: 'not your turn to bid', events };
   }
   const auction = state.auction;
+  const passIdx = auction.activeBidders.indexOf(playerId);
   auction.activeBidders = auction.activeBidders.filter(id => id !== playerId);
   state.pendingPrompts[playerId] = null;
   events.push(
     event('auction_pass', `${findPlayer(state, playerId).name} passes`, { actor: playerId })
   );
-  advanceAuction(state, events);
+  // After splicing, the next player in rotation now sits at passIdx — i.e.
+  // start searching from passIdx - 1 so the +1 step lands on them.
+  advanceAuction(state, events, passIdx - 1);
   return { ok: true, events };
 }
 
@@ -155,15 +263,24 @@ export function pass(state: GameState, playerId: PlayerId): MutationResult {
  *  - If only the current high bidder remains active (and they're not in the
  *    activeBidders list either because they're the auctioneer or because
  *    everyone else passed), resolve.
- *  - Otherwise rotate `awaitingBidderId` to the next active bidder who is not
- *    currently the high bidder.
+ *  - Otherwise rotate `awaitingBidderId` to the next active bidder (in
+ *    poker-style turn order) who is not currently the high bidder.
+ *
+ * `fromIdx` is the index in `activeBidders` (post-mutation) of the slot just
+ * acted on; the rotation continues at `(fromIdx + 1) % length` and wraps.
  */
-function advanceAuction(state: GameState, events: GameLogEntry[]): void {
+function advanceAuction(state: GameState, events: GameLogEntry[], fromIdx: number): void {
   const a = state.auction!;
-  // Next bidder = next in activeBidders order who is not the current high bidder.
-  const next = a.activeBidders.find(id => id !== a.currentHighBidderId);
+  const n = a.activeBidders.length;
+  let next: PlayerId | null = null;
+  for (let i = 1; i <= n; i++) {
+    const candidate = a.activeBidders[((fromIdx + i) % n + n) % n];
+    if (candidate !== a.currentHighBidderId) {
+      next = candidate;
+      break;
+    }
+  }
   if (!next) {
-    // Auction over.
     resolveAuction(state, events);
     return;
   }
@@ -175,6 +292,24 @@ function resolveAuction(state: GameState, events: GameLogEntry[]): void {
   const a = state.auction;
   if (!a) return;
   const winner = findPlayer(state, a.currentHighBidderId);
+  if (a.sideAuctionTip) {
+    // Black Market side-auction: winner pays and takes the (face-down) tip
+    // into hand. Market is untouched; restore the prior turnPhase.
+    const tip = a.sideAuctionTip;
+    const resume = a.resumePhase ?? 'awaiting_die_roll';
+    payBank(winner, a.currentHigh, events);
+    winner.hand.push(tip);
+    events.push(
+      event(
+        'side_auction_resolved',
+        `${winner.name} wins the face-down Insider Tip at $${a.currentHigh}`,
+        { actor: winner.playerId, payload: { tipUid: tip.uid, finalBid: a.currentHigh } }
+      )
+    );
+    state.auction = null;
+    state.turnPhase = resume;
+    return;
+  }
   const cardIdx = state.market.findIndex(c => c.uid === a.cardUid);
   if (cardIdx < 0) {
     state.auction = null;

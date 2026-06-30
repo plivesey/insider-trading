@@ -29,13 +29,13 @@ function freshGame(seed = 1): GameState {
 }
 
 function neutralProfile() {
-  // stockOffset=0, actionOffset=0, hotTipThreshold=0, wildShareValue=2
+  // stockOffset=0, actionOffset=0, hotTipThreshold=0, wildShareValue=3
   const rng = makeRng(0);
   const p = createBotProfile(rng);
   p.stockOffset = 0;
   p.actionOffset = 0;
   p.hotTipThreshold = 0;
-  p.wildShareValue = 2;
+  p.wildShareValue = 3;
   p.knownPeekedTips = [];
   p.auctionCeilings = {};
   return p;
@@ -61,9 +61,9 @@ describe('bot valuation', () => {
     expect(visibleCount(state, 'Yellow', 'a')).toBe(2);
     expect(perceivedStockValue(state, profile, 'Yellow', 'a')).toBe(7);
 
-    // Apply a stockOffset of −1 → −1 to perceived value.
-    profile.stockOffset = -1;
-    expect(perceivedStockValue(state, profile, 'Yellow', 'a')).toBe(6);
+    // Apply a stockOffset of +2 → +2 to perceived value.
+    profile.stockOffset = 2;
+    expect(perceivedStockValue(state, profile, 'Yellow', 'a')).toBe(9);
   });
 
   it('goalBumpPerStock applies floor(reward / (total requirements + 3))', () => {
@@ -175,10 +175,10 @@ describe('bot valuation', () => {
       }
     ];
     // 2-Purple goal gap=2 → bump = floor(10/5) = 2. 3-Yellow gap=3 → filtered.
-    // max(profile.wildShareValue=2, bestBump=2) = 2.
-    expect(perceivedWildShareValue(state, profile, 'a')).toBe(2);
+    // max(profile.wildShareValue=3, bestBump=2) = 3.
+    expect(perceivedWildShareValue(state, profile, 'a')).toBe(3);
     // If the goal bump beats the personal value, use the bump instead.
-    profile.wildShareValue = 2;
+    profile.wildShareValue = 3;
     state.activeGoals[0].reward = { text: '$30', parsed: { type: 'gain_cash', amount: 30 } };
     // 2-Purple goal bump = floor(30/5) = 6 > wildShareValue.
     expect(perceivedWildShareValue(state, profile, 'a')).toBe(6);

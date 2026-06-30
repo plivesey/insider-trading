@@ -25,7 +25,7 @@ export function createGameState(input: SetupInput): GameState {
   const rng: Rng = makeRng(seed);
 
   const numPlayers = players.length;
-  const numTips = 2 * numPlayers - 1;
+  const numTips = 2 * numPlayers;
   const numGoals = numPlayers + 2;
 
   const mainDeck: DeckCard[] = shuffle<DeckCard>(
@@ -34,7 +34,9 @@ export function createGameState(input: SetupInput): GameState {
   );
   const market = mainDeck.splice(0, 5);
 
-  const insiderTipDeck = shuffle(catalog.insiderTips, rng).slice(0, numTips);
+  const shuffledTips = shuffle(catalog.insiderTips, rng);
+  const insiderTipDeck = shuffledTips.slice(0, numTips);
+  const unusedInsiderTipPool = shuffledTips.slice(numTips);
   const activeGoals = shuffle(catalog.goals, rng).slice(0, numGoals);
 
   // Random first player.
@@ -78,6 +80,7 @@ export function createGameState(input: SetupInput): GameState {
     discardPile: [],
     insiderTipDeck,
     resolvedInsiderTips: [],
+    unusedInsiderTipPool,
     activeGoals,
     freeActionQueue: [],
     pendingPrompts,

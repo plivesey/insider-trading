@@ -6,7 +6,21 @@ import type {
 } from '@insider-trading/shared';
 import { COLORS } from '@insider-trading/shared';
 
-const LOAN_PENALTY = 12;
+/**
+ * Per-player escalating loan penalty. The n-th loan a player takes is worth
+ * `LOAN_BASE_PENALTY + n` at game end:
+ *   1st loan  → $12
+ *   2nd loan  → $13
+ *   3rd loan  → $14
+ *   ...
+ * Total for `loans` loans = sum_{k=1..loans}(11 + k) = 11·loans + loans·(loans+1)/2.
+ */
+const LOAN_BASE_PENALTY = 11; // n-th loan costs LOAN_BASE_PENALTY + n
+
+export function loanPenaltyFor(loans: number): number {
+  if (loans <= 0) return 0;
+  return LOAN_BASE_PENALTY * loans + (loans * (loans + 1)) / 2;
+}
 
 export function computePlayerWealth(state: GameState, player: PlayerPrivate): GameOverBreakdownEntry {
   let stockValue = 0;
@@ -17,7 +31,7 @@ export function computePlayerWealth(state: GameState, player: PlayerPrivate): Ga
     if (c.color === 'Wild') continue; // Wild Shares are $0
     stockValue += state.stockPrices[c.color];
   }
-  const loanPenalty = player.loans * LOAN_PENALTY;
+  const loanPenalty = loanPenaltyFor(player.loans);
   const endGameBonus = player.endGameCashBonus;
   const total = player.cash + stockValue + endGameBonus - loanPenalty;
   return {
