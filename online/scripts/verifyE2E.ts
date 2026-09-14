@@ -1,15 +1,18 @@
 /**
- * Phase 12 — VERIFICATION CHECKPOINT 2 (End-to-end autonomous).
+ * Phase 12 — VERIFICATION CHECKPOINT 2 (End-to-end autonomous, V5).
  *
  * Boots the backend with SEED=1234, opens 3 HTTP "player" sessions (each with
- * its own cookie jar + WS client), runs deterministic AI players until
- * gameOver, then asserts:
- *   1. Game ended via one of the two valid end conditions.
+ * its own cookie jar + WS client), drives the setup pass-and-draft to
+ * completion, runs deterministic AI players until gameOver, then asserts:
+ *   1. Game ended via the progress-threshold end condition.
  *   2. Final wealth math is correct for every player.
- *   3. Card uid universe is preserved (no leaks).
+ *   3. Card uid universe is preserved (no leaks), aside from starter-deck
+ *      cards that were legitimately discarded (never dealt, or discarded at
+ *      the end of the setup draft) -- that specific invariant is checked
+ *      precisely in backend/tests/unit/setup.test.ts instead.
  *   4. Replay assertion: re-running the log .jsonl from initial state
  *      reproduces the live final state.
- *   5. All 11 action card types were exercised over the run.
+ *   5. Market-deck action card coverage over the run (informational).
  */
 import fs from 'node:fs';
 import os from 'node:os';
@@ -72,7 +75,7 @@ function assert(cond: unknown, msg: string): void {
   }
 }
 
-const COLORS = ['Blue', 'Orange', 'Yellow', 'Purple'] as const;
+const COLORS = ['Blue', 'Orange', 'Green', 'Purple'] as const;
 
 /** Build a stock-assignment that satisfies a goal using owned colors + wilds. */
 function tryBuildGoalAssignment(myPlayer: any, goal: any): Record<string, string> | null {
@@ -121,7 +124,7 @@ function buildPromptResponse(pr: any, myPlayer: any, state: any): Record<string,
     case 'pick_color_amount': {
       const amount = pr.payload?.amount ?? 1;
       if (pr.payload?.perColor) {
-        return { choices: { Blue: amount, Orange: -amount, Yellow: amount, Purple: -amount } };
+        return { choices: { Blue: amount, Orange: -amount, Green: amount, Purple: -amount } };
       }
       return { color: 'Blue', sign: 'up' };
     }
@@ -136,10 +139,31 @@ function buildPromptResponse(pr: any, myPlayer: any, state: any): Record<string,
       const keepCount = pr.payload?.keepCount ?? 1;
       return { keepUids: drawn.slice(0, keepCount).map((d: any) => d.uid) };
     }
-    case 'final_tip_play_choice':
-      return { play: false };
-    case 'pick_market_card':
-      return { cardUid: (pr.payload?.market ?? state.market)?.[0]?.uid ?? state.market[0]?.uid };
+    case 'setup_draft_pick': {
+      const candidates = pr.payload?.candidates ?? [];
+      return { keepUid: candidates[0]?.uid };
+    }
+    case 'foresight_reorder': {
+      const candidateUids: string[] = pr.payload?.candidateUids ?? [];
+      // Keep the peeked order as-is; never bury one.
+      return { keepOrder: candidateUids };
+    }
+    case 'backroom_deal_pick_own_card': {
+      // Trade away our worst non-bonus card (bonus cards are rejected by the
+      // engine outright, so skip them here to avoid a wasted round-trip).
+      const tradeable = myPlayer.hand.find((c: any) => c.category !== 'bonus');
+      return { cardUid: tradeable?.uid };
+    }
+    case 'double_down_pick_card': {
+      const eligibleUids: string[] = pr.payload?.eligibleUids ?? [];
+      return { cardUid: eligibleUids[0] };
+    }
+    case 'pick_market_card': {
+      const mode = pr.payload?.mode as string | undefined;
+      const market = pr.payload?.market ?? state.market;
+      const pickable = mode === 'fire_sale' ? market.filter((c: any) => c.category === 'stock' && c.color !== 'Wild') : market;
+      return { cardUid: (pickable?.[0] ?? market?.[0])?.uid };
+    }
     case 'pick_hand_stock_for_swap':
     case 'pick_stock_from_hand': {
       const sources = pr.payload?.stocks ?? pr.payload?.hand;
@@ -232,9 +256,40 @@ async function main(): Promise<void> {
     await new Promise(r => setTimeout(r, 20));
   }
 
-  // Track action-card coverage (by card name → count) and Hot Tip usage.
+  // Drive the setup pass-and-draft to completion (3 rounds; the final
+  // leftover card auto-discards with no prompt).
+  for (let round = 0; round < 3; round++) {
+    let safety = 0;
+    while (safety++ < 30) {
+      let anyPending = false;
+      for (const p of players) {
+        const s = (await makeGet(base, p)('/api/state')).body.state;
+        const pr = s?.myPrompt;
+        if (!pr || pr.type !== 'setup_draft_pick') continue;
+        anyPending = true;
+        const response = buildPromptResponse(pr, s.myPlayer, s);
+        const post = makePost(base, p);
+        const r = await post('/api/prompt-response', { promptId: pr.promptId, response });
+        assert(r.status === 200, `${p.name} draft pick accepted`);
+      }
+      if (!anyPending) break;
+    }
+  }
+  const postDraft = (await makeGet(base, players[0])('/api/state')).body.state;
+  assert(postDraft.myPrompt?.type !== 'setup_draft_pick', 'setup draft complete');
+  assert(postDraft.players.every((p: any) => p.handSize === 3), 'every player holds 3 cards');
+  console.log('[verifyE2E] setup draft complete');
+
+  // Snapshot the authoritative (non-redacted) post-draft state as the uid
+  // baseline for the "no leaks" check below. Anything discarded during setup
+  // (leftover undealt starter-deck cards, each player's round-3 discard) is
+  // already gone from this snapshot, so it doesn't need special-casing --
+  // unlike a pre-draft baseline, where predicting which uid each player's
+  // random round-3 discard will be isn't possible ahead of time.
+  const postDraftLiveState = JSON.parse(JSON.stringify(server.hub.getGame()!));
+
+  // Track action-card coverage (by card name → count).
   const actionsPlayed: CardCounts = {};
-  let hotTipUsed = false;
   // (playerId, goalUid, hand-fingerprint) tuples we already tried & failed —
   // prevents infinite retry when our assignment is rejected.
   const failedGoalAttempts = new Set<string>();
@@ -286,7 +341,8 @@ async function main(): Promise<void> {
       continue;
     }
 
-    // 3. Free actions: any player can play action cards / Hot Tip / claim goals.
+    // 3. Free actions: any player can play action cards / market-movement
+    // cards / claim public or private goals.
     let didFreeAction = false;
     for (const p of players) {
       const s = (await makeGet(base, p)('/api/state')).body.state;
@@ -294,9 +350,15 @@ async function main(): Promise<void> {
       const my = s.myPlayer;
       if (!my) continue;
 
-      // Try to claim any qualifying goal.
+      // Try to claim any qualifying goal -- public (goalRow) first, then
+      // private (a goal card sitting in our own hand).
       const handFp = my.hand.map((c: any) => c.uid).sort().join(',');
-      for (const goal of s.activeGoals) {
+      const privateGoals = my.hand.filter((c: any) => c.category === 'goal');
+      const claimable: Array<{ goal: any; kind: 'claim_goal' | 'claim_private_goal' }> = [
+        ...s.goalRow.map((g: any) => ({ goal: g, kind: 'claim_goal' as const })),
+        ...privateGoals.map((g: any) => ({ goal: g, kind: 'claim_private_goal' as const }))
+      ];
+      for (const { goal, kind } of claimable) {
         const fpKey = `${p.playerId}:${goal.uid}:${handFp}`;
         if (failedGoalAttempts.has(fpKey)) continue;
         const assignment = tryBuildGoalAssignment(my, goal);
@@ -305,25 +367,23 @@ async function main(): Promise<void> {
           continue;
         }
         const post = makePost(base, p);
-        // Queue the free action.
         const r = await post('/api/free-action', {
-          request: {
-            kind: 'claim_goal',
-            goalUid: goal.uid,
-            stockAssignment: { cards: assignment }
-          }
+          request: { kind, goalUid: goal.uid, stockAssignment: { cards: assignment } }
         });
         if (r.status !== 200) {
           failedGoalAttempts.add(fpKey);
           continue;
         }
-        // After the free action drains, check whether the goal actually moved
-        // off activeGoals. If not, the claim was rejected by the engine
-        // (e.g. "goal requirement not met"), so blacklist this attempt to
-        // avoid spinning.
+        // After the free action drains, check whether the claim actually
+        // went through (the goal left goalRow, or a private goal left hand).
+        // If not, the engine rejected it (e.g. requirement not met after
+        // all), so blacklist this attempt to avoid spinning.
         const afterState = (await makeGet(base, p)('/api/state')).body.state;
-        const stillActive = afterState?.activeGoals?.some((g: any) => g.uid === goal.uid);
-        if (stillActive) {
+        const stillPending =
+          kind === 'claim_goal'
+            ? afterState?.goalRow?.some((g: any) => g.uid === goal.uid)
+            : afterState?.myPlayer?.hand?.some((c: any) => c.uid === goal.uid);
+        if (stillPending) {
           failedGoalAttempts.add(fpKey);
           continue;
         }
@@ -343,7 +403,6 @@ async function main(): Promise<void> {
         });
         if (r.status === 200) {
           actionsPlayed[unplayedAction.name] = (actionsPlayed[unplayedAction.name] ?? 0) + 1;
-          if (unplayedAction.effect?.type === 'peek_top_tip') hotTipUsed = true;
           didFreeAction = true;
           break;
         }
@@ -404,10 +463,7 @@ async function main(): Promise<void> {
   const finalState = (await makeGet(base, players[0])('/api/state')).body.state;
   const gameOver = finalState?.gameOver;
   assert(gameOver, 'gameOver populated');
-  assert(
-    ['insider_tip_deck_empty', 'one_goal_remaining'].includes(gameOver.reason),
-    `valid end condition: ${gameOver.reason}`
-  );
+  assert(gameOver.reason === 'progress_threshold_reached', `valid end condition: ${gameOver.reason}`);
   console.log(`[verifyE2E] ended via ${gameOver.reason}`);
 
   // Validate wealth math from authoritative server state.
@@ -428,23 +484,19 @@ async function main(): Promise<void> {
     'winners match'
   );
 
-  // No card uid leaks: every uid that was present at setup must still be
-  // present in the final state (somewhere). Hot Tip cards are single-use and
-  // removed from the game when played, so they're exempt from the "missing"
-  // check below.
+  // No card uid leaks: every uid present right after the setup draft
+  // completed must still be present somewhere in the final state.
   const catalog = loadCards(CARDS_DIR);
   const logFile = activeLogFile();
   assert(logFile && fs.existsSync(logFile), `log file exists: ${logFile}`);
   const entries = readLogFile(logFile!);
-  const initialState = replayFromLog(entries.slice(0, 1), catalog);
+
   const initialUids = new Set<string>();
-  for (const c of initialState.mainDeck) initialUids.add(c.uid);
-  for (const c of initialState.market) initialUids.add(c.uid);
-  for (const c of initialState.insiderTipDeck) initialUids.add(c.uid);
-  for (const g of initialState.activeGoals) initialUids.add(g.uid);
-  // Starting hands hold inline-generated cards (Hot Tip, Market Order) that
-  // aren't part of the deck/market/tip/goal pools.
-  for (const pl of initialState.players) for (const c of pl.hand) initialUids.add(c.uid);
+  for (const c of postDraftLiveState.mainDeck) initialUids.add(c.uid);
+  for (const c of postDraftLiveState.market) initialUids.add(c.uid);
+  for (const c of postDraftLiveState.eventDeck) initialUids.add(c.uid);
+  for (const g of postDraftLiveState.goalRow) initialUids.add(g.uid);
+  for (const pl of postDraftLiveState.players) for (const c of pl.hand) initialUids.add(c.uid);
 
   const present = new Set<string>();
   for (const p of liveState.players) {
@@ -455,19 +507,18 @@ async function main(): Promise<void> {
   for (const c of liveState.market) present.add(c.uid);
   for (const c of liveState.mainDeck) present.add(c.uid);
   for (const c of liveState.discardPile) present.add(c.uid);
-  for (const c of liveState.insiderTipDeck) present.add(c.uid);
-  for (const c of liveState.resolvedInsiderTips) present.add(c.uid);
-  for (const g of liveState.activeGoals) present.add(g.uid);
+  for (const c of liveState.eventDeck) present.add(c.uid);
+  for (const c of liveState.resolvedEventCards) present.add(c.uid);
+  for (const g of liveState.goalRow) present.add(g.uid);
 
   const missing: string[] = [];
-  // Hot Tip cards are consumed (removed from the game) when played.
-  for (const uid of initialUids) if (!present.has(uid) && !uid.startsWith('hottip-')) missing.push(uid);
+  for (const uid of initialUids) if (!present.has(uid)) missing.push(uid);
   const extra: string[] = [];
   for (const uid of present) if (!initialUids.has(uid)) extra.push(uid);
   assert(missing.length === 0, `missing uids: ${missing.slice(0, 5).join(',')}${missing.length > 5 ? '…' : ''} (${missing.length})`);
   assert(extra.length === 0, `extra uids: ${extra.slice(0, 5).join(',')}${extra.length > 5 ? '…' : ''} (${extra.length})`);
 
-  // Replay assertion.
+  // Replay assertion (full game, from true entry 0).
   const replayed = replayFromLog(entries, catalog);
   const diff = diffStates(liveState, replayed);
   if (diff) {
@@ -485,7 +536,6 @@ async function main(): Promise<void> {
   if (unexercised.length > 0) {
     console.warn(`[verifyE2E] WARNING: never played: ${unexercised.join(', ')}`);
   }
-  if (!hotTipUsed) console.warn('[verifyE2E] WARNING: Hot Tip never used');
 
   // Clean shutdown.
   for (const p of players) p.ws?.close();

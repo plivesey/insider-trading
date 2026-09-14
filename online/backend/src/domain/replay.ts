@@ -33,6 +33,12 @@ export function replayFromLog(entries: GameLogEntry[], catalog: CardCatalog): Ga
   const gameId = p.gameId as string;
   const startedAt = gameStart.ts;
   const state = createGameState({ catalog, players, seed, gameId, startedAt });
+  // Production's ServerHub.startGame calls advance() once immediately after
+  // createGameState to kick off the setup draft (beginDraft issues the first
+  // round's prompts) -- createGameState alone doesn't do this. Without the
+  // same bootstrap here, the very first op_prompt_response for a
+  // 'setup_draft_pick' would fail: no prompt would ever have been issued.
+  advance(state, []);
 
   for (let i = 1; i < entries.length; i++) {
     const ev = entries[i];

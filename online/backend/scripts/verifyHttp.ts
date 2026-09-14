@@ -99,13 +99,16 @@ async function main(): Promise<void> {
   assert(st.status === 200, 'start ok');
   s = await A.get('/api/state');
   assert(s.body.mode === 'in_game', 'in_game after start');
+  // turnPhase isn't part of the wire protocol (ProjectedGameState never
+  // exposes it) -- the setup draft is detected the same way the frontend
+  // does: every player starts with a pending 'setup_draft_pick' prompt.
+  assert(s.body.state.myPrompt?.type === 'setup_draft_pick', 'starts with a draft prompt');
 
   // Spectator (fresh client) sees spectator screen.
   const D = makeClient(base);
   const sp = await D.get('/api/state');
   assert(sp.body.mode === 'game_in_progress_spectator', 'spectator gets spectator screen');
 
-  // Drive a few turns.
   const clients: Record<string, ApiClient> = {};
   s = await A.get('/api/state');
   const stateA = s.body.state;
@@ -114,6 +117,43 @@ async function main(): Promise<void> {
     if (p.name === 'Bob') clients[p.playerId] = B;
     if (p.name === 'Carol') clients[p.playerId] = C;
   }
+
+  // Drive the setup pass-and-draft (3 rounds: keep 1 of 4, then 1 of 3, then
+  // 1 of 2 -- the final leftover auto-discards, no prompt for that step).
+  // Endpoints must reject turn/auction actions while this is in progress.
+  const rejected = await A.post('/api/turn-action', {
+    type: 'start_auction',
+    cardUid: stateA.market[0].uid,
+    initialBid: 0
+  });
+  assert(rejected.status !== 200, 'turn action rejected during setup_draft');
+
+  for (let round = 0; round < 3; round++) {
+    let safety = 0;
+    while (safety++ < 30) {
+      let anyPending = false;
+      for (const client of [A, B, C]) {
+        const cur = (await client.get('/api/state')).body.state;
+        const pr = cur?.myPrompt;
+        if (!pr || pr.type !== 'setup_draft_pick') continue;
+        anyPending = true;
+        const candidates = (pr.payload?.candidates as Array<{ uid: string }>) ?? [];
+        assert(candidates.length > 0, 'draft prompt carries full candidate cards');
+        const r = await client.post('/api/prompt-response', {
+          promptId: pr.promptId,
+          response: { keepUid: candidates[0].uid }
+        });
+        assert(r.status === 200, 'draft pick accepted');
+      }
+      if (!anyPending) break;
+    }
+  }
+  s = await A.get('/api/state');
+  assert(s.body.state.myPrompt?.type !== 'setup_draft_pick', 'draft complete, no draft prompt left');
+  assert(
+    s.body.state.players.every((p: any) => p.handSize === 3),
+    'every player holds exactly 3 cards post-draft'
+  );
 
   for (let turn = 0; turn < 8; turn++) {
     if (await isGameOver(A)) break;
@@ -178,11 +218,11 @@ async function drainAllPrompts(
           body = {};
           break;
         case 'pick_color':
-          body = { color: ['Blue', 'Orange', 'Yellow', 'Purple'].find(c => c !== pr.payload?.exclude) };
+          body = { color: ['Blue', 'Orange', 'Green', 'Purple'].find(c => c !== pr.payload?.exclude) };
           break;
         case 'pick_color_amount':
           body = pr.payload?.perColor
-            ? { choices: { Blue: 1, Orange: -1, Yellow: 1, Purple: -1 } }
+            ? { choices: { Blue: 1, Orange: -1, Green: 1, Purple: -1 } }
             : { color: 'Blue', sign: 'up' };
           break;
         default:
