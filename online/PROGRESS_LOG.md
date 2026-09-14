@@ -1,5 +1,7 @@
 # Implementation Progress Log
 
+> **Superseded as of the V5 migration.** Everything below is the original V4 build history. `online/` now runs V5 — see `online/V5_MIGRATION_PLAN.md` for that migration's own phase-by-phase log (source-of-truth corrections, shared types, engine, bots, frontend, testing, browser QA, cleanup). This file is kept for history only.
+
 Append-only log of every significant change made while building the online version of Insider Trading V4. See `PLAN.md` for the overall plan. Each entry: `## YYYY-MM-DD — Phase N: short subject` followed by 1–3 lines on what happened, what was decided, what was tested.
 
 ## 2026-05-23 — Phase 0: workspace scaffolding started

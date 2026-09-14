@@ -1,5 +1,7 @@
 # Online Insider Trading V4 — Implementation Plan
 
+> **Superseded.** This document (and `PROGRESS_LOG.md`) is the historical plan/log for the original V4 build of `online/`. The live app now runs V5's ruleset — see `online/V5_MIGRATION_PLAN.md` for what changed and the current state. That frozen V4 snapshot the online app was built against is archived at `v4/`. Kept here for history; don't treat anything below as describing the current app.
+
 > **This is a living document.** It can (and should) be updated with more phases, refined acceptance criteria, and design changes as I learn things during implementation. If a phase turns out wrong or a new phase becomes necessary, edit this file and `PROGRESS_LOG.md` together so the plan and reality stay in sync.
 
 ## Context

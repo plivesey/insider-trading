@@ -81,7 +81,7 @@ insider-trading/
 ├── playtest/
 │   ├── init.js                    # Generates game_state.json
 │   └── facilitator_guide.md       # How to run AI playtests
-├── online/                        # Live web implementation (backend/frontend/shared) — mid-migration to V5, see online/V5_MIGRATION_PLAN.md
+├── online/                        # Live web implementation (backend/frontend/shared) — V5, see online/V5_MIGRATION_PLAN.md for migration history/notes
 ├── v2/                            # Archived v2
 ├── v3/                            # Archived v3
 └── v4/                            # Archived V4 (frozen snapshot, incl. online/ as it stood at V4) — do not edit
