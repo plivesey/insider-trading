@@ -240,7 +240,7 @@ export function resolveActionEffect(
     }
 
     case 'fire_sale': {
-      const hasStock = state.market.some(c => c.category === 'stock');
+      const hasStock = state.market.some(c => c.category === 'stock' && c.color !== 'Wild');
       if (!hasStock) {
         events.push(
           event('fire_sale_no_stock', `${player.name} plays Fire Sale but the market has no stock — fizzles`, {

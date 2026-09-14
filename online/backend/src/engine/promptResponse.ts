@@ -320,6 +320,28 @@ export function respondToPrompt(
       const cardUid = response.cardUid as string | undefined;
       const mode = payload.mode as string | undefined;
       const freeTake = payload.freeTake as boolean | undefined;
+      if (mode === 'fire_sale') {
+        const stillEligible = state.market.some(
+          c =>
+            c.category === 'stock' &&
+            c.color !== 'Wild' &&
+            (!state.auction || state.auction.cardUid !== c.uid)
+        );
+        if (!stillEligible) {
+          // The market's colored stock disappeared (bought via auction) while
+          // this prompt was pending -- fizzle rather than demand a target
+          // that no longer exists, which would otherwise livelock the player.
+          clearPrompt(state, playerId);
+          events.push(
+            event(
+              'fire_sale_no_stock',
+              `${player.name}'s Fire Sale fizzles — no colored stock left in the market`,
+              { actor: playerId }
+            )
+          );
+          return { ok: true, events };
+        }
+      }
       if (!cardUid) return { ok: false, error: 'cardUid required', events };
       const mIdx = state.market.findIndex(c => c.uid === cardUid);
       if (mIdx < 0) return { ok: false, error: 'card not in market', events };

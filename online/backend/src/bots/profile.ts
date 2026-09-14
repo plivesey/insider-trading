@@ -65,6 +65,29 @@ export interface BotProfile {
    * behavior). Exposed so the sell threshold can be A/B-tested.
    */
   emergencySellMinLoans?: number;
+  /**
+   * Stagnation tracking for the "force-play a market-movement card" endgame
+   * fallback. A bot normally only plays a market-movement card from its hand
+   * when it's currently beneficial to itself -- rational in isolation, but if
+   * every remaining holder of an event-deck-origin card in every player's
+   * hand is simultaneously in that position, the progress tracker can never
+   * reach its threshold and the game never ends. Keyed off `state.turnNumber`
+   * (a global counter) rather than a per-bot call count, since bots earlier
+   * in turn order can starve later bots of decision calls for long stretches
+   * (e.g. a multi-round auction only ever asks the awaiting bidder). Reset
+   * per game.
+   */
+  lastSeenProgressTracker: number;
+  /** `state.turnNumber` as of the last time `lastSeenProgressTracker` changed. */
+  lastProgressTurn: number;
+  /**
+   * How many action cards this bot has played in a row during its own
+   * still-pending turn action (see decide.ts's MAX_OWN_TURN_ACTION_CARDS
+   * cap), and the `state.turnNumber` this streak applies to. Reset per game
+   * and whenever `state.turnNumber` moves.
+   */
+  ownTurnActionCardStreak: number;
+  ownTurnStreakTurnNumber: number;
 }
 
 export function createBotProfile(rng: Rng): BotProfile {
@@ -82,7 +105,11 @@ export function createBotProfile(rng: Rng): BotProfile {
     auctionCeilings: {},
     auctionBidOffsets: {},
     params: { ...defaultBotParams(), stockOffset, actionOffset, hotTipThreshold, wildShareValue },
-    buyCardStrategy: rng.int(2) === 0 ? 'pairs' : 'goal'
+    buyCardStrategy: rng.int(2) === 0 ? 'pairs' : 'goal',
+    lastSeenProgressTracker: -1,
+    lastProgressTurn: 0,
+    ownTurnActionCardStreak: 0,
+    ownTurnStreakTurnNumber: -1
   };
 }
 
@@ -93,7 +120,17 @@ export function createBotProfile(rng: Rng): BotProfile {
  * stale ceilings and peeked tips and corrupt training fitness.
  */
 export function withValueNet(base: BotProfile, net?: ValueNetWeights): BotProfile {
-  return { ...base, valueNet: net, knownPeekedTips: [], auctionCeilings: {}, auctionBidOffsets: {} };
+  return {
+    ...base,
+    valueNet: net,
+    knownPeekedTips: [],
+    auctionCeilings: {},
+    auctionBidOffsets: {},
+    lastSeenProgressTracker: -1,
+    lastProgressTurn: 0,
+    ownTurnActionCardStreak: 0,
+    ownTurnStreakTurnNumber: -1
+  };
 }
 
 const BOT_NAME_POOL = [

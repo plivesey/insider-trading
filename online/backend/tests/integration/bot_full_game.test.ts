@@ -72,7 +72,14 @@ function driveBotGame(
   state: GameState,
   profiles: Map<PlayerId, BotProfile>,
   rng: Rng,
-  maxTicks = 5000
+  // 5000 was tuned for 3-player games; more players means more turns/auction
+  // cycles are needed to accumulate enough progress-tracker credit (each
+  // player's cut of shared auction opportunities shrinks as the table grows).
+  // A 6-player game was observed to need up to ~19,000 ticks to complete
+  // legitimately (occasional long stock-stealing skirmishes between bots
+  // that don't advance the progress tracker, bounded by decide.ts's
+  // MAX_OWN_TURN_ACTION_CARDS cap but still consuming many ticks).
+  maxTicks = 30_000
 ): { ticks: number } {
   // Kick off the setup draft -- production code does this via ServerHub's
   // post-setup advance() call; a directly-constructed state needs the same
@@ -124,16 +131,21 @@ function driveBotGame(
   return { ticks };
 }
 
+const SEEDS = [1, 42, 99, 1234, 7777, 8675309, 24601];
+const PLAYER_COUNTS = [2, 3, 4, 5, 6];
+
 describe('bot full-game integration', () => {
-  it.each([1, 42, 99, 1234, 7777])(
-    'completes a 3-bot game with seed %i',
-    seed => {
-      const players = botPlayers(3);
+  it.each(
+    PLAYER_COUNTS.flatMap(n => SEEDS.map(seed => [n, seed] as const))
+  )(
+    'completes a %i-bot game with seed %i',
+    (n, seed) => {
+      const players = botPlayers(n);
       const state = createGameState({
         catalog,
         players,
         seed,
-        gameId: `g-${seed}`,
+        gameId: `g-${n}p-${seed}`,
         startedAt: '2026-01-01T00:00:00.000Z'
       });
       // Build per-bot profiles. Use a separate RNG (seeded from seed*2+1) so

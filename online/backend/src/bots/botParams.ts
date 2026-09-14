@@ -188,7 +188,11 @@ export function makeBotProfile(params: BotParams, net?: ValueNetWeights): BotPro
     auctionCeilings: {},
     auctionBidOffsets: {},
     valueNet: net,
-    params
+    params,
+    lastSeenProgressTracker: -1,
+    lastProgressTurn: 0,
+    ownTurnActionCardStreak: 0,
+    ownTurnStreakTurnNumber: -1
   };
 }
 

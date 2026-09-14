@@ -43,6 +43,27 @@ function nextLoanCost(currentLoans: number, loanCostOffset: number): number {
 }
 
 /**
+ * How many turns (global `state.turnNumber`, not per-bot decision calls --
+ * see BotProfile.lastProgressTurn) the progress tracker may sit unchanged
+ * before a bot force-plays a held market-movement card regardless of its
+ * score. Legitimate games observed in testing advance the tracker well
+ * within a few hundred turns; this is set well above that so the fallback
+ * never fires in normal play, but still bounds a fully-bot game to a finite
+ * length in the pathological case where every remaining event-deck-origin
+ * card is simultaneously unappealing to its private holder.
+ */
+const STAGNATION_FORCE_TURNS = 400;
+
+/**
+ * How many action cards the current player may play in a row, during their
+ * own still-pending turn action, before being forced ahead to the mandatory
+ * turn action instead. See the step-3 comment in decideBotAction for why
+ * this exists. Generous relative to normal play (chaining more than 2-3
+ * free-action cards before taking a turn action is already unusual).
+ */
+const MAX_OWN_TURN_ACTION_CARDS = 10;
+
+/**
  * Given the bot's perceived value of a card, current cash, and existing loan
  * count, return the maximum bid the bot is willing to make. Encodes both the
  * winner-curse discount and an EV-based loan gate: a new loan is only worth
@@ -105,6 +126,24 @@ export function decideBotAction(
   const bot = state.players.find(p => p.playerId === botId);
   if (!bot) return null;
 
+  // Track how long the progress tracker has gone without moving, from this
+  // bot's point of view -- see the stagnation-fallback note at step 4 below.
+  if (state.progressTracker !== profile.lastSeenProgressTracker) {
+    profile.lastSeenProgressTracker = state.progressTracker;
+    profile.lastProgressTurn = state.turnNumber;
+  }
+
+  // Track how many action cards this bot has played in a row since
+  // `state.turnNumber` last moved -- see the step-3 cap below. This applies
+  // regardless of whose turn it nominally is: two non-current players can
+  // volley a card back and forth via free actions (legal "any time") and
+  // starve the actual current player of any chance to act, so the cap has to
+  // bound every bot's action-card streak, not just the current player's.
+  if (profile.ownTurnStreakTurnNumber !== state.turnNumber) {
+    profile.ownTurnStreakTurnNumber = state.turnNumber;
+    profile.ownTurnActionCardStreak = 0;
+  }
+
   // Prune resolved peeks from the profile (no-op if none).
   if (profile.knownPeekedTips.length > 0) {
     const resolvedUids = new Set(state.resolvedEventCards.map(t => t.uid));
@@ -138,24 +177,58 @@ export function decideBotAction(
     return { kind: 'free_action', request: claim };
   }
 
-  // 3. Single-use action card in hand worth playing.
-  const cardToPlay = chooseActionCardToPlay(state, profile, botId);
-  if (cardToPlay) {
-    return {
-      kind: 'free_action',
-      request: { kind: 'play_action_card', cardUid: cardToPlay }
-    };
+  // 3. Single-use action card in hand worth playing. Capped at
+  // MAX_OWN_TURN_ACTION_CARDS plays per bot per turnNumber: a card like
+  // Hostile Takeover can hand its target a replacement draw that (via the
+  // market deck's discard-pile reshuffle) sometimes returns the very card
+  // just discarded, letting two bots -- neither of whom need be the current
+  // player, since free actions are legal "any time" -- volley the same
+  // action card back and forth indefinitely. Since that never advances
+  // `turnNumber`, it would starve the actual current player of ever getting
+  // a turn. Once capped, fall through; this bot returns null for the rest of
+  // this turnNumber (if it's not the current player) or falls to its own
+  // mandatory turn action below, which always exists per the rules ("an
+  // auction is always available").
+  if (profile.ownTurnActionCardStreak < MAX_OWN_TURN_ACTION_CARDS) {
+    const cardToPlay = chooseActionCardToPlay(state, profile, botId);
+    if (cardToPlay) {
+      profile.ownTurnActionCardStreak++;
+      return {
+        kind: 'free_action',
+        request: { kind: 'play_action_card', cardUid: cardToPlay }
+      };
+    }
   }
 
   // 4. Market-movement card in hand worth playing (positive tipScore for the bot).
+  let leastBadTipUid: string | null = null;
+  let leastBadTipScore = -Infinity;
   for (const c of bot.hand) {
     if (c.category !== 'insider_tip') continue;
-    if (tipScoreForBot(state, c, botId) > 0) {
+    const score = tipScoreForBot(state, c, botId);
+    if (score > 0) {
       return {
         kind: 'free_action',
         request: { kind: 'play_market_movement', cardUid: c.uid }
       };
     }
+    if (score > leastBadTipScore) {
+      leastBadTipScore = score;
+      leastBadTipUid = c.uid;
+    }
+  }
+
+  // 4b. Stagnation fallback: every remaining path to +1 progress can end up
+  // simultaneously unappealing to whoever holds it (a market-movement card
+  // that's currently harmful to its private holder), which would otherwise
+  // stall the progress tracker forever since nothing else ever forces it to
+  // resolve. Once the tracker has genuinely gone quiet for a long stretch,
+  // play the least-bad held card anyway rather than let the game hang.
+  if (leastBadTipUid && state.turnNumber - profile.lastProgressTurn > STAGNATION_FORCE_TURNS) {
+    return {
+      kind: 'free_action',
+      request: { kind: 'play_market_movement', cardUid: leastBadTipUid }
+    };
   }
 
   // 5. Turn action — only when it's the bot's turn and we're awaiting one.
@@ -643,8 +716,15 @@ function respondToPrompt(
           const v = perceivedStockCardValue(state, profile, c as StockCard, botId);
           if (!best || v > best.value) best = { uid: c.uid, value: v };
         }
-        if (!best) return null;
-        return { kind: 'prompt_response', promptId: prompt.promptId, response: { cardUid: best.uid } };
+        // No eligible colored stock left (bought out from under this pending
+        // prompt) -- respond anyway with an empty payload so the engine's
+        // fire_sale fizzle path clears the prompt, instead of returning null
+        // and leaving it stuck forever.
+        return {
+          kind: 'prompt_response',
+          promptId: prompt.promptId,
+          response: best ? { cardUid: best.uid } : {}
+        };
       }
       // Corner the Market / swap_with_market / Backroom Deal: pick the market
       // card with the highest perceived value. Exclude the card currently

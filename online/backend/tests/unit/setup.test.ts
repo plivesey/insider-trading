@@ -135,4 +135,44 @@ describe('createGameState (V5)', () => {
       expect(g.players.every(p => p.hand.length === 4)).toBe(true);
     }
   });
+
+  it.each([2, 3, 4, 5, 6])(
+    'exactly 2*players starter-deck cards enter play; the rest are truly discarded (%i players)',
+    n => {
+      const ps = Array.from({ length: n }, (_, i) => ({ playerId: `p${i}`, name: `P${i}` }));
+      const g = createGameState({
+        catalog,
+        players: ps,
+        seed: 17,
+        gameId: 'g-starter-discard',
+        startedAt: '2026-01-01T00:00:00.000Z'
+      });
+      const starterUids = new Set(catalog.starterDeck.map(c => c.uid));
+      expect(starterUids.size).toBe(24);
+
+      // Pre-draft: the only zones that can hold a starter-deck card are the
+      // players' dealt 4-card piles (nothing else -- market/mainDeck are
+      // built solely from the 51-card market deck, goalRow/eventDeck solely
+      // from the 30-card event deck).
+      const inPlay = g.players.flatMap(p => p.hand.map(c => c.uid)).filter(u => starterUids.has(u));
+      expect(new Set(inPlay).size).toBe(inPlay.length); // no duplicates
+      expect(inPlay).toHaveLength(2 * n); // rules.md: "2 cards per player" drawn from the starter deck
+
+      // Every other zone a starter card could conceivably leak into must
+      // contain none of the discarded uids -- confirming they are gone
+      // entirely, not merely absent from `hand` by coincidence.
+      const discardedUids = [...starterUids].filter(u => !inPlay.includes(u));
+      expect(discardedUids).toHaveLength(24 - 2 * n);
+      const otherZoneUids = new Set([
+        ...g.market.map(c => c.uid),
+        ...g.mainDeck.map(c => c.uid),
+        ...g.discardPile.map(c => c.uid),
+        ...g.goalRow.map(c => c.uid),
+        ...g.eventDeck.map(c => c.uid)
+      ]);
+      for (const uid of discardedUids) {
+        expect(otherZoneUids.has(uid)).toBe(false);
+      }
+    }
+  );
 });

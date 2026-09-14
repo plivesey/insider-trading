@@ -99,3 +99,26 @@ simulator over the final card/board art before printing.
 Oil Broker / Rail Broker / Steel Broker / Bank Broker (the new $2-auction-
 discount persistent cards) are placeholder names — open to change once
 finalized.
+
+## 11. Private market-movement cards can stall the progress tracker
+
+A privately-held market-movement card only ever gets played if its holder
+wants to (playing cards is "any time," never mandatory). A rational player
+holding a card that's currently harmful to their own portfolio (e.g. a
+crash on a color they're heavily invested in) has no incentive to ever play
+it. Discovered via bot self-play at 6 players (where more event-deck cards
+get siphoned into the initial draft and end up privately held): it's
+possible for every remaining path to +1 progress to be simultaneously
+unappealing to whoever holds it, so the progress tracker can sit forever a
+few points short of threshold with no way to force a resolution.
+
+The online implementation works around this for bots with a heuristic
+fallback (a bot eventually force-plays its least-bad held card after ~400
+turns of no tracker movement — see `online/backend/src/bots/decide.ts`),
+but that's a bot-AI patch, not a rules fix. Worth deciding whether the
+physical rules want an explicit tie-breaker for this case (e.g. "a player
+holding a market-movement card must play it before their Nth turn," or a
+house rule that the game ends in a stalemate scored as-is after some fixed
+number of turns) — not urgent since it seems to require an unlucky
+combination of hands, but real enough that it showed up in automated
+testing.
