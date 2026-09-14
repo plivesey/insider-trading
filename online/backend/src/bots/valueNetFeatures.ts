@@ -1,5 +1,5 @@
 import type { Color, GameState, GoalCard, PlayerId, StockCard } from '@insider-trading/shared';
-import { COLORS } from '@insider-trading/shared';
+import { COLORS, MAX_LOANS } from '@insider-trading/shared';
 import type { BotProfile } from './profile.js';
 import {
   bestGoalBump,
@@ -126,8 +126,12 @@ export function encodeColorFeatures(
   x[23] = wildOwned / 4;
   x[24] = bestGoalBump(state, botId, profile.params) / 4;
 
-  x[25] = (bot ? bot.cash : 0) / 30;
-  x[26] = (bot ? bot.loans : 0) / 3;
+  // Starting cash is $25 in V5 (was $30 in V4) and the loan cap is
+  // MAX_LOANS=2 (was 3) -- both denominators below now match the current
+  // rule constants, so these slots use their full [0,1] range again instead
+  // of being permanently compressed under the old game's numbers.
+  x[25] = (bot ? bot.cash : 0) / 25;
+  x[26] = (bot ? bot.loans : 0) / MAX_LOANS;
   x[27] = state.eventDeck.length / tipDenom;
   x[28] = state.resolvedEventCards.length / tipDenom;
   x[29] = state.market.length / 5;
