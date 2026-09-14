@@ -107,20 +107,42 @@
   },
   {
     "id": 12,
-    "name": "Black Market",
-    "description": "When revealed in the market, auction a face-down Insider Tip from the unused pool.",
-    "persistent": false,
+    "name": "Oil Broker",
+    "description": "Persistent: once played, pay $2 less whenever you win an auction for an Oil (Orange) stock (minimum payment $0).",
+    "persistent": true,
     "effect": {
-      "type": "auction_unused_tip"
+      "type": "broker_discount",
+      "color": "Orange"
     }
   },
   {
     "id": 13,
-    "name": "Black Market",
-    "description": "When revealed in the market, auction a face-down Insider Tip from the unused pool.",
-    "persistent": false,
+    "name": "Rail Broker",
+    "description": "Persistent: once played, pay $2 less whenever you win an auction for a Rail (Green) stock (minimum payment $0).",
+    "persistent": true,
     "effect": {
-      "type": "auction_unused_tip"
+      "type": "broker_discount",
+      "color": "Green"
+    }
+  },
+  {
+    "id": 14,
+    "name": "Steel Broker",
+    "description": "Persistent: once played, pay $2 less whenever you win an auction for a Steel (Blue) stock (minimum payment $0).",
+    "persistent": true,
+    "effect": {
+      "type": "broker_discount",
+      "color": "Blue"
+    }
+  },
+  {
+    "id": 15,
+    "name": "Bank Broker",
+    "description": "Persistent: once played, pay $2 less whenever you win an auction for a Bank (Purple) stock (minimum payment $0).",
+    "persistent": true,
+    "effect": {
+      "type": "broker_discount",
+      "color": "Purple"
     }
   }
 ]

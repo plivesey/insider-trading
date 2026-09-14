@@ -2,9 +2,7 @@
 
 > **Design note:** V5 is under active development. A few numbers below are
 > placeholders pending playtesting — each is called out inline and tracked
-> in `v5_tuning_notes.md`. Two action cards (**Insider Source**, **Black
-> Market**) also need a confirmed rewrite now that the event deck has
-> merged with the goal deck — see the callouts under Action Cards.
+> in `v5_tuning_notes.md`.
 
 ## Overview
 
@@ -15,11 +13,11 @@ A strategic trading and market-manipulation game for 2-6 players set in the 1920
 
 ---
 
-## Components (113 cards + 6 dice)
+## Components (111 cards + 6 dice)
 
-### Market Deck (53 cards)
+### Market Deck (51 cards)
 - **36 stock cards:** 32 colored (8 each of **Blue** [Steel], **Orange** [Oil], **Green** [Rail], **Purple** [Bank] — 4 blank + 4 special per color) + **4 Wild Share** cards (colorless).
-- **17 action cards:** one-shot and persistent powers (13 carried over from V4 + 4 new persistent Broker cards, see Action Cards).
+- **15 action cards:** one-shot and persistent powers (11 carried over from V4 + 4 new persistent Broker cards, see Action Cards).
 - Shuffled together into one face-down deck; auctioned during play exactly as in V4.
 
 > **Changed in V5:** the fourth stock color is now **Green** (Rail-themed), replacing V4's Yellow.
@@ -44,6 +42,7 @@ Face-up on the table. Auto-issued when a player can't cover a payment. **Max 2 l
 ### Removed from V5
 - **Hot Tip cards** (the starting single-use "peek the top event card" power) no longer exist.
 - **Market Order** (the starting "buy a stock free" card) no longer exists. The drafted starting hand (see Setup) replaces both.
+- **Black Market** (the action card that auctioned a tip from V4's "unused tip pool") is removed entirely — that pool doesn't exist in V5, since the whole event deck goes into circulation at setup with no leftovers set aside.
 
 ### Other
 - **A bag of 6 dice** (see Dice below) — replaces V4's single d6.
@@ -117,7 +116,7 @@ These moves happen on **every** purchase and **every** sale, including sales mad
 
 ## Setup
 
-1. **Build the market deck:** Shuffle all 36 stock cards and 17 action cards into one **53-card** face-down market deck.
+1. **Build the market deck:** Shuffle all 36 stock cards and 15 action cards into one **51-card** face-down market deck.
 2. **Reveal the market:** Turn up **5 cards** from the market deck side by side.
 3. **Build the event deck & reveal starting goals:**
    a. Shuffle all **30 event deck cards** (16 market-movement + 14 goal) together.
@@ -221,7 +220,7 @@ Goal cards can enter play two different ways, and behave differently depending o
 
 ---
 
-## Action Cards (17)
+## Action Cards (15)
 
 These are shuffled into the **market deck** (unlike the Starter Action Cards above, which only live in the Starter Deck).
 
@@ -237,7 +236,6 @@ These are shuffled into the **market deck** (unlike the Starter Action Cards abo
 | **Hostile Takeover** | Look at another player's hand and take 1 stock of your choice. They draw the top card of the market deck. |
 | **Rumor Mill** | Adjust every stock by +1 or −1 (choose one direction for each stock). |
 | **Insider Source** ×2 | Draw the top card of the **event deck** into your hand. If it's a market-movement card, play it later at any time as a free action (bumps the progress tracker when played). If it's a goal card, it's now a **private goal** only you can complete, exactly like one drafted at setup. *(Updated for V5's merged deck — the old "if only one tip remains" end-game clause is gone, since deck exhaustion no longer ends the game.)* |
-| **Black Market** ×2 | ⚠️ **Needs a decision.** In V4 this triggered a side-auction for a tip drawn from a separate "unused tip pool" — that pool no longer exists in V5, since the whole event deck goes into circulation at setup. Needs a redefinition (e.g. auctioning off the actual top card of the live event deck?) before this card can be used. See `v5_tuning_notes.md`. |
 | **Oil Broker** | New in V5. **Persistent:** once played, pay **$2 less** whenever you win an auction for an Oil (Orange) stock (minimum payment $0). Price still moves +1 and any special ability still triggers as normal — only the amount you pay changes. |
 | **Rail Broker** | New in V5. **Persistent:** once played, pay **$2 less** whenever you win an auction for a Rail (Green) stock (minimum payment $0). |
 | **Steel Broker** | New in V5. **Persistent:** once played, pay **$2 less** whenever you win an auction for a Steel (Blue) stock (minimum payment $0). |

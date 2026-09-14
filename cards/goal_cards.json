@@ -37,10 +37,10 @@
       "difficulty": "easy",
       "title": "Branch Line",
       "goal": {
-        "text": "2 Yellow",
+        "text": "2 Green",
         "parsed": {
           "type": "pair",
-          "requirements": { "Yellow": 2 }
+          "requirements": { "Green": 2 }
         }
       },
       "reward": {
@@ -101,10 +101,10 @@
       "difficulty": "hard",
       "title": "Rail Monopoly",
       "goal": {
-        "text": "3 Yellow",
+        "text": "3 Green",
         "parsed": {
           "type": "three_of_a_kind",
-          "requirements": { "Yellow": 3 }
+          "requirements": { "Green": 3 }
         }
       },
       "reward": {
@@ -149,10 +149,10 @@
       "difficulty": "hard",
       "title": "Vertical Integration",
       "goal": {
-        "text": "2 Blue + 2 Yellow",
+        "text": "2 Blue + 2 Green",
         "parsed": {
           "type": "two_pair",
-          "requirements": { "Blue": 2, "Yellow": 2 }
+          "requirements": { "Blue": 2, "Green": 2 }
         }
       },
       "reward": {
@@ -181,10 +181,10 @@
       "difficulty": "hard",
       "title": "Fuel & Freight",
       "goal": {
-        "text": "2 Orange + 2 Yellow",
+        "text": "2 Orange + 2 Green",
         "parsed": {
           "type": "two_pair",
-          "requirements": { "Orange": 2, "Yellow": 2 }
+          "requirements": { "Orange": 2, "Green": 2 }
         }
       },
       "reward": {
@@ -213,10 +213,10 @@
       "difficulty": "hard",
       "title": "Track & Trust",
       "goal": {
-        "text": "2 Yellow + 2 Purple",
+        "text": "2 Green + 2 Purple",
         "parsed": {
           "type": "two_pair",
-          "requirements": { "Yellow": 2, "Purple": 2 }
+          "requirements": { "Green": 2, "Purple": 2 }
         }
       },
       "reward": {

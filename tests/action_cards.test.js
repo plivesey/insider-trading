@@ -1,8 +1,8 @@
 const cards = require('../cards/action_cards.json');
 
 describe('Action Cards', () => {
-  test('should have exactly 13 cards', () => {
-    expect(cards).toHaveLength(13);
+  test('should have exactly 15 cards', () => {
+    expect(cards).toHaveLength(15);
   });
 
   test('should have unique ids', () => {
@@ -11,10 +11,10 @@ describe('Action Cards', () => {
   });
 
   test('names are unique except for duplicates explicitly allowed in the deck', () => {
-    // Insider Source and Black Market each have two copies by design.
+    // Insider Source has two copies by design.
     const names = cards.map(c => c.name);
     const duplicates = names.filter((n, i) => names.indexOf(n) !== i).sort();
-    expect(duplicates).toEqual(['Black Market', 'Insider Source']);
+    expect(duplicates).toEqual(['Insider Source']);
   });
 
   test('should have required fields on every card', () => {
@@ -30,23 +30,30 @@ describe('Action Cards', () => {
     }
   });
 
-  test('should have exactly 1 persistent card', () => {
+  test('should have exactly 5 persistent cards (Preferred Bidder + 4 Brokers)', () => {
     const persistent = cards.filter(c => c.persistent === true);
-    expect(persistent).toHaveLength(1);
+    expect(persistent).toHaveLength(5);
   });
 
-  test('should have exactly 12 single-use cards', () => {
+  test('should have exactly 10 single-use cards', () => {
     const singleUse = cards.filter(c => c.persistent === false);
-    expect(singleUse).toHaveLength(12);
+    expect(singleUse).toHaveLength(10);
   });
 
-  test('the persistent card should be Preferred Bidder', () => {
-    const persistentNames = cards.filter(c => c.persistent).map(c => c.name);
-    expect(persistentNames).toEqual(['Preferred Bidder']);
+  test('the persistent cards should be Preferred Bidder and the 4 Brokers', () => {
+    const persistentNames = cards.filter(c => c.persistent).map(c => c.name).sort();
+    expect(persistentNames).toEqual(
+      ['Bank Broker', 'Oil Broker', 'Preferred Bidder', 'Rail Broker', 'Steel Broker'].sort()
+    );
   });
 
   test('Connected Broker should no longer exist', () => {
     expect(cards.find(c => c.name === 'Connected Broker')).toBeUndefined();
+  });
+
+  test('Black Market should no longer exist in V5', () => {
+    expect(cards.find(c => c.name === 'Black Market')).toBeUndefined();
+    expect(cards.find(c => c.effect.type === 'auction_unused_tip')).toBeUndefined();
   });
 
   test('should include two Insider Source cards (draw_tip)', () => {
@@ -55,10 +62,14 @@ describe('Action Cards', () => {
     expect(draw.every(c => c.name === 'Insider Source')).toBe(true);
   });
 
-  test('should include two Black Market cards (auction_unused_tip)', () => {
-    const bm = cards.filter(c => c.effect.type === 'auction_unused_tip');
-    expect(bm).toHaveLength(2);
-    expect(bm.every(c => c.name === 'Black Market')).toBe(true);
+  test('should include exactly one Broker card per color', () => {
+    const brokers = cards.filter(c => c.effect.type === 'broker_discount');
+    expect(brokers).toHaveLength(4);
+    const colors = brokers.map(c => c.effect.color).sort();
+    expect(colors).toEqual(['Blue', 'Green', 'Orange', 'Purple']);
+    for (const card of brokers) {
+      expect(card.persistent).toBe(true);
+    }
   });
 
   test('effect should have a type field', () => {

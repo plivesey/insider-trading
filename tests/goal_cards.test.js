@@ -1,6 +1,6 @@
 const data = require('../cards/goal_cards.json');
 
-const VALID_COLORS = ['Blue', 'Orange', 'Yellow', 'Purple'];
+const VALID_COLORS = ['Blue', 'Orange', 'Green', 'Purple'];
 const VALID_DIFFICULTIES = ['easy', 'hard'];
 const VALID_GOAL_TYPES = ['pair', 'three_of_a_kind', 'two_pair'];
 
@@ -132,8 +132,8 @@ describe('Goal Cards', () => {
     const twoPairs = cards.filter(c => c.goal.parsed.type === 'two_pair');
     const combos = twoPairs.map(c => Object.keys(c.goal.parsed.requirements).sort().join('+'));
     const expectedCombos = [
-      'Blue+Orange', 'Blue+Purple', 'Blue+Yellow',
-      'Orange+Purple', 'Orange+Yellow', 'Purple+Yellow'
+      'Blue+Orange', 'Blue+Purple', 'Blue+Green',
+      'Orange+Purple', 'Green+Orange', 'Green+Purple'
     ];
     expect(combos.sort()).toEqual(expectedCombos.sort());
   });

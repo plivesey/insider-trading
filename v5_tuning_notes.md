@@ -56,17 +56,15 @@ deck dry is expected to be essentially unreachable in practice. If it
 somehow does happen mid a multi-card draw, no special handling: just
 resolve whatever cards remain and nothing else happens.
 
-## 7. Black Market action card needs a rewrite (⚠️ blocks nothing else, but needs a decision)
+## 7. Black Market action card — RESOLVED: removed
 
-Black Market currently reads (V4): "when revealed in the market, auction a
-face-down Insider Tip from the unused-tip pool." That pool doesn't exist in
-V5 — the whole 30-card event deck goes into circulation at setup instead of
-a curated subset with leftovers set aside. Options to consider: auction the
-actual top card of the live event deck (winner takes it as a private
-market-movement card or goal, same as Insider Source); remove the card
-from the game entirely and replace its slot with something else; or some
-other mechanic. Needs your call before this card is usable again —
-`rules.md` currently flags it inline with a placeholder.
+Black Market's V4 mechanic ("auction a face-down Insider Tip from the
+unused-tip pool") had no analog in V5, since the whole 30-card event deck
+goes into circulation at setup with no leftover pool. Decided: the card is
+removed entirely rather than redefined. Market Deck is now 36 stock + 15
+action = 51 cards (11 V4 actions carried over + 4 new Broker cards).
+`rules.md`, `cards/action_cards.json`, and the online migration plan
+(`online/V5_MIGRATION_PLAN.md`) all reflect this.
 
 ## 8. Insider Source now might draw a goal card
 

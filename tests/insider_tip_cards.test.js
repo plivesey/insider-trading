@@ -1,6 +1,6 @@
 const data = require('../cards/insider_tip_cards.json');
 
-const VALID_COLORS = ['Blue', 'Orange', 'Yellow', 'Purple'];
+const VALID_COLORS = ['Blue', 'Orange', 'Green', 'Purple'];
 const VALID_TYPES = ['crash', 'surge', 'slump'];
 
 describe('Insider Tip Cards', () => {

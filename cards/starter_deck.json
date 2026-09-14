@@ -1,0 +1,110 @@
+[
+  { "color": "Blue", "type": "blank" },
+  { "color": "Blue", "type": "blank" },
+  { "color": "Blue", "type": "blank" },
+  { "color": "Orange", "type": "blank" },
+  { "color": "Orange", "type": "blank" },
+  { "color": "Orange", "type": "blank" },
+  { "color": "Green", "type": "blank" },
+  { "color": "Green", "type": "blank" },
+  { "color": "Green", "type": "blank" },
+  { "color": "Purple", "type": "blank" },
+  { "color": "Purple", "type": "blank" },
+  { "color": "Purple", "type": "blank" },
+  {
+    "id": 101,
+    "name": "Fire Sale",
+    "description": "Buy any one face-up market stock for a flat $3, regardless of its listed price. Not a normal buy: no price move, no special ability triggers.",
+    "persistent": false,
+    "hidden": false,
+    "effect": { "type": "fire_sale" }
+  },
+  {
+    "id": 102,
+    "name": "First Look",
+    "description": "Draw the top card of the market deck into your hand.",
+    "persistent": false,
+    "hidden": false,
+    "effect": { "type": "first_look" }
+  },
+  {
+    "id": 103,
+    "name": "Foresight",
+    "description": "Look at the top 4 cards of the event deck. Put them back on top in any order; optionally, move one of the 4 to the bottom of the deck instead of keeping all 4 on top. No card leaves the game either way.",
+    "persistent": false,
+    "hidden": false,
+    "effect": { "type": "foresight" }
+  },
+  {
+    "id": 104,
+    "name": "Windfall",
+    "description": "Gain $5 from the bank.",
+    "persistent": false,
+    "hidden": false,
+    "effect": { "type": "windfall" }
+  },
+  {
+    "id": 105,
+    "name": "Market Panic",
+    "description": "Every other player loses $3. A player with less than $3 just drops to $0 -- this does not trigger a loan.",
+    "persistent": false,
+    "hidden": false,
+    "effect": { "type": "market_panic" }
+  },
+  {
+    "id": 106,
+    "name": "Backroom Deal",
+    "description": "Trade any one card from your hand -- a stock, action card, market-movement card, or even a private goal -- for any one face-up market card. Your card goes face-up into that market slot and is auctioned normally later. Taking the market card this way is a plain swap: no price move, no special ability triggers. This exposes the traded card's identity to the whole table, even if it was a private goal.",
+    "persistent": false,
+    "hidden": false,
+    "effect": { "type": "backroom_deal" }
+  },
+  {
+    "id": 107,
+    "name": "Double Down",
+    "description": "Pay $2 to the bank (this can trigger a loan if you can't cover it) -- then choose a different single-use action card in your hand, resolve its effect twice, and discard it. Cannot target a persistent card or any hidden end-game bonus card.",
+    "persistent": false,
+    "hidden": false,
+    "effect": { "type": "double_down" }
+  },
+  {
+    "id": 108,
+    "name": "Nest Egg",
+    "description": "Never played -- stays secret in your hand all game. Worth a flat +$7 at final wealth calculation.",
+    "persistent": false,
+    "hidden": true,
+    "effect": { "type": "flat_cash", "amount": 7 }
+  },
+  {
+    "id": 109,
+    "name": "Portfolio",
+    "description": "Never played -- stays secret in your hand all game. +$2 at game end for every stock card you hold (Wild Shares count).",
+    "persistent": false,
+    "hidden": true,
+    "effect": { "type": "per_stock_held", "amount": 2 }
+  },
+  {
+    "id": 110,
+    "name": "Trophy Case",
+    "description": "Never played -- stays secret in your hand all game. +$3 at game end for every goal you've completed (public or private claims both count; an unclaimed private goal does not).",
+    "persistent": false,
+    "hidden": true,
+    "effect": { "type": "per_goal_completed", "amount": 3 }
+  },
+  {
+    "id": 111,
+    "name": "Clean Ledger",
+    "description": "Never played -- stays secret in your hand all game. +$10 at game end if you took zero loans the entire game.",
+    "persistent": false,
+    "hidden": true,
+    "effect": { "type": "no_loans_bonus", "amount": 10 }
+  },
+  {
+    "id": 112,
+    "name": "Easy Credit",
+    "description": "Never played -- stays secret in your hand all game. Every loan you took costs a flat -$10 at game end instead of the normal -$12 / -$14.",
+    "persistent": false,
+    "hidden": true,
+    "effect": { "type": "easy_credit" }
+  }
+]

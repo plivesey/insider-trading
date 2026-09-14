@@ -20,16 +20,17 @@ If you're an agent starting fresh on this: **read this entire file first**, top 
 
 ## Phase 0 — Source-of-Truth Corrections (root repo)
 
-**Status:** not started
+**Status:** DONE
 **Rationale:** the online app loads cards directly from root `/cards/*.json`, and this plan references `rules.md` throughout. Both must be fully consistent with V5 (including the two decisions above) before any code changes.
 
-- [ ] `cards/stock_cards.json`: rename all 8 `"color": "Yellow"` entries to `"color": "Green"`.
-- [ ] `cards/action_cards.json`: delete the 2 `Black Market` (`auction_unused_tip`) entries. Append 4 new entries for Oil/Rail/Steel/Bank Broker (new effect type `broker_discount`, persistent, one per color). File goes from 13 → 15 entries.
-- [ ] Author a new `cards/starter_deck.json`: 24 entries — 12 basic stock cards (3 each Blue/Orange/Green/Purple, `type: 'blank'`) + 12 starter action cards transcribed verbatim from `rules.md` (7 playable: Fire Sale, First Look, Foresight, Windfall, Market Panic, Backroom Deal, Double Down; 5 hidden bonus, never played: Nest Egg, Portfolio, Trophy Case, Clean Ledger, Easy Credit).
-- [ ] `rules.md`: fix "17 action cards"/"53-card market deck" → 15/51 (the Broker-card and market-deck-size lines), and rewrite the Black Market row to state it's removed from V5.
-- [ ] `v5_tuning_notes.md`: mark the Black Market item resolved ("removed"), leave the rest as-is.
-- [ ] Root `npm test` still passes (these files are covered by root Jest tests — update `tests/*.test.js` counts as needed for the new numbers).
-- [ ] Commit.
+- [x] `cards/stock_cards.json`: rename all 8 `"color": "Yellow"` entries to `"color": "Green"`. (Also updated Scout/Informant `ability` text on all 4 colors to the new "top 1"/"top 2 of the event deck" wording, and confirmed Informant's trigger is "When bought" — the `type` value is still `peek_sell`, a cosmetic misnomer left as-is per the plan.)
+- [x] `cards/action_cards.json`: deleted the 2 `Black Market` (`auction_unused_tip`) entries. Appended 4 new entries (ids 12-15) for Oil/Rail/Steel/Bank Broker (`broker_discount`, persistent, one per color). File is now 15 entries.
+- [x] Authored `cards/starter_deck.json`: 24 entries — 12 basic stock cards (3 each Blue/Orange/Green/Purple) + 12 starter action cards (7 playable with `"hidden": false`, 5 bonus cards with `"hidden": true`).
+- [x] `rules.md`: fixed action-card/market-deck counts to 15/51, removed the Black Market row from the Action Cards table, added it to "Removed from V5", and removed the now-resolved design-note callout at the top.
+- [x] `v5_tuning_notes.md`: marked the Black Market item resolved ("removed").
+- [x] Also (beyond the original scope, but needed since these files also referenced `Yellow`): renamed `Yellow`→`Green` in `cards/insider_tip_cards.json` and `cards/goal_cards.json`; deleted `cards/peek_cards.json` (Hot Tip cards no longer exist in V5); rewrote `tests/deck_composition.test.js` and `tests/action_cards.test.js` for V5 counts/cards; fixed color references in `tests/stock_cards.test.js`, `tests/goal_cards.test.js`, `tests/insider_tip_cards.test.js`; updated root `CLAUDE.md` to describe V5 (was still fully V4).
+- [x] Root `npm test` passes — 5 suites, 63 tests, all green.
+- [x] Commit.
 
 ---
 

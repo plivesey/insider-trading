@@ -1,6 +1,6 @@
 const cards = require('../cards/stock_cards.json');
 
-const VALID_COLORS = ['Blue', 'Orange', 'Yellow', 'Purple'];
+const VALID_COLORS = ['Blue', 'Orange', 'Green', 'Purple'];
 const SPECIAL_TYPES = ['extra_up', 'other_up', 'peek_buy', 'peek_sell'];
 const COLORED_TYPES = ['blank', ...SPECIAL_TYPES];
 
@@ -80,11 +80,18 @@ describe('Stock Cards', () => {
     }
   });
 
-  test('peek specials should mention Insider Tip', () => {
+  test('peek specials should mention the event deck', () => {
     const peeks = cards.filter(c => c.type === 'peek_buy' || c.type === 'peek_sell');
     expect(peeks).toHaveLength(8);
     for (const card of peeks) {
-      expect(card.ability).toContain('Insider Tip');
+      expect(card.ability).toContain('event deck');
+    }
+  });
+
+  test('peek specials should all trigger on buy', () => {
+    const peeks = cards.filter(c => c.type === 'peek_buy' || c.type === 'peek_sell');
+    for (const card of peeks) {
+      expect(card.ability).toMatch(/^When bought/);
     }
   });
 });

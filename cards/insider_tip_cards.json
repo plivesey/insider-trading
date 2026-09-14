@@ -27,14 +27,14 @@
     {
       "id": 5,
       "type": "crash",
-      "text": "Yellow stock value is halved (round down)",
-      "effect": { "type": "halve", "color": "Yellow" }
+      "text": "Green stock value is halved (round down)",
+      "effect": { "type": "halve", "color": "Green" }
     },
     {
       "id": 6,
       "type": "crash",
-      "text": "Yellow stock value is halved (round down)",
-      "effect": { "type": "halve", "color": "Yellow" }
+      "text": "Green stock value is halved (round down)",
+      "effect": { "type": "halve", "color": "Green" }
     },
     {
       "id": 7,
@@ -63,8 +63,8 @@
     {
       "id": 11,
       "type": "surge",
-      "text": "Yellow +4",
-      "effect": { "type": "adjust", "changes": { "Yellow": 4 } }
+      "text": "Green +4",
+      "effect": { "type": "adjust", "changes": { "Green": 4 } }
     },
     {
       "id": 12,
@@ -87,14 +87,14 @@
     {
       "id": 15,
       "type": "slump",
-      "text": "Purple -2 / Yellow -2",
-      "effect": { "type": "adjust", "changes": { "Purple": -2, "Yellow": -2 } }
+      "text": "Purple -2 / Green -2",
+      "effect": { "type": "adjust", "changes": { "Purple": -2, "Green": -2 } }
     },
     {
       "id": 16,
       "type": "slump",
-      "text": "Yellow -2 / Blue -2",
-      "effect": { "type": "adjust", "changes": { "Yellow": -2, "Blue": -2 } }
+      "text": "Green -2 / Blue -2",
+      "effect": { "type": "adjust", "changes": { "Green": -2, "Blue": -2 } }
     }
   ]
 }
