@@ -1,0 +1,42 @@
+[
+  { "color": "Blue", "type": "blank" },
+  { "color": "Blue", "type": "blank" },
+  { "color": "Blue", "type": "blank" },
+  { "color": "Blue", "type": "blank" },
+  { "color": "Blue", "type": "extra_up", "name": "Boom", "ability": "When bought, Blue rises an extra +1 (Blue rises +2 total)." },
+  { "color": "Blue", "type": "other_up", "name": "Tip-Off", "ability": "When bought, raise a different stock of your choice by +1." },
+  { "color": "Blue", "type": "peek_buy", "name": "Scout", "ability": "When bought, look at the top Insider Tip card." },
+  { "color": "Blue", "type": "peek_sell", "name": "Informant", "ability": "When sold, look at the top Insider Tip card." },
+
+  { "color": "Orange", "type": "blank" },
+  { "color": "Orange", "type": "blank" },
+  { "color": "Orange", "type": "blank" },
+  { "color": "Orange", "type": "blank" },
+  { "color": "Orange", "type": "extra_up", "name": "Boom", "ability": "When bought, Orange rises an extra +1 (Orange rises +2 total)." },
+  { "color": "Orange", "type": "other_up", "name": "Tip-Off", "ability": "When bought, raise a different stock of your choice by +1." },
+  { "color": "Orange", "type": "peek_buy", "name": "Scout", "ability": "When bought, look at the top Insider Tip card." },
+  { "color": "Orange", "type": "peek_sell", "name": "Informant", "ability": "When sold, look at the top Insider Tip card." },
+
+  { "color": "Yellow", "type": "blank" },
+  { "color": "Yellow", "type": "blank" },
+  { "color": "Yellow", "type": "blank" },
+  { "color": "Yellow", "type": "blank" },
+  { "color": "Yellow", "type": "extra_up", "name": "Boom", "ability": "When bought, Yellow rises an extra +1 (Yellow rises +2 total)." },
+  { "color": "Yellow", "type": "other_up", "name": "Tip-Off", "ability": "When bought, raise a different stock of your choice by +1." },
+  { "color": "Yellow", "type": "peek_buy", "name": "Scout", "ability": "When bought, look at the top Insider Tip card." },
+  { "color": "Yellow", "type": "peek_sell", "name": "Informant", "ability": "When sold, look at the top Insider Tip card." },
+
+  { "color": "Purple", "type": "blank" },
+  { "color": "Purple", "type": "blank" },
+  { "color": "Purple", "type": "blank" },
+  { "color": "Purple", "type": "blank" },
+  { "color": "Purple", "type": "extra_up", "name": "Boom", "ability": "When bought, Purple rises an extra +1 (Purple rises +2 total)." },
+  { "color": "Purple", "type": "other_up", "name": "Tip-Off", "ability": "When bought, raise a different stock of your choice by +1." },
+  { "color": "Purple", "type": "peek_buy", "name": "Scout", "ability": "When bought, look at the top Insider Tip card." },
+  { "color": "Purple", "type": "peek_sell", "name": "Informant", "ability": "When sold, look at the top Insider Tip card." },
+
+  { "color": "Wild", "type": "wild", "name": "Wild Share", "ability": "No cash value and cannot be sold. When claiming a Goal, may count as one stock of any one color, then is discarded." },
+  { "color": "Wild", "type": "wild", "name": "Wild Share", "ability": "No cash value and cannot be sold. When claiming a Goal, may count as one stock of any one color, then is discarded." },
+  { "color": "Wild", "type": "wild", "name": "Wild Share", "ability": "No cash value and cannot be sold. When claiming a Goal, may count as one stock of any one color, then is discarded." },
+  { "color": "Wild", "type": "wild", "name": "Wild Share", "ability": "No cash value and cannot be sold. When claiming a Goal, may count as one stock of any one color, then is discarded." }
+]

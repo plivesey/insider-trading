@@ -84,8 +84,10 @@ insider-trading/
 ├── playtest/
 │   ├── init.js                    # Generates game_state.json
 │   └── facilitator_guide.md       # How to run AI playtests
+├── online/                         # Live web implementation (backend/frontend/shared)
 ├── v2/                            # Archived v2
-└── v3/                            # Archived v3
+├── v3/                            # Archived v3
+└── v4/                            # Archived V4 (frozen snapshot, incl. online/ as it stood at V4) — do not edit
 ```
 
 ## Running Tests
@@ -95,7 +97,7 @@ npm test          # Run all validation tests
 npm run test:watch # Watch mode
 ```
 
-Tests validate JSON card files for correct counts, structure, color balance, and game rules. The `v2/` and `v3/` archives are excluded from the test run.
+Tests validate JSON card files for correct counts, structure, color balance, and game rules. The `v2/`, `v3/`, `v4/`, `online/`, and `card-studio/` folders are excluded from the test run.
 
 ## Card Visualizer
 

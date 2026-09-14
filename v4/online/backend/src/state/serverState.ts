@@ -1,0 +1,201 @@
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { v4 as uuidv4 } from 'uuid';
+import { loadCards, type CardCatalog, type GameLogEntry, type GameState, type LobbyMember, type PlayerId } from '@insider-trading/shared';
+import { MutateQueue } from '../domain/mutate.js';
+import { createGameState } from '../domain/setup.js';
+import { advance } from '../engine/advance.js';
+import { openLog, closeLog, appendLog } from '../domain/gameLog.js';
+import { makeRng, type Rng } from '../domain/rng.js';
+import { pickBotName, type BotProfile } from '../bots/profile.js';
+import { makeProductionBotProfile, type BotParams } from '../bots/botParams.js';
+import type { ValueNetWeights } from '../bots/valueNet.js';
+
+export interface LobbyEntry {
+  playerId: PlayerId;
+  name: string;
+  connected: boolean;
+  isBot?: boolean;
+}
+
+const HERE = path.dirname(fileURLToPath(import.meta.url));
+const DEFAULT_CARDS_DIR = path.resolve(HERE, '../../../../cards');
+const NETS_DIR = path.resolve(HERE, '../../nets');
+
+/**
+ * Trained bot artifacts, loaded once at startup. The stock-valuation net
+ * (champion.json) + the optimized hand-coded constants (bot_params.json) are
+ * required in production — every bot is built from them via
+ * makeProductionBotProfile. Fail loud if either is missing.
+ */
+function loadTrainedNet(): ValueNetWeights {
+  const p = path.join(NETS_DIR, 'champion.json');
+  return JSON.parse(fs.readFileSync(p, 'utf8')) as ValueNetWeights;
+}
+function loadTrainedParams(): BotParams {
+  const p = path.join(NETS_DIR, 'bot_params.json');
+  return JSON.parse(fs.readFileSync(p, 'utf8')) as BotParams;
+}
+const TRAINED_NET: ValueNetWeights = loadTrainedNet();
+const TRAINED_PARAMS: BotParams = loadTrainedParams();
+
+export class ServerHub {
+  catalog: CardCatalog;
+  lobby: LobbyEntry[] = [];
+  queue: MutateQueue;
+  snapshotPath: string;
+  logsDir: string;
+  cardsDir: string;
+  defaultSeed: number | undefined;
+  /** Per-bot runtime state, keyed by playerId. Not persisted across restarts. */
+  botProfiles: Map<PlayerId, BotProfile> = new Map();
+  /** RNG used for bot profile creation and per-tick randomness (auction discounts, weighted picks). */
+  botRng: Rng = makeRng(Date.now() & 0xffffffff);
+
+  constructor(opts: {
+    cardsDir?: string;
+    snapshotPath: string;
+    logsDir: string;
+    defaultSeed?: number;
+  } = {} as any) {
+    this.cardsDir = opts.cardsDir ?? DEFAULT_CARDS_DIR;
+    this.snapshotPath = opts.snapshotPath;
+    this.logsDir = opts.logsDir;
+    this.defaultSeed = opts.defaultSeed;
+    this.catalog = loadCards(this.cardsDir);
+    this.queue = new MutateQueue();
+    this.queue.setSnapshotPath(this.snapshotPath);
+  }
+
+  /** Add a bot to the lobby. Returns the new entry, or an error string. */
+  addBot(): LobbyEntry | { error: string } {
+    if (this.getGame() && !this.getGame()!.gameOver) {
+      return { error: 'game in progress' };
+    }
+    if (this.lobby.length >= 6) return { error: 'lobby full (max 6)' };
+    const taken = new Set(this.lobby.map(p => p.name));
+    const name = pickBotName(taken, this.botRng);
+    const entry: LobbyEntry = {
+      playerId: uuidv4(),
+      name,
+      connected: true,
+      isBot: true
+    };
+    this.lobby.push(entry);
+    this.botProfiles.set(
+      entry.playerId,
+      makeProductionBotProfile(this.botRng, TRAINED_NET, TRAINED_PARAMS)
+    );
+    return entry;
+  }
+
+  getBotProfile(playerId: PlayerId): BotProfile | undefined {
+    return this.botProfiles.get(playerId);
+  }
+
+  getMode(): 'lobby' | 'in_game' | 'game_over' {
+    const game = this.queue.getState();
+    if (!game) return 'lobby';
+    if (game.gameOver) return 'game_over';
+    return 'in_game';
+  }
+
+  getGame(): GameState | null {
+    return this.queue.getState();
+  }
+
+  findPlayerByCookie(playerId: string): LobbyEntry | null {
+    const inLobby = this.lobby.find(p => p.playerId === playerId);
+    if (inLobby) return inLobby;
+    const game = this.getGame();
+    if (game) {
+      const player = game.players.find(p => p.playerId === playerId);
+      if (player) {
+        return { playerId: player.playerId, name: player.name, connected: !!game.connected[playerId] };
+      }
+    }
+    return null;
+  }
+
+  join(name: string, existingPlayerId?: string): LobbyEntry | { error: string } {
+    if (this.getGame() && !this.getGame()!.gameOver) {
+      // Game in progress: only allow rejoin (cookie matches an existing player).
+      if (existingPlayerId) {
+        const game = this.getGame()!;
+        const existing = game.players.find(p => p.playerId === existingPlayerId);
+        if (existing) {
+          game.connected[existingPlayerId] = true;
+          return { playerId: existing.playerId, name: existing.name, connected: true };
+        }
+      }
+      return { error: 'game in progress — wait for next game' };
+    }
+    // Reuse existing lobby seat if cookie matches.
+    if (existingPlayerId) {
+      const existing = this.lobby.find(p => p.playerId === existingPlayerId);
+      if (existing) {
+        if (name && existing.name !== name) existing.name = name;
+        existing.connected = true;
+        return existing;
+      }
+    }
+    if (!name || !name.trim()) return { error: 'name required' };
+    if (this.lobby.length >= 6) return { error: 'lobby full (max 6)' };
+    if (this.lobby.some(p => p.name === name)) return { error: `name "${name}" taken` };
+    const entry: LobbyEntry = {
+      playerId: existingPlayerId ?? uuidv4(),
+      name: name.trim(),
+      connected: true
+    };
+    this.lobby.push(entry);
+    return entry;
+  }
+
+  async startGame(seed?: number): Promise<{ ok: boolean; error?: string }> {
+    if (this.getGame() && !this.getGame()!.gameOver) {
+      return { ok: false, error: 'game already in progress' };
+    }
+    if (this.lobby.length < 2) return { ok: false, error: 'need at least 2 players' };
+    const gameId = uuidv4();
+    const startedAt = new Date().toISOString();
+    const realSeed = seed ?? this.defaultSeed ?? Date.now();
+    const state = createGameState({
+      catalog: this.catalog,
+      players: this.lobby.map(p => ({ playerId: p.playerId, name: p.name, isBot: p.isBot })),
+      seed: realSeed,
+      gameId,
+      startedAt
+    });
+    openLog(this.logsDir, gameId, startedAt);
+    // Persist the initial game_start log entry so replay starts from a
+    // complete record. The MutateQueue only appends events from mutations,
+    // not setup.
+    for (const ev of state.log) appendLog(ev);
+    this.queue.setState(state);
+    // Run advance() once to resolve any setup-time triggers (e.g. a Black
+    // Market dealt into the initial market). If none fire this is a no-op.
+    await this.queue.run('post_setup_advance', s => {
+      const events: GameLogEntry[] = [];
+      advance(s, events);
+      return { ok: true, events };
+    });
+    return { ok: true };
+  }
+
+  reset(): void {
+    closeLog();
+    this.queue.setState(null);
+    this.lobby = [];
+    this.botProfiles.clear();
+  }
+
+  lobbyMembers(): LobbyMember[] {
+    return this.lobby.map(l => ({
+      playerId: l.playerId,
+      name: l.name,
+      connected: l.connected,
+      isBot: l.isBot
+    }));
+  }
+}
