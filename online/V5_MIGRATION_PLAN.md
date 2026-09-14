@@ -259,20 +259,22 @@ Files: `backend/tests/integration/full_game.test.ts`, `bot_full_game.test.ts`, `
 
 ## Phase 11 — Browser QA
 
-**Status:** not started
+**Status:** MOSTLY DONE — core surfaces verified live; a few rarer prompt types verified by code review + backend tests only (see below)
 **Rationale:** the user explicitly asked for real browser verification — the existing `scripts/verifyE2E.ts` is API-level only (raw HTTP/WS, no DOM), which doesn't satisfy that ask.
 
-Approach: use the Playwright browser tools available in this environment to drive the actual dev server through a real V5 game in a real browser (a one-time scripted checklist run, not necessarily a new permanent CI suite — that's a reasonable future add-on, not required now).
+Ran via the Playwright browser tools against the real dev server (`npm run dev`, backend on :4000, frontend on :5173), a 3-player game (1 human via browser + 2 bots), driven interactively through ~12 turns.
 
-- [ ] Start the dev server, navigate to the lobby.
-- [ ] Join as a human player, add 2+ bots, start the game.
-- [ ] Verify the setup-draft UI end to end: 3 rounds of pick prompts render, hands end at 3 cards, the game auto-transitions into turn 1 once everyone's done.
-- [ ] Screenshot the new progress-tracker element and confirm it visibly counts down.
-- [ ] Trigger and screenshot: an auction with a Broker discount applied at settlement; a dice-bag Draw 2/3 overlay; a public goal claim; a private goal reveal-and-claim from hand; a Foresight reorder prompt; a Backroom Deal trade (including trading away a private goal and confirming it becomes visible in the market); a Double Down doubling another card's effect; the game-over screen with bonus-card contributions visible in the breakdown.
-- [ ] Check the browser console for zero uncaught errors/warnings across the whole run.
-- [ ] Play the game through to actual completion.
-- [ ] Run this checklist once after Phase 10 passes, and once more at the end of Phase 12 as a final sanity pass.
-- [ ] Commit (any fixes found along the way).
+- [x] Started the dev server, navigated to the lobby.
+- [x] Joined as a human player, added 2 bots, started the game.
+- [x] Verified the setup-draft UI end to end: all 3 rounds rendered correctly (4→3→2 candidates), a private goal card appeared as a draft candidate mid-draft and rendered with the "Secret Goal / only you" framing, bonus cards rendered sealed and non-interactive, the auto-discard of each round's leftover card was logged, and the game auto-transitioned into turn 1 with every player at exactly 3 cards.
+- [x] Screenshotted the progress-tracker step-dots (`.playwright-mcp/01-setup-draft.png`, `02-midgame-board.png`) — confirmed it counts down correctly (started 12 of 12, tracked down to 9 of 12 as market-movement/goal events resolved) while log entries show the underlying up-counter incrementing, exactly per the design.
+- [x] Verified live: an auction win with Boom's extra-price-rise special firing, Tip-Off's pick_color prompt, dice-bag results for `nothing`/`bull`/`draw2`/`draw3` faces (log-confirmed; the overlay itself renders for ~2.6s per die and is timing-sensitive to screenshot but its trigger logic and log-derived content were confirmed correct), a multi-card `draw3` resolving 2 market-movement cards + 1 goal reveal before the tracker updated once, First Look drawing into hand, Insider Source drawing a market-movement card into hand, playing and activating two different persistent Broker cards (Steel Broker, Rail Broker — both correctly tagged next to the player's name), the full Sell-a-stock flow, and the public+private Goals panel rendering side by side with the "My Private Goals" section.
+- [ ] **Not directly screenshotted this run** (verified only via code review of `PromptModal.tsx`/`ClaimGoalModal.tsx` and the corresponding backend tests, since they depend on rarer random card draws that didn't come up in this session's ~12 turns): a Broker discount actually applied at auction settlement (no Rail stock was in the market while Rail Broker was held), a public or private goal claim from the UI, a Foresight reorder prompt, a Backroom Deal trade, a Double Down doubling, and the game-over screen's bonus-card breakdown. Worth a follow-up session if a live screenshot of these specifically is wanted.
+- [x] Checked the browser console throughout: **zero application errors** the entire session. The only console error at any point was a harmless `favicon.ico` 404 on first load (no `favicon` file exists in `frontend/public/`; cosmetic, pre-existing, not V5-related).
+- [ ] Did not play to actual completion in this session (progress tracker reached 3/12 after ~12 turns; reaching threshold would need substantially more turns than were practical to click through by hand). Full-completion correctness is covered instead by the Phase 10 bot-driven integration suite (`bot_full_game.test.ts`, 35 cases across all player counts).
+- **Two minor pre-existing (non-V5, not fixed) UX quirks found along the way**: (1) `App.tsx`'s `myName` is fetched once via `api.me()` and doesn't reflect a same-session `join` until the next `state.mode` change or a page reload — cosmetic (the "· You" tag doesn't appear immediately), not a functional bug. (2) Starting a game from the lobby can briefly land the starting player's own client in the `game_in_progress_spectator` view instead of the seated game view, until that tab reloads (a cookie/session-identity race between `start` and the WS reconnect) — confirmed a manual reload immediately fixes it. Neither is part of the V5 migration's scope (both predate it, in `App.tsx`/`ws.ts`), but worth fixing in a future pass since the second one is a real first-impression papercut.
+- [ ] Re-run this checklist once more at the end of Phase 12 as a final sign-off (per the original plan) — still pending.
+- [x] Commit (this plan update; no code fixes were needed as a direct result of this QA pass beyond what Phase 9/10 already fixed).
 
 ---
 
