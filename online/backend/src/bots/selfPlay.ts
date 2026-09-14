@@ -28,7 +28,7 @@ export interface SelfPlayResult {
   finished: boolean; // reached a game-over state
   stuck: boolean; // a tick produced no action (livelock / invalid action / engine cap)
   turnNumber: number; // total player-turns when the game ended (game-length metric)
-  endReason: 'insider_tip_deck_empty' | 'one_goal_remaining' | null;
+  endReason: 'progress_threshold_reached' | null;
   breakdown: GameOverBreakdownEntry[];
   winnerPlayerIds: PlayerId[];
 }
@@ -91,6 +91,10 @@ export function driveSelfPlay(
   let ticks = 0;
   let stuck = false;
   try {
+    // Kick off the setup draft -- production code does this via ServerHub's
+    // post-setup advance() call; a directly-constructed state needs the same
+    // one-time nudge before beginDraft() ever runs.
+    advance(state, []);
     while (!state.gameOver && ticks < maxTicks) {
       ticks++;
       let acted = false;

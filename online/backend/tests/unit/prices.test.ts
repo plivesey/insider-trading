@@ -1,7 +1,7 @@
 import { adjust, halve, adjustAll, setPrice, priceOf } from '../../src/domain/prices.js';
 import type { StockPrices } from '@insider-trading/shared';
 
-const make = (): StockPrices => ({ Blue: 4, Orange: 4, Yellow: 4, Purple: 4 });
+const make = (): StockPrices => ({ Blue: 4, Orange: 4, Green: 4, Purple: 4 });
 
 describe('prices', () => {
   it('adjust applies delta and floors at 0', () => {
@@ -16,15 +16,15 @@ describe('prices', () => {
     expect(halve(p, 'Blue')).toBe(3);
     p.Orange = 1;
     expect(halve(p, 'Orange')).toBe(0);
-    p.Yellow = 0;
-    expect(halve(p, 'Yellow')).toBe(0);
+    p.Green = 0;
+    expect(halve(p, 'Green')).toBe(0);
   });
   it('adjustAll moves every color', () => {
     const p = make();
     adjustAll(p, 1);
-    expect(p).toEqual({ Blue: 5, Orange: 5, Yellow: 5, Purple: 5 });
+    expect(p).toEqual({ Blue: 5, Orange: 5, Green: 5, Purple: 5 });
     adjustAll(p, -10);
-    expect(p).toEqual({ Blue: 0, Orange: 0, Yellow: 0, Purple: 0 });
+    expect(p).toEqual({ Blue: 0, Orange: 0, Green: 0, Purple: 0 });
   });
   it('setPrice clamps below 0', () => {
     const p = make();
@@ -35,8 +35,8 @@ describe('prices', () => {
   });
   it('priceOf returns 0 for Wild and color price otherwise', () => {
     const p = make();
-    p.Yellow = 9;
-    expect(priceOf({ stockPrices: p }, 'Yellow')).toBe(9);
+    p.Green = 9;
+    expect(priceOf({ stockPrices: p }, 'Green')).toBe(9);
     expect(priceOf({ stockPrices: p }, 'Wild')).toBe(0);
   });
 });

@@ -43,7 +43,7 @@ const net = JSON.parse(fs.readFileSync(path.join(NETS_DIR, 'champion.json'), 'ut
 const params = JSON.parse(fs.readFileSync(path.join(NETS_DIR, 'bot_params.json'), 'utf8')) as BotParams;
 
 const relabel = (s: string) =>
-  s.replace(/Blue/g, 'Steel').replace(/Orange/g, 'Oil').replace(/Yellow/g, 'Rail').replace(/Purple/g, 'Bank');
+  s.replace(/Blue/g, 'Steel').replace(/Orange/g, 'Oil').replace(/Green/g, 'Rail').replace(/Purple/g, 'Bank');
 
 function drive(seed: number, seats: number): GameState {
   const ids: PlayerId[] = Array.from({ length: seats }, (_, s) => `p${s}`);
@@ -122,7 +122,7 @@ for (let g = 0; g < GAMES; g++) {
   const winners = new Set(state.gameOver.winnerPlayerIds);
   // Dealt goal set = goals still in play + all goals any player claimed.
   const dealt = new Map<number, GoalCard>();
-  for (const goal of state.activeGoals) dealt.set(goal.id, goal);
+  for (const goal of state.goalRow) dealt.set(goal.id, goal);
   for (const p of state.players) for (const goal of p.goalsClaimed) dealt.set(goal.id, goal);
   for (const goal of dealt.values()) ensure(goal).inPlay++;
   for (const p of state.players) {

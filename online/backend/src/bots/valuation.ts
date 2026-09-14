@@ -1,5 +1,6 @@
 import type {
   ActionCard,
+  BonusCard,
   Color,
   GameState,
   GoalCard,
@@ -27,10 +28,10 @@ export function effectivePrices(
   knownPeekedTips: InsiderTipCard[]
 ): Record<Color, number> {
   const out: Record<Color, number> = { ...state.stockPrices };
-  // Tip resolution order is the order in insiderTipDeck. Sort known peeks by
+  // Tip resolution order is the order in the event deck. Sort known peeks by
   // their index in the deck so we apply them in the order they'll fire.
   const indexed = knownPeekedTips
-    .map(t => ({ tip: t, idx: state.insiderTipDeck.findIndex(d => d.uid === t.uid) }))
+    .map(t => ({ tip: t, idx: state.eventDeck.findIndex(d => d.uid === t.uid) }))
     .filter(e => e.idx >= 0)
     .sort((a, b) => a.idx - b.idx);
   for (const { tip } of indexed) {
@@ -84,10 +85,11 @@ export function rewardCashEquivalent(
     case 'peek_tips':
       return reward.count * params.rewardPeekMult;
     case 'peek_tips_bottom':
-      // Peek plus the option to bury one bad tip — a bit better than a pure peek.
+      // Peek plus the option to bury one bad card — a bit better than a pure peek.
       return reward.count * params.rewardPeekMult + 1;
     case 'draw_tips':
-      // Drawing tips into hand (playable later) is worth more than a peek.
+      // Drawing cards into hand (playable later, or a new private goal) is
+      // worth more than a peek.
       return reward.count * params.rewardDrawTipsMult;
     case 'steal_from_all':
       return reward.amount * Math.max(1, numPlayers - 1);
@@ -101,22 +103,24 @@ export function rewardCashEquivalent(
       // Draw 3 from the deck, keep the best — ~a good stock's worth.
       return 6;
     case 'draw_deck_tip':
-      // A tip in hand (playable later) plus flat cash.
+      // A card in hand (playable later, or a new private goal) plus flat cash.
       return reward.cash + params.rewardDrawTipsMult;
   }
 }
 
 /**
  * For one color, sum floor(rewardCashEquivalent / (totalRequirements + 3))
- * over every active goal that requires this color AND that the bot is no more
- * than 2 cards away from completing. Goals further away are ignored.
+ * over every goal (public row + the bot's own private goals in hand) that
+ * requires this color AND that the bot is no more than 2 cards away from
+ * completing. Goals further away are ignored.
  *
  * Why the filter: completing a 4-card goal from zero owned stocks requires 4
  * future auction wins — the bump should not influence today's bidding for
  * something that may never happen.
  *
  * Why total+3: conservative discount for the cost/risk of actually completing
- * the goal AND for the chance another player claims it first.
+ * the goal AND for the chance another player claims it first (n/a for a
+ * private goal, but the discount is harmless there too).
  */
 export function goalBumpPerStock(
   state: GameState,
@@ -133,9 +137,11 @@ export function goalBumpPerStock(
     if (c.color === 'Wild') wildCount++;
     else ownedNonWild[c.color] = (ownedNonWild[c.color] ?? 0) + 1;
   }
+  const privateGoals = bot.hand.filter((c): c is GoalCard => c.category === 'goal');
+  const relevantGoals: GoalCard[] = [...state.goalRow, ...privateGoals];
   let bump = 0;
   const n = state.players.length;
-  for (const g of state.activeGoals) {
+  for (const g of relevantGoals) {
     const req = g.goal.parsed.requirements;
     const need = req[color] ?? 0;
     if (need <= 0) continue;
@@ -249,6 +255,42 @@ export function perceivedStockCardValue(
   );
 }
 
+/** Heuristic value of a goal card itself (used when drafting/deciding whether to keep one). Undiscounted by completability -- deeper play is out of scope for a heuristic bot. */
+export function perceivedGoalCardValue(
+  state: GameState,
+  card: GoalCard,
+  params: BotParams = DEFAULTS
+): number {
+  return rewardCashEquivalent(card.reward.parsed, state.players.length, params);
+}
+
+/**
+ * Flat heuristic value of a hidden end-game bonus card. These constants are
+ * rough, hand-picked estimates (not yet threaded through BotParams/ES tuning
+ * -- consistent with the "heuristic-only for V5" scope); revisit once
+ * playtesting gives a sense of typical game length / stock counts.
+ */
+export function perceivedBonusCardValue(state: GameState, card: BonusCard, botId: PlayerId): number {
+  switch (card.effect.type) {
+    case 'flat_cash':
+      return card.effect.amount;
+    case 'per_stock_held': {
+      const bot = state.players.find(p => p.playerId === botId);
+      const owned = bot ? bot.hand.filter(c => c.category === 'stock').length : 0;
+      const expectedFinalStocks = owned + 3; // rough: expect a few more acquisitions
+      return card.effect.amount * expectedFinalStocks;
+    }
+    case 'per_goal_completed':
+      return card.effect.amount * 1.5; // rough: expect ~1-2 goals completed over a game
+    case 'no_loans_bonus': {
+      const bot = state.players.find(p => p.playerId === botId);
+      return bot && bot.loans === 0 ? card.effect.amount * 0.7 : card.effect.amount * 0.3;
+    }
+    case 'easy_credit':
+      return 4; // small flat value; only matters if loans happen
+  }
+}
+
 // ---- Action card valuation ----------------------------------------------------
 
 /**
@@ -311,6 +353,29 @@ function ownsAnyColoredStock(state: GameState, botId: PlayerId): boolean {
 }
 
 /** Pre-offset value of an action card. Caller adds profile.actionOffset. */
+/**
+ * Effect types whose own valuation logic scans the market or hand and would
+ * recurse into `actionCardBaseValue` for whatever it finds there. If any two
+ * of these end up evaluating each other (e.g. a Backroom Deal card sits in
+ * the market while another Backroom Deal or Double Down card sits in a
+ * hand), that recursion never bottoms out. `safeActionCardValue` is the
+ * guarded entry point every such case must use instead of calling
+ * `actionCardBaseValue` directly on an arbitrary other card.
+ */
+const RECURSION_RISK_EFFECTS = new Set(['take_face_up', 'backroom_deal', 'double_down']);
+
+function safeActionCardValue(
+  card: ActionCard,
+  state: GameState,
+  profile: BotProfile,
+  botId: PlayerId
+): number {
+  if (RECURSION_RISK_EFFECTS.has(card.effect.type)) {
+    return profile.params.takeFaceUpBase; // flat fallback, never recurses further
+  }
+  return actionCardBaseValue(card, state, profile, botId);
+}
+
 function actionCardBaseValue(
   card: ActionCard,
   state: GameState,
@@ -323,18 +388,18 @@ function actionCardBaseValue(
       // Tipster's Choice: 2nd-highest market stock proxy.
       return secondHighestMarketStock(state, profile, botId);
     case 'take_face_up': {
-      // Corner the Market: max perceivedValue of any market card. We must NOT
-      // recurse into another take_face_up card (mutual recursion); fall back
-      // to a flat estimate for those.
+      // Corner the Market: max perceivedValue of any market card. Uses
+      // safeActionCardValue for other action cards to avoid recursing into
+      // another take_face_up/backroom_deal/double_down card.
       let best = 0;
       for (const c of state.market) {
         let v: number;
         if (c.category === 'stock') {
           v = perceivedStockCardValue(state, profile, c as StockCard, botId);
-        } else if ((c as ActionCard).effect.type === 'take_face_up') {
-          v = p.takeFaceUpBase;
+        } else if (c.category === 'action') {
+          v = safeActionCardValue(c as ActionCard, state, profile, botId);
         } else {
-          v = actionCardBaseValue(c as ActionCard, state, profile, botId);
+          v = 0;
         }
         if (v > best) best = v;
       }
@@ -354,6 +419,9 @@ function actionCardBaseValue(
       return p.flipAndAdjustFlat; // Wild Speculation flat.
     case 'tie_breaker':
       return p.tieBreakerFlat; // Preferred Bidder flat.
+    case 'broker_discount':
+      // Rough estimate of ~2 future auction wins in that color at $2 off each.
+      return 4;
     case 'steal_stock':
       // Hostile Takeover: 2nd-highest market stock proxy + bonus.
       return secondHighestMarketStock(state, profile, botId) + p.stealStockBonus;
@@ -361,23 +429,80 @@ function actionCardBaseValue(
       // Rumor Mill: max(floor, count of bot's colored stocks).
       return Math.max(p.adjustAllFloor, ownedColoredStockCount(state, botId));
     case 'draw_tip':
-      // Insider Source: knowing the next tip lets the bot react; valuable but
-      // not dramatically so when the deck is full. Worth less if deck is small
-      // (game ends sooner) but still useful.
-      return state.insiderTipDeck.length > 0 ? p.drawTipValue : 0;
-    case 'auction_unused_tip':
-      // Black Market never reaches a player's hand (it triggers from market);
-      // no perceived hand-value. Bid valuation for the SIDE-auction happens
-      // separately in decide.ts when the bid prompt arrives.
-      return 0;
-    case 'buy_from_market':
-      // Market Order is never auctioned; the bot plays it via a dedicated
-      // strategy path (see chooseBuyTarget in decide.ts), not by value.
-      return 0;
-    case 'peek_top_tip':
-      // Hot Tip is a starting hand card, never auctioned; no perceived
-      // hand-value here (played via the dedicated hot-tip path in decide.ts).
-      return 0;
+      // Insider Source: knowing/holding the next event card lets the bot react
+      // (or gains a private goal); valuable but not dramatically so.
+      return state.eventDeck.length > 0 ? p.drawTipValue : 0;
+    case 'fire_sale': {
+      let best = 0;
+      for (const c of state.market) {
+        if (c.category === 'stock' && c.color !== 'Wild') {
+          const v = perceivedStockCardValue(state, profile, c as StockCard, botId);
+          if (v > best) best = v;
+        }
+      }
+      return Math.max(0, best - 3);
+    }
+    case 'first_look':
+      // Roughly half a random market-deck card's expected value.
+      return Math.max(1, Math.floor(secondHighestMarketStock(state, profile, botId) / 2));
+    case 'foresight':
+      return 2; // pure information value, small flat constant
+    case 'windfall':
+      return 5;
+    case 'market_panic':
+      // Mostly hurts others rather than directly helping self; discount it.
+      return Math.max(0, Math.floor(3 * Math.max(0, state.players.length - 1) * 0.5));
+    case 'backroom_deal': {
+      let bestMarket = 0;
+      for (const c of state.market) {
+        const v =
+          c.category === 'insider_tip'
+            ? Math.max(0, tipScoreForBot(state, c as InsiderTipCard, botId))
+            : c.category === 'goal'
+              ? perceivedGoalCardValue(state, c as GoalCard, p)
+              : c.category === 'action'
+                ? safeActionCardValue(c as ActionCard, state, profile, botId)
+                : perceivedStockCardValue(state, profile, c as StockCard, botId);
+        if (v > bestMarket) bestMarket = v;
+      }
+      let worstHand = Infinity;
+      const bot = state.players.find(pl => pl.playerId === botId);
+      if (bot) {
+        for (const c of bot.hand) {
+          if (c.category === 'bonus') continue; // never tradeable
+          if (c.uid === card.uid) continue; // never evaluate the card against itself
+          let v: number;
+          if (c.category === 'stock') {
+            v =
+              c.color === 'Wild'
+                ? perceivedWildShareValue(state, profile, botId)
+                : perceivedStockCardValue(state, profile, c as StockCard, botId);
+          } else if (c.category === 'action') {
+            v = safeActionCardValue(c as ActionCard, state, profile, botId);
+          } else if (c.category === 'insider_tip') {
+            v = Math.max(0, tipScoreForBot(state, c as InsiderTipCard, botId));
+          } else {
+            v = perceivedGoalCardValue(state, c as GoalCard, p);
+          }
+          if (v < worstHand) worstHand = v;
+        }
+      }
+      if (worstHand === Infinity) worstHand = 0;
+      return Math.max(0, bestMarket - worstHand);
+    }
+    case 'double_down': {
+      const bot = state.players.find(pl => pl.playerId === botId);
+      let bestOther = 0;
+      if (bot) {
+        for (const c of bot.hand) {
+          if (c.category === 'action' && c.uid !== card.uid && !(c as ActionCard).persistent) {
+            const v = safeActionCardValue(c as ActionCard, state, profile, botId);
+            if (v > bestOther) bestOther = v;
+          }
+        }
+      }
+      return Math.max(0, bestOther - 2);
+    }
   }
 }
 
@@ -413,7 +538,7 @@ export { ownsAnyColoredStock, maxOwnedStockPrice, maxColorCount, ownedColoredSto
 export function bestOwnedColor(state: GameState, botId: PlayerId): Color | null {
   const bot = state.players.find(p => p.playerId === botId);
   if (!bot) return null;
-  const counts: Record<Color, number> = { Blue: 0, Orange: 0, Yellow: 0, Purple: 0 };
+  const counts: Record<Color, number> = { Blue: 0, Orange: 0, Green: 0, Purple: 0 };
   for (const c of bot.hand) {
     if (c.category === 'stock' && c.color !== 'Wild') counts[c.color]++;
   }
@@ -429,13 +554,15 @@ export function bestOwnedColor(state: GameState, botId: PlayerId): Color | null 
 }
 
 /**
- * For Inside Track / Wiretap reorder decisions: signed score of a tip from the
- * bot's perspective (Σ over colors of delta × ownedCount(color)). Higher = better.
+ * Signed score of a market-movement card from the bot's perspective (Σ over
+ * colors of delta × ownedCount(color)). Higher = better. Used for reorder
+ * decisions (Foresight, peek_bottom_choice) and for deciding whether to play
+ * a held card.
  */
 export function tipScoreForBot(state: GameState, tip: InsiderTipCard, botId: PlayerId): number {
   const bot = state.players.find(p => p.playerId === botId);
   if (!bot) return 0;
-  const owned: Record<Color, number> = { Blue: 0, Orange: 0, Yellow: 0, Purple: 0 };
+  const owned: Record<Color, number> = { Blue: 0, Orange: 0, Green: 0, Purple: 0 };
   for (const c of bot.hand) {
     if (c.category === 'stock' && c.color !== 'Wild') owned[c.color]++;
   }

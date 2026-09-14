@@ -1,18 +1,17 @@
 import type {
   ActionCard,
+  FreeActionRequest,
   GameLogEntry,
   GameState,
   InsiderTipCard,
   PlayerId,
-  PlayerPrivate,
-  StockCard,
-  FreeActionRequest
+  PlayerPrivate
 } from '@insider-trading/shared';
 import type { MutationResult } from '../domain/mutate.js';
 import { event } from './events.js';
 import { startActionCard } from './actionCards.js';
-import { claimGoal } from './goals.js';
-import { resolveTip } from './insiderTip.js';
+import { resolveMarketMovementCard } from './eventDeck.js';
+import { claimGoal, claimPrivateGoal } from './goals.js';
 import { findPlayer } from './turn.js';
 
 export function submitFreeAction(
@@ -36,10 +35,12 @@ function describe(r: FreeActionRequest): string {
   switch (r.kind) {
     case 'play_action_card':
       return `play action card ${r.cardUid}`;
-    case 'play_insider_tip':
-      return `play Insider Tip ${r.cardUid}`;
+    case 'play_market_movement':
+      return `play market-movement card ${r.cardUid}`;
     case 'claim_goal':
-      return `claim goal ${r.goalUid}`;
+      return `claim public goal ${r.goalUid}`;
+    case 'claim_private_goal':
+      return `claim private goal ${r.goalUid}`;
   }
 }
 
@@ -65,17 +66,14 @@ export function processNextFreeAction(state: GameState, events: GameLogEntry[]):
     case 'play_action_card':
       handlePlayActionCard(state, player, entry.request.cardUid, events);
       break;
-    case 'play_insider_tip':
-      handlePlayInsiderTip(state, player, entry.request.cardUid, events);
+    case 'play_market_movement':
+      handlePlayMarketMovement(state, player, entry.request.cardUid, events);
       break;
     case 'claim_goal':
-      claimGoal(
-        state,
-        player,
-        entry.request.goalUid,
-        entry.request.stockAssignment,
-        events
-      );
+      claimGoal(state, player, entry.request.goalUid, entry.request.stockAssignment, events);
+      break;
+    case 'claim_private_goal':
+      claimPrivateGoal(state, player, entry.request.goalUid, entry.request.stockAssignment, events);
       break;
   }
 }
@@ -106,7 +104,7 @@ function handlePlayActionCard(
   startActionCard(state, player, card as ActionCard, events);
 }
 
-function handlePlayInsiderTip(
+function handlePlayMarketMovement(
   state: GameState,
   player: PlayerPrivate,
   cardUid: string,
@@ -114,20 +112,20 @@ function handlePlayInsiderTip(
 ): void {
   const idx = player.hand.findIndex(c => c.uid === cardUid);
   if (idx < 0) {
-    events.push(event('error', `play_insider_tip: ${player.name} does not hold ${cardUid}`, {}));
+    events.push(event('error', `play_market_movement: ${player.name} does not hold ${cardUid}`, {}));
     return;
   }
   const card = player.hand[idx];
   if (card.category !== 'insider_tip') {
-    events.push(event('error', `play_insider_tip: ${cardUid} is not an insider tip`, {}));
+    events.push(event('error', `play_market_movement: ${cardUid} is not a market-movement card`, {}));
     return;
   }
   player.hand.splice(idx, 1);
   events.push(
-    event('insider_tip_played', `${player.name} plays Insider Tip from hand`, {
+    event('market_movement_played', `${player.name} plays a market-movement card from hand`, {
       actor: player.playerId,
       payload: { uid: card.uid }
     })
   );
-  resolveTip(state, card as InsiderTipCard, events, 'played_from_hand');
+  resolveMarketMovementCard(state, card as InsiderTipCard, events, 'played_from_hand');
 }

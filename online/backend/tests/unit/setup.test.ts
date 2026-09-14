@@ -6,7 +6,7 @@ import { createGameState } from '../../src/domain/setup.js';
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const CARDS_DIR = path.resolve(HERE, '../../../../cards');
 
-describe('createGameState', () => {
+describe('createGameState (V5)', () => {
   const catalog = loadCards(CARDS_DIR);
   const players3 = [
     { playerId: 'p1', name: 'Alice' },
@@ -24,19 +24,21 @@ describe('createGameState', () => {
     });
     expect(g.players).toHaveLength(3);
     expect(g.market).toHaveLength(5);
-    expect(g.insiderTipDeck).toHaveLength(5); // default ruleset: max(4, 2*3 - 1)
-    expect(g.activeGoals).toHaveLength(6); // default ruleset: 3 + 2 + 1
-    expect(g.mainDeck).toHaveLength(36 + 13 - 5); // buy card isn't drawn from the deck
-    expect(g.players.every(p => p.cash === 30)).toBe(true);
-    // Each starts with a Hot Tip and a Market Order card.
-    expect(g.players.every(p => p.hand.length === 2)).toBe(true);
-    expect(
-      g.players.every(p =>
-        p.hand.some(c => c.category === 'action' && (c as any).effect.type === 'peek_top_tip')
-      )
-    ).toBe(true);
-    expect(g.stockPrices).toEqual({ Blue: 4, Orange: 4, Yellow: 4, Purple: 4 });
+    expect(g.mainDeck).toHaveLength(51 - 5);
+    expect(g.goalRow).toHaveLength(4); // default initialGoalRevealCount
+    expect(g.eventDeck).toHaveLength(30 - 4 - 2 * 3); // 30 total, 4 revealed, 2/player dealt out
+    expect(g.players.every(p => p.cash === 25)).toBe(true);
+    // Pre-draft: every player holds their dealt 4-card pile directly in `hand`
+    // (the draft hasn't started yet -- that's driven by advance()/beginDraft).
+    expect(g.players.every(p => p.hand.length === 4)).toBe(true);
+    expect(g.players.every(p => p.loans === 0)).toBe(true);
+    expect(g.stockPrices).toEqual({ Blue: 4, Orange: 4, Green: 4, Purple: 4 });
     expect(g.gameOver).toBeNull();
+    expect(g.progressTracker).toBe(0);
+    expect(g.progressThreshold).toBe(3 * 4); // default progressThresholdPerPlayer
+    expect(g.diceBagRemaining.sort()).toEqual(['A1', 'A2', 'B1', 'B2', 'C', 'D'].sort());
+    expect(g.turnPhase).toBe('setup_draft');
+    expect(g.draft).toBeNull();
     expect(g.eventCounter).toBe(1);
     expect(g.log).toHaveLength(1);
     expect(g.log[0].type).toBe('game_start');
@@ -58,7 +60,7 @@ describe('createGameState', () => {
       startedAt: '2026-01-01T00:00:00.000Z'
     });
     expect(g1.market.map(c => c.uid)).toEqual(g2.market.map(c => c.uid));
-    expect(g1.activeGoals.map(c => c.uid)).toEqual(g2.activeGoals.map(c => c.uid));
+    expect(g1.goalRow.map(c => c.uid)).toEqual(g2.goalRow.map(c => c.uid));
     expect(g1.currentPlayerIndex).toEqual(g2.currentPlayerIndex);
   });
 
@@ -97,24 +99,25 @@ describe('createGameState', () => {
     const uids: string[] = [
       ...g.market.map(c => c.uid),
       ...g.mainDeck.map(c => c.uid),
-      ...g.insiderTipDeck.map(c => c.uid),
-      ...g.activeGoals.map(c => c.uid)
+      ...g.eventDeck.map(c => c.uid),
+      ...g.goalRow.map(c => c.uid),
+      ...g.players.flatMap(p => p.hand.map(c => c.uid))
     ];
-    // Unused tips & goals & hot tips & loans are not in the game state, but the
-    // ones that ARE present should all be unique.
+    // Leftover undealt starter-deck cards are not in the game state, but
+    // everything that IS present should be globally unique.
     expect(new Set(uids).size).toBe(uids.length);
   });
 
-  it('different player counts produce expected tip/goal sizes (default ruleset)', () => {
-    // [players, tips = max(4, 2*players - 1), goals = players + 3]
-    const counts: Array<[number, number, number]> = [
-      [2, 4, 5],
-      [3, 5, 6],
-      [4, 7, 7],
-      [5, 9, 8],
-      [6, 11, 9]
+  it('different player counts produce expected event-deck/goal-row/threshold sizes (default ruleset)', () => {
+    // [players, eventDeck = 30 - 4 - 2*players, goalRow = 4, threshold = 4*players]
+    const counts: Array<[number, number, number, number]> = [
+      [2, 22, 4, 8],
+      [3, 20, 4, 12],
+      [4, 18, 4, 16],
+      [5, 16, 4, 20],
+      [6, 14, 4, 24]
     ];
-    for (const [n, tips, goals] of counts) {
+    for (const [n, eventDeckSize, goalRowSize, threshold] of counts) {
       const ps = Array.from({ length: n }, (_, i) => ({
         playerId: `p${i}`,
         name: `P${i}`
@@ -126,8 +129,10 @@ describe('createGameState', () => {
         gameId: 'g',
         startedAt: '2026-01-01T00:00:00.000Z'
       });
-      expect(g.insiderTipDeck).toHaveLength(tips);
-      expect(g.activeGoals).toHaveLength(goals);
+      expect(g.eventDeck).toHaveLength(eventDeckSize);
+      expect(g.goalRow).toHaveLength(goalRowSize);
+      expect(g.progressThreshold).toBe(threshold);
+      expect(g.players.every(p => p.hand.length === 4)).toBe(true);
     }
   });
 });

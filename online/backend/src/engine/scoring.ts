@@ -1,25 +1,51 @@
 import type {
+  BonusCard,
   GameOverBreakdownEntry,
   GameState,
   PlayerPrivate,
   StockCard
 } from '@insider-trading/shared';
-import { COLORS } from '@insider-trading/shared';
 
 /**
- * Per-player escalating loan penalty. The n-th loan a player takes is worth
- * `LOAN_BASE_PENALTY + n` at game end:
- *   1st loan  → $12
- *   2nd loan  → $13
- *   3rd loan  → $14
- *   ...
- * Total for `loans` loans = sum_{k=1..loans}(11 + k) = 11·loans + loans·(loans+1)/2.
+ * Per-player loan penalty: 1st loan costs $12, 2nd (and max) loan costs $14
+ * -- $26 total for 2. If the player holds an unplayed Easy Credit bonus
+ * card, every loan instead costs a flat $10 each.
  */
-const LOAN_BASE_PENALTY = 11; // n-th loan costs LOAN_BASE_PENALTY + n
+const LOAN_PENALTY_SCHEDULE = [0, 12, 26]; // index = number of loans
 
-export function loanPenaltyFor(loans: number): number {
+export function loanPenaltyFor(loans: number, hasEasyCredit = false): number {
   if (loans <= 0) return 0;
-  return LOAN_BASE_PENALTY * loans + (loans * (loans + 1)) / 2;
+  if (hasEasyCredit) return loans * 10;
+  return LOAN_PENALTY_SCHEDULE[Math.min(loans, LOAN_PENALTY_SCHEDULE.length - 1)];
+}
+
+function bonusCardsInHand(player: PlayerPrivate): BonusCard[] {
+  return player.hand.filter((c): c is BonusCard => c.category === 'bonus');
+}
+
+/** Sum of every hidden end-game bonus card's contribution, given the player's final state. */
+function computeBonusCardTotal(player: PlayerPrivate, stocksHeld: number): number {
+  let total = 0;
+  for (const bonus of bonusCardsInHand(player)) {
+    switch (bonus.effect.type) {
+      case 'flat_cash':
+        total += bonus.effect.amount;
+        break;
+      case 'per_stock_held':
+        total += bonus.effect.amount * stocksHeld;
+        break;
+      case 'per_goal_completed':
+        total += bonus.effect.amount * player.goalsClaimed.length;
+        break;
+      case 'no_loans_bonus':
+        if (player.loans === 0) total += bonus.effect.amount;
+        break;
+      case 'easy_credit':
+        // Handled separately via loanPenaltyFor's hasEasyCredit flag.
+        break;
+    }
+  }
+  return total;
 }
 
 export function computePlayerWealth(state: GameState, player: PlayerPrivate): GameOverBreakdownEntry {
@@ -31,8 +57,9 @@ export function computePlayerWealth(state: GameState, player: PlayerPrivate): Ga
     if (c.color === 'Wild') continue; // Wild Shares are $0
     stockValue += state.stockPrices[c.color];
   }
-  const loanPenalty = loanPenaltyFor(player.loans);
-  const endGameBonus = player.endGameCashBonus;
+  const hasEasyCredit = bonusCardsInHand(player).some(b => b.effect.type === 'easy_credit');
+  const loanPenalty = loanPenaltyFor(player.loans, hasEasyCredit);
+  const endGameBonus = player.endGameCashBonus + computeBonusCardTotal(player, stocksHeld);
   const total = player.cash + stockValue + endGameBonus - loanPenalty;
   return {
     playerId: player.playerId,

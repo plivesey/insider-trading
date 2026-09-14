@@ -152,9 +152,9 @@ export function diffStates(a: GameState, b: GameState): string | null {
     ['market', a.market, b.market],
     ['mainDeck', a.mainDeck, b.mainDeck],
     ['discardPile', a.discardPile, b.discardPile],
-    ['insiderTipDeck', a.insiderTipDeck, b.insiderTipDeck],
-    ['resolvedInsiderTips', a.resolvedInsiderTips, b.resolvedInsiderTips],
-    ['activeGoals', a.activeGoals, b.activeGoals]
+    ['eventDeck', a.eventDeck, b.eventDeck],
+    ['resolvedEventCards', a.resolvedEventCards, b.resolvedEventCards],
+    ['goalRow', a.goalRow, b.goalRow]
   ];
   for (const [label, x, y] of checks) {
     const r = cardListsEqual(x, y, label);

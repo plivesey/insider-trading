@@ -31,7 +31,7 @@ describe('emergency-sell picks the least goal-useful stock', () => {
     });
     // Only goal in play: 3 Blue. Bot holds 2 Blue (one away → Blue useful) + 1
     // Orange (irrelevant). Not yet claimable.
-    state.activeGoals = [catalog.goals.find(g => g.goal.text === '3 Blue')!];
+    state.goalRow = [catalog.goals.find(g => g.goal.text === '3 Blue')!];
     const bot = state.players.find(p => p.playerId === 'p1')!;
     bot.hand = [blue('b1'), blue('b2'), orange('o1')];
     bot.cash = 5; // < emergencySellCash(10)

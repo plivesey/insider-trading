@@ -1,4 +1,4 @@
-import type { Color, GameState, PlayerId, StockCard } from '@insider-trading/shared';
+import type { Color, GameState, GoalCard, PlayerId, StockCard } from '@insider-trading/shared';
 import { COLORS } from '@insider-trading/shared';
 import type { BotProfile } from './profile.js';
 import {
@@ -12,15 +12,27 @@ import {
 /**
  * Fixed length of the stock-valuation feature vector. Frozen: changing it
  * invalidates every trained checkpoint, so add new signals into the reserved
- * tail slots rather than resizing.
+ * tail slots rather than resizing. (V5 note: slot semantics are unchanged
+ * from V4 -- the 4th color slot now sources from Green instead of Yellow,
+ * and goal/event-deck-size slots source from the V5 equivalents, but no
+ * slots were added, removed, or repositioned. See v5_tuning_notes.md /
+ * online/V5_MIGRATION_PLAN.md Phase 8 for why a full retrain is out of scope.)
  */
 export const STOCK_FEATURE_LEN = 40;
 
-const COLOR_INDEX: Record<Color, number> = { Blue: 0, Orange: 1, Yellow: 2, Purple: 3 };
+const COLOR_INDEX: Record<Color, number> = { Blue: 0, Orange: 1, Green: 2, Purple: 3 };
+
+/** Goals relevant to this bot: the public row plus its own private goals in hand. */
+function relevantGoalsForBot(state: GameState, botId: PlayerId): GoalCard[] {
+  const bot = state.players.find(p => p.playerId === botId);
+  const privateGoals = bot ? bot.hand.filter((c): c is GoalCard => c.category === 'goal') : [];
+  return [...state.goalRow, ...privateGoals];
+}
 
 /**
- * Count, across active goals the bot is within 2 cards of completing, how many
- * still require `color`. A cheap "this color unlocks a near-term goal" signal.
+ * Count, across goals (public + this bot's private) the bot is within 2 cards
+ * of completing, how many still require `color`. A cheap "this color unlocks
+ * a near-term goal" signal.
  */
 function nearGoalsNeedingColor(state: GameState, color: Color, botId: PlayerId): number {
   const bot = state.players.find(p => p.playerId === botId);
@@ -33,7 +45,7 @@ function nearGoalsNeedingColor(state: GameState, color: Color, botId: PlayerId):
     else owned[c.color] = (owned[c.color] ?? 0) + 1;
   }
   let count = 0;
-  for (const g of state.activeGoals) {
+  for (const g of relevantGoalsForBot(state, botId)) {
     const req = g.goal.parsed.requirements;
     if ((req[color] ?? 0) <= 0) continue;
     let gap = 0;
@@ -70,7 +82,7 @@ export function encodeColorFeatures(
   const eff = effectivePrices(state, profile.knownPeekedTips);
 
   // Owned counts per color + wild.
-  const owned: Record<Color, number> = { Blue: 0, Orange: 0, Yellow: 0, Purple: 0 };
+  const owned: Record<Color, number> = { Blue: 0, Orange: 0, Green: 0, Purple: 0 };
   let wildOwned = 0;
   let coloredOwned = 0;
   if (bot) {
@@ -100,26 +112,26 @@ export function encodeColorFeatures(
 
   x[11] = prices.Blue / 10;
   x[12] = prices.Orange / 10;
-  x[13] = prices.Yellow / 10;
+  x[13] = prices.Green / 10;
   x[14] = prices.Purple / 10;
   x[15] = eff.Blue / 10;
   x[16] = eff.Orange / 10;
-  x[17] = eff.Yellow / 10;
+  x[17] = eff.Green / 10;
   x[18] = eff.Purple / 10;
 
   x[19] = owned.Blue / 4;
   x[20] = owned.Orange / 4;
-  x[21] = owned.Yellow / 4;
+  x[21] = owned.Green / 4;
   x[22] = owned.Purple / 4;
   x[23] = wildOwned / 4;
   x[24] = bestGoalBump(state, botId, profile.params) / 4;
 
   x[25] = (bot ? bot.cash : 0) / 30;
   x[26] = (bot ? bot.loans : 0) / 3;
-  x[27] = state.insiderTipDeck.length / tipDenom;
-  x[28] = state.resolvedInsiderTips.length / tipDenom;
+  x[27] = state.eventDeck.length / tipDenom;
+  x[28] = state.resolvedEventCards.length / tipDenom;
   x[29] = state.market.length / 5;
-  x[30] = state.activeGoals.length / (numPlayers + 2);
+  x[30] = state.goalRow.length / (numPlayers + 2);
   x[31] = state.turnNumber / 30;
   x[32] = numPlayers / 6;
   x[33] = coloredOwned / 8;
@@ -129,14 +141,15 @@ export function encodeColorFeatures(
   x[37] = profile.knownPeekedTips.length / 4;
 
   // Sharp goal signals: how much would acquiring THIS card (one of `color`, or a
-  // Wild) help finish an active goal? x[38] spikes for a *finishing* card (gap
-  // 1→0), scaled by the goal's reward; x[39] rewards advancing a big, near goal.
-  // The diffuse goalBump features (x10/x24/x34) never expressed "this completes a
-  // goal now" — these do, so the net can learn to chase finishing cards.
+  // Wild) help finish a goal (public or this bot's own private)? x[38] spikes
+  // for a *finishing* card (gap 1→0), scaled by the goal's reward; x[39]
+  // rewards advancing a big, near goal. The diffuse goalBump features
+  // (x10/x24/x34) never expressed "this completes a goal now" — these do, so
+  // the net can learn to chase finishing cards.
   {
     let bestCompletion = 0;
     let bestAdvance = 0;
-    for (const g of state.activeGoals) {
+    for (const g of relevantGoalsForBot(state, botId)) {
       const req = g.goal.parsed.requirements;
       let rawGap = 0;
       for (const col of COLORS) {

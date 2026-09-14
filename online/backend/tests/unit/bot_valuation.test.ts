@@ -16,7 +16,7 @@ const CARDS_DIR = path.resolve(HERE, '../../../../cards');
 const catalog = loadCards(CARDS_DIR);
 
 function freshGame(seed = 1): GameState {
-  return createGameState({
+  const state = createGameState({
     catalog,
     players: [
       { playerId: 'a', name: 'A', isBot: true },
@@ -26,6 +26,14 @@ function freshGame(seed = 1): GameState {
     gameId: 'g',
     startedAt: '2026-01-01T00:00:00.000Z'
   });
+  // These tests construct controlled goal-row scenarios; strip any private
+  // goal cards the random deal happened to hand out, so goalBumpPerStock
+  // (which now also counts a bot's own private goals) only sees the goal(s)
+  // each test explicitly sets up.
+  for (const p of state.players) {
+    p.hand = p.hand.filter(c => c.category !== 'goal');
+  }
+  return state;
 }
 
 function neutralProfile() {
@@ -49,26 +57,26 @@ describe('bot valuation', () => {
     state.players[0].hand = [];
     state.players[1].hand = [];
     state.market = [];
-    state.activeGoals = [];
-    state.stockPrices = { Blue: 5, Orange: 5, Yellow: 5, Purple: 5 };
+    state.goalRow = [];
+    state.stockPrices = { Blue: 5, Orange: 5, Green: 5, Purple: 5 };
 
     // No goals, no visible stocks → value = base price.
-    expect(perceivedStockValue(state, profile, 'Yellow', 'a')).toBe(5);
+    expect(perceivedStockValue(state, profile, 'Green', 'a')).toBe(5);
 
-    // Add two Yellow stocks to the market → +2 visible.
-    const yellows = catalog.stocks.filter(s => s.color === 'Yellow').slice(0, 2);
+    // Add two Green stocks to the market → +2 visible.
+    const yellows = catalog.stocks.filter(s => s.color === 'Green').slice(0, 2);
     state.market.push(...yellows);
-    expect(visibleCount(state, 'Yellow', 'a')).toBe(2);
-    expect(perceivedStockValue(state, profile, 'Yellow', 'a')).toBe(7);
+    expect(visibleCount(state, 'Green', 'a')).toBe(2);
+    expect(perceivedStockValue(state, profile, 'Green', 'a')).toBe(7);
 
     // Apply a stockOffset of +2 → +2 to perceived value.
     profile.stockOffset = 2;
-    expect(perceivedStockValue(state, profile, 'Yellow', 'a')).toBe(9);
+    expect(perceivedStockValue(state, profile, 'Green', 'a')).toBe(9);
   });
 
   it('goalBumpPerStock applies floor(reward / (total requirements + 3))', () => {
     const state = freshGame(2);
-    state.activeGoals = [];
+    state.goalRow = [];
     // Inject a 2-Purple goal with a $5 cash reward.
     const pair = catalog.goals.find(
       g =>
@@ -78,7 +86,7 @@ describe('bot valuation', () => {
     );
     if (!pair) {
       // Synthesize one if catalog doesn't have it.
-      state.activeGoals = [
+      state.goalRow = [
         {
           category: 'goal',
           uid: 'g-fake',
@@ -93,7 +101,7 @@ describe('bot valuation', () => {
       ];
     } else {
       // Replace reward with a $5 cash reward for the assertion.
-      state.activeGoals = [
+      state.goalRow = [
         {
           ...pair,
           reward: { text: '$5', parsed: { type: 'gain_cash', amount: 5 } }
@@ -101,14 +109,14 @@ describe('bot valuation', () => {
       ];
     }
     expect(goalBumpPerStock(state, 'Purple', 'a')).toBe(1); // floor(5/(2+3)) = 1
-    expect(goalBumpPerStock(state, 'Yellow', 'a')).toBe(0); // goal doesn't need Yellow
+    expect(goalBumpPerStock(state, 'Green', 'a')).toBe(0); // goal doesn't need Green
   });
 
   it('goalBumpPerStock returns 0 when the bot is >2 cards away from claiming', () => {
     const state = freshGame(7);
     // A 2B+2P goal: requires 4 cards. With an empty stock hand the bot needs
     // 4 cards — well beyond the 2-card "near completion" threshold.
-    state.activeGoals = [
+    state.goalRow = [
       {
         category: 'goal',
         uid: 'g-far',
@@ -137,26 +145,26 @@ describe('bot valuation', () => {
     state.players[0].hand = [];
     state.players[1].hand = [];
     state.market = [];
-    state.activeGoals = [];
-    state.stockPrices = { Blue: 5, Orange: 5, Yellow: 6, Purple: 5 };
+    state.goalRow = [];
+    state.stockPrices = { Blue: 5, Orange: 5, Green: 6, Purple: 5 };
 
-    // Pretend the top tip halves Yellow.
+    // Pretend the top tip halves Green.
     const halveTip = catalog.insiderTips.find(
-      t => t.effect.type === 'halve' && (t.effect as any).color === 'Yellow'
+      t => t.effect.type === 'halve' && (t.effect as any).color === 'Green'
     );
-    if (!halveTip) throw new Error('catalog missing halve-Yellow tip');
+    if (!halveTip) throw new Error('catalog missing halve-Green tip');
     // Put it at the front of the deck and tell the bot it knows about it.
-    state.insiderTipDeck = [halveTip, ...state.insiderTipDeck.filter(t => t.uid !== halveTip.uid)];
+    state.eventDeck = [halveTip, ...state.eventDeck.filter(t => t.uid !== halveTip.uid)];
     profile.knownPeekedTips.push(halveTip);
 
-    // Yellow basePrice should be floor(6/2)=3; no visible/goal/offset → value=3.
-    expect(perceivedStockValue(state, profile, 'Yellow', 'a')).toBe(3);
+    // Green basePrice should be floor(6/2)=3; no visible/goal/offset → value=3.
+    expect(perceivedStockValue(state, profile, 'Green', 'a')).toBe(3);
   });
 
   it('Wild Share value is max(profile.wildShareValue, best goal bump)', () => {
     const state = freshGame(4);
     const profile = neutralProfile(); // wildShareValue = 2
-    state.activeGoals = [
+    state.goalRow = [
       {
         category: 'goal',
         uid: 'g-fake-purple',
@@ -170,16 +178,16 @@ describe('bot valuation', () => {
         uid: 'g-fake-yellow',
         id: 997,
         difficulty: 'easy',
-        goal: { text: '3 Yellow', parsed: { type: 'three_of_a_kind', requirements: { Yellow: 3 } } },
+        goal: { text: '3 Green', parsed: { type: 'three_of_a_kind', requirements: { Green: 3 } } },
         reward: { text: '$6', parsed: { type: 'gain_cash', amount: 6 } }
       }
     ];
-    // 2-Purple goal gap=2 → bump = floor(10/5) = 2. 3-Yellow gap=3 → filtered.
+    // 2-Purple goal gap=2 → bump = floor(10/5) = 2. 3-Green gap=3 → filtered.
     // max(profile.wildShareValue=3, bestBump=2) = 3.
     expect(perceivedWildShareValue(state, profile, 'a')).toBe(3);
     // If the goal bump beats the personal value, use the bump instead.
     profile.wildShareValue = 3;
-    state.activeGoals[0].reward = { text: '$30', parsed: { type: 'gain_cash', amount: 30 } };
+    state.goalRow[0].reward = { text: '$30', parsed: { type: 'gain_cash', amount: 30 } };
     // 2-Purple goal bump = floor(30/5) = 6 > wildShareValue.
     expect(perceivedWildShareValue(state, profile, 'a')).toBe(6);
   });

@@ -1,20 +1,16 @@
 import type {
-  ActionCard,
   AuctionState,
+  Color,
   GameLogEntry,
   GameState,
-  InsiderTipCard,
   PlayerId,
-  PlayerPrivate,
-  StockCard,
-  TurnPhase
+  StockCard
 } from '@insider-trading/shared';
 import { maxAffordableSpend } from '@insider-trading/shared';
 import type { MutationResult } from '../domain/mutate.js';
 import { adjust } from '../domain/prices.js';
 import { event } from './events.js';
 import { hasAnyPendingPrompt, setPrompt } from './prompts.js';
-import { nextRng } from './rng.js';
 import {
   currentPlayer,
   describeCard,
@@ -45,7 +41,7 @@ export function startAuction(
     return { ok: false, error: 'initialBid must be a non-negative integer', events };
   }
   if (initialBid > maxAffordableSpend(player.cash, player.loans)) {
-    return { ok: false, error: 'bid exceeds loan limit (max 3 loans)', events };
+    return { ok: false, error: 'bid exceeds loan limit (max 2 loans)', events };
   }
   const cardIdx = state.market.findIndex(c => c.uid === cardUid);
   if (cardIdx < 0) return { ok: false, error: 'card not in market', events };
@@ -84,106 +80,6 @@ export function startAuction(
     resolveAuction(state, events);
   }
   return { ok: true, events };
-}
-
-/**
- * If a Black Market card is face-up in the market and no auction is in flight,
- * remove it (single-use trigger; the card leaves the game), refill that slot,
- * draw a random tip from the unused pool, and start a side-auction for it.
- * If the unused pool is empty, the trigger fizzles (card still removed).
- * Returns true if a side-auction was started.
- */
-export function tryFireBlackMarketTrigger(
-  state: GameState,
-  events: GameLogEntry[]
-): boolean {
-  if (state.auction) return false;
-  const idx = state.market.findIndex(
-    c =>
-      c.category === 'action' &&
-      (c as ActionCard).effect.type === 'auction_unused_tip'
-  );
-  if (idx < 0) return false;
-  const card = state.market.splice(idx, 1)[0] as ActionCard;
-  events.push(
-    event('black_market_revealed', `Black Market flips face-up — side-auction triggered`, {
-      payload: { uid: card.uid }
-    })
-  );
-  // Refill the slot the Black Market vacated. A second Black Market dealt
-  // into that slot will be caught on a later trigger pass (after this side-
-  // auction resolves).
-  refillMarketIfNeeded(state, events);
-  if (state.unusedInsiderTipPool.length === 0) {
-    events.push(
-      event(
-        'black_market_fizzle',
-        'Black Market fizzles: no unused Insider Tips left to auction',
-        {}
-      )
-    );
-    return false;
-  }
-  // The phase to restore after the side-auction resolves. If the previous
-  // phase was `in_auction` (e.g., trigger fires mid-turn via market refill),
-  // we collapse it to awaiting_die_roll since the original market auction
-  // already concluded by the time refill ran.
-  const resumePhase: TurnPhase =
-    state.turnPhase === 'in_auction' ? 'awaiting_die_roll' : state.turnPhase;
-  const rng = nextRng(state);
-  const tipIdx = rng.int(state.unusedInsiderTipPool.length);
-  const tip = state.unusedInsiderTipPool.splice(tipIdx, 1)[0];
-  startSideAuction(state, tip, resumePhase, events);
-  return true;
-}
-
-/**
- * Begin a Black Market side-auction for a face-down Insider Tip. The current
- * player is the auctioneer; bidding rotates poker-style; min bid is $0
- * (auctioneer can take it for free if no one else raises). The auctioned tip
- * is NOT placed in market — it sits inside the auction state.
- */
-export function startSideAuction(
-  state: GameState,
-  tip: InsiderTipCard,
-  resumePhase: TurnPhase,
-  events: GameLogEntry[]
-): void {
-  const auctioneer = currentPlayer(state);
-  const n = state.players.length;
-  const order: PlayerId[] = [];
-  for (let i = 1; i < n; i++) {
-    order.push(state.players[(state.currentPlayerIndex + i) % n].playerId);
-  }
-  order.push(auctioneer.playerId);
-  const auction: AuctionState = {
-    cardUid: tip.uid,
-    auctioneerId: auctioneer.playerId,
-    initialBid: 0,
-    currentHigh: 0,
-    currentHighBidderId: auctioneer.playerId,
-    activeBidders: order,
-    awaitingBidderId: order[0] ?? null,
-    sideAuctionTip: tip,
-    resumePhase
-  };
-  state.auction = auction;
-  state.turnPhase = 'in_auction';
-  events.push(
-    event(
-      'side_auction_started',
-      `Black Market: ${auctioneer.name} opens a side-auction for a face-down Insider Tip at $0`,
-      {
-        actor: auctioneer.playerId,
-        payload: { tipUid: tip.uid, initialBid: 0, order, resumePhase }
-      }
-    )
-  );
-  if (auction.awaitingBidderId) {
-    promptForBid(state, auction);
-  } else {
-    resolveAuction(state, events);
-  }
 }
 
 function promptForBid(state: GameState, auction: AuctionState): void {
@@ -226,7 +122,7 @@ export function bid(state: GameState, playerId: PlayerId, amount: number): Mutat
     return { ok: false, error: 'bid must beat current high', events };
   }
   if (amount > maxAffordableSpend(bidder.cash, bidder.loans)) {
-    return { ok: false, error: 'bid exceeds loan limit (max 3 loans)', events };
+    return { ok: false, error: 'bid exceeds loan limit (max 2 loans)', events };
   }
   // Accept the bid.
   auction.currentHigh = amount;
@@ -295,42 +191,51 @@ function advanceAuction(state: GameState, events: GameLogEntry[], fromIdx: numbe
   promptForBid(state, a);
 }
 
+/** $2 off for the holder of the matching Broker card, floored at $0. Returns the actual amount paid. */
+function applyBrokerDiscount(
+  state: GameState,
+  winner: { persistentEffects: { effect: { type: string; color?: Color } }[] },
+  color: Color,
+  amount: number,
+  events: GameLogEntry[]
+): number {
+  const hasBroker = winner.persistentEffects.some(
+    e => e.effect.type === 'broker_discount' && e.effect.color === color
+  );
+  if (!hasBroker) return amount;
+  const discounted = Math.max(0, amount - 2);
+  if (discounted !== amount) {
+    events.push(
+      event('broker_discount_applied', `Broker discount: pays $${discounted} instead of $${amount} for ${color}`, {
+        payload: { color, fullAmount: amount, discountedAmount: discounted }
+      })
+    );
+  }
+  return discounted;
+}
+
 function resolveAuction(state: GameState, events: GameLogEntry[]): void {
   const a = state.auction;
   if (!a) return;
   const winner = findPlayer(state, a.currentHighBidderId);
-  if (a.sideAuctionTip) {
-    // Black Market side-auction: winner pays and takes the (face-down) tip
-    // into hand. Market is untouched; restore the prior turnPhase.
-    const tip = a.sideAuctionTip;
-    const resume = a.resumePhase ?? 'awaiting_die_roll';
-    payBank(winner, a.currentHigh, events);
-    winner.hand.push(tip);
-    events.push(
-      event(
-        'side_auction_resolved',
-        `${winner.name} wins the face-down Insider Tip at $${a.currentHigh}`,
-        { actor: winner.playerId, payload: { tipUid: tip.uid, finalBid: a.currentHigh } }
-      )
-    );
-    state.auction = null;
-    state.turnPhase = resume;
-    return;
-  }
   const cardIdx = state.market.findIndex(c => c.uid === a.cardUid);
   if (cardIdx < 0) {
     state.auction = null;
-    state.turnPhase = 'awaiting_die_roll';
+    state.turnPhase = 'awaiting_dice_bag_draw';
     return;
   }
   const card = state.market.splice(cardIdx, 1)[0];
-  payBank(winner, a.currentHigh, events);
+  let amountDue = a.currentHigh;
+  if (card.category === 'stock' && card.color !== 'Wild') {
+    amountDue = applyBrokerDiscount(state, winner, card.color, amountDue, events);
+  }
+  payBank(winner, amountDue, events);
   winner.hand.push(card);
   events.push(
     event(
       'auction_resolved',
-      `${winner.name} wins ${describeCard(card)} at $${a.currentHigh}`,
-      { actor: winner.playerId, payload: { cardUid: card.uid, finalBid: a.currentHigh } }
+      `${winner.name} wins ${describeCard(card)} at $${amountDue}${amountDue !== a.currentHigh ? ` (bid was $${a.currentHigh})` : ''}`,
+      { actor: winner.playerId, payload: { cardUid: card.uid, finalBid: a.currentHigh, amountPaid: amountDue } }
     )
   );
   // Color +1 if stock, then special.
@@ -349,5 +254,5 @@ function resolveAuction(state: GameState, events: GameLogEntry[]): void {
   }
   state.auction = null;
   refillMarketIfNeeded(state, events);
-  state.turnPhase = 'awaiting_die_roll';
+  state.turnPhase = 'awaiting_dice_bag_draw';
 }

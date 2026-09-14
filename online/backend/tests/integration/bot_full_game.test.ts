@@ -74,6 +74,10 @@ function driveBotGame(
   rng: Rng,
   maxTicks = 5000
 ): { ticks: number } {
+  // Kick off the setup draft -- production code does this via ServerHub's
+  // post-setup advance() call; a directly-constructed state needs the same
+  // one-time nudge before beginDraft() ever runs.
+  advance(state, []);
   let ticks = 0;
   while (!state.gameOver) {
     ticks++;
@@ -81,7 +85,7 @@ function driveBotGame(
       throw new Error(
         `bot game exceeded ${maxTicks} ticks. phase=${state.turnPhase} ` +
           `currentPlayer=${state.players[state.currentPlayerIndex].name} ` +
-          `tipsLeft=${state.insiderTipDeck.length} goalsLeft=${state.activeGoals.length} ` +
+          `eventDeckLeft=${state.eventDeck.length} goalsLeft=${state.goalRow.length} ` +
           `marketLen=${state.market.length} mainDeckLen=${state.mainDeck.length} ` +
           `turn=${state.turnNumber} ` +
           `prompts=${JSON.stringify(

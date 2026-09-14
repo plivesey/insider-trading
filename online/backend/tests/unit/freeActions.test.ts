@@ -1,11 +1,10 @@
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { loadCards, CLASSIC_RULES, type GameState, type ActionCard, type GoalCard, type Color, type StockCard, type HandCard } from '@insider-trading/shared';
+import { loadCards, type GameState, type ActionCard, type GoalCard, type Color, type StockCard, type HandCard } from '@insider-trading/shared';
 import { createGameState } from '../../src/domain/setup.js';
 import { submitFreeAction, processNextFreeAction } from '../../src/engine/freeActions.js';
 import { respondToPrompt } from '../../src/engine/promptResponse.js';
 import { advance } from '../../src/engine/advance.js';
-import { pass } from '../../src/engine/auction.js';
 import { currentPlayer } from '../../src/engine/turn.js';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
@@ -13,7 +12,7 @@ const CARDS_DIR = path.resolve(HERE, '../../../../cards');
 const catalog = loadCards(CARDS_DIR);
 
 function mkState(seed = 1): GameState {
-  return createGameState({
+  const state = createGameState({
     catalog,
     players: [
       { playerId: 'p1', name: 'Alice' },
@@ -22,9 +21,10 @@ function mkState(seed = 1): GameState {
     ],
     seed,
     gameId: 'g',
-    startedAt: '2026-01-01T00:00:00.000Z',
-    rules: CLASSIC_RULES // engine-mechanics tests use the classic setup (empty hand, end at 1 goal)
+    startedAt: '2026-01-01T00:00:00.000Z'
   });
+  state.turnPhase = 'awaiting_turn_action';
+  return state;
 }
 
 function actionByEffect(type: string): ActionCard {
@@ -42,7 +42,7 @@ function play(state: GameState, playerId: string, ac: ActionCard) {
   processNextFreeAction(state, []);
 }
 
-describe('Action cards', () => {
+describe('Action cards (carried over from V4, unchanged mechanics)', () => {
   it('Tipster\'s Choice draws 2, prompts to keep 1', () => {
     const s = mkState();
     const ac = giveActionCard(s, 'p1', 'draw_and_choose');
@@ -92,8 +92,8 @@ describe('Action cards', () => {
     play(s, 'p1', ac);
     const pr = s.pendingPrompts['p1']!;
     expect(pr.payload.amount).toBe(2);
-    respondToPrompt(s, 'p1', pr.promptId, { color: 'Yellow', sign: 'down' });
-    expect(s.stockPrices.Yellow).toBe(2);
+    respondToPrompt(s, 'p1', pr.promptId, { color: 'Green', sign: 'down' });
+    expect(s.stockPrices.Green).toBe(2);
   });
 
   it('Wild Speculation: prompts for ±3 on revealed color', () => {
@@ -114,6 +114,15 @@ describe('Action cards', () => {
     play(s, 'p1', ac);
     expect(s.pendingPrompts['p1']).toBeNull();
     expect(s.players[0].persistentEffects.find(c => c.uid === ac.uid)).toBeTruthy();
+  });
+
+  it('a Broker card is persistent too', () => {
+    const s = mkState();
+    const ac = giveActionCard(s, 'p1', 'broker_discount');
+    play(s, 'p1', ac);
+    expect(s.pendingPrompts['p1']).toBeNull();
+    expect(s.players[0].persistentEffects.find(c => c.uid === ac.uid)).toBeTruthy();
+    expect(s.discardPile.find(c => c.uid === ac.uid)).toBeUndefined();
   });
 
   it('Hostile Takeover: target + stock pick, target draws top of deck', () => {
@@ -147,134 +156,51 @@ describe('Action cards', () => {
     const pr = s.pendingPrompts['p1']!;
     expect(pr.payload.perColor).toBe(true);
     respondToPrompt(s, 'p1', pr.promptId, {
-      choices: { Blue: 1, Orange: -1, Yellow: 1, Purple: -1 }
+      choices: { Blue: 1, Orange: -1, Green: 1, Purple: -1 }
     });
-    expect(s.stockPrices).toEqual({ Blue: 5, Orange: 3, Yellow: 5, Purple: 3 });
+    expect(s.stockPrices).toEqual({ Blue: 5, Orange: 3, Green: 5, Purple: 3 });
   });
 
-  it('Insider Source: draws top tip into hand, deck shrinks by 1', () => {
+  it('Insider Source: draws top event-deck card into hand, deck shrinks by 1', () => {
     const s = mkState();
-    const topBefore = s.insiderTipDeck[0];
-    const sizeBefore = s.insiderTipDeck.length;
-    expect(sizeBefore).toBeGreaterThan(1); // ensure non-final-draw path
+    const topBefore = s.eventDeck[0];
+    const sizeBefore = s.eventDeck.length;
     const ac = giveActionCard(s, 'p1', 'draw_tip');
     play(s, 'p1', ac);
-    expect(s.insiderTipDeck.length).toBe(sizeBefore - 1);
-    expect(s.insiderTipDeck.find(t => t.uid === topBefore.uid)).toBeUndefined();
+    expect(s.eventDeck.length).toBe(sizeBefore - 1);
+    expect(s.eventDeck.find(t => t.uid === topBefore.uid)).toBeUndefined();
     expect(s.players[0].hand.find(c => c.uid === topBefore.uid)).toBeTruthy();
-    expect(s.pendingPrompts['p1']).toBeNull(); // no final-tip prompt
   });
 
-  it('Insider Source: playing tip from hand resolves its effect', () => {
+  it('Insider Source: if the drawn card is a market-movement card, playing it from hand resolves its effect and bumps the progress tracker', () => {
     const s = mkState();
+    // Force the top of the event deck to be a market-movement card.
+    const tip = s.eventDeck.find(c => c.category === 'insider_tip')!;
+    s.eventDeck = [tip, ...s.eventDeck.filter(c => c.uid !== tip.uid)];
     const ac = giveActionCard(s, 'p1', 'draw_tip');
+    const trackerBefore = s.progressTracker;
     play(s, 'p1', ac);
-    const tip = s.players[0].hand.find(c => c.category === 'insider_tip')!;
+    const drawn = s.players[0].hand.find(c => c.uid === tip.uid)!;
     const beforePrices = { ...s.stockPrices };
-    submitFreeAction(s, 'p1', { kind: 'play_insider_tip', cardUid: tip.uid });
+    submitFreeAction(s, 'p1', { kind: 'play_market_movement', cardUid: drawn.uid });
     processNextFreeAction(s, []);
-    expect(s.players[0].hand.find(c => c.uid === tip.uid)).toBeUndefined();
-    expect(s.resolvedInsiderTips.find(t => t.uid === tip.uid)).toBeTruthy();
-    // Prices changed (any of crash/surge/slump moves something).
+    expect(s.players[0].hand.find(c => c.uid === drawn.uid)).toBeUndefined();
+    expect(s.resolvedEventCards.find(t => t.uid === drawn.uid)).toBeTruthy();
     expect(s.stockPrices).not.toEqual(beforePrices);
+    expect(s.progressTracker).toBe(trackerBefore + 1);
   });
 
-  it('Insider Source: drawing the LAST tip triggers final-play prompt', () => {
+  it('Insider Source: if the drawn card is a goal card, it becomes a new private goal', () => {
     const s = mkState();
-    // Drain the tip deck down to exactly 1.
-    s.insiderTipDeck = s.insiderTipDeck.slice(0, 1);
-    const lastTip = s.insiderTipDeck[0];
+    const goal = s.eventDeck.find(c => c.category === 'goal')!;
+    s.eventDeck = [goal, ...s.eventDeck.filter(c => c.uid !== goal.uid)];
     const ac = giveActionCard(s, 'p1', 'draw_tip');
     play(s, 'p1', ac);
-    expect(s.insiderTipDeck.length).toBe(0);
-    expect(s.players[0].hand.find(c => c.uid === lastTip.uid)).toBeTruthy();
-    const pr = s.pendingPrompts['p1']!;
-    expect(pr.type).toBe('final_tip_play_choice');
-    expect((pr.payload as any).tipUid).toBe(lastTip.uid);
-    // Decline: tip stays in hand, prompt clears, game ends after advance.
-    respondToPrompt(s, 'p1', pr.promptId, { play: false });
-    expect(s.players[0].hand.find(c => c.uid === lastTip.uid)).toBeTruthy();
-    advance(s, []);
-    expect(s.gameOver).not.toBeNull();
-    expect(s.gameOver!.reason).toBe('insider_tip_deck_empty');
-  });
-
-  it('Insider Source: choosing PLAY on final-tip prompt resolves the tip then ends game', () => {
-    const s = mkState();
-    s.insiderTipDeck = s.insiderTipDeck.slice(0, 1);
-    const lastTip = s.insiderTipDeck[0];
-    const ac = giveActionCard(s, 'p1', 'draw_tip');
-    play(s, 'p1', ac);
-    const pr = s.pendingPrompts['p1']!;
-    respondToPrompt(s, 'p1', pr.promptId, { play: true });
-    expect(s.players[0].hand.find(c => c.uid === lastTip.uid)).toBeUndefined();
-    expect(s.resolvedInsiderTips.find(t => t.uid === lastTip.uid)).toBeTruthy();
-    advance(s, []);
-    expect(s.gameOver).not.toBeNull();
-  });
-});
-
-describe('Black Market trigger', () => {
-  function mkStateWithBlackMarketInMarket(seed = 7): GameState {
-    const s = mkState(seed);
-    // Remove any Black Markets that landed in market/mainDeck so we control
-    // exactly how many triggers fire during the test.
-    s.market = s.market.filter(
-      c => !(c.category === 'action' && (c as any).effect.type === 'auction_unused_tip')
-    );
-    s.mainDeck = s.mainDeck.filter(
-      c => !(c.category === 'action' && (c as any).effect.type === 'auction_unused_tip')
-    );
-    // Inject exactly one Black Market into market slot 0.
-    const bm = structuredClone(catalog.actions.find(a => a.effect.type === 'auction_unused_tip')!);
-    s.market.unshift(bm);
-    // Trim market back to 5 if injection overflowed; otherwise leave (refill
-    // will top it up after the trigger removes the BM).
-    if (s.market.length > 5) s.market.length = 5;
-    return s;
-  }
-
-  it('starts a side-auction for a face-down unused tip when Black Market is in market', () => {
-    const s = mkStateWithBlackMarketInMarket();
-    const beforePool = s.unusedInsiderTipPool.length;
-    expect(beforePool).toBeGreaterThan(0);
-    advance(s, []);
-    // Side-auction should be in flight, market should still have 5 cards
-    // (Black Market removed; one new card refilled in), pool shrank by 1.
-    expect(s.auction).not.toBeNull();
-    expect(s.auction!.sideAuctionTip).toBeDefined();
-    expect(s.market).toHaveLength(5);
-    expect(s.market.some(c => c.category === 'action' && (c as any).effect.type === 'auction_unused_tip')).toBe(false);
-    expect(s.unusedInsiderTipPool.length).toBe(beforePool - 1);
-    expect(s.turnPhase).toBe('in_auction');
-  });
-
-  it('side-auction: everyone passes → auctioneer wins the tip for $0', () => {
-    const s = mkStateWithBlackMarketInMarket();
-    const auctioneer = s.players[s.currentPlayerIndex];
-    const beforeCash = auctioneer.cash;
-    advance(s, []);
-    const tip = s.auction!.sideAuctionTip!;
-    // Everyone else passes; auctioneer also passes (since no one beat $0).
-    let safety = 20;
-    while (s.auction && safety-- > 0) {
-      const r = pass(s, s.auction.awaitingBidderId!);
-      expect(r.ok).toBe(true);
-    }
-    expect(s.auction).toBeNull();
-    expect(auctioneer.hand.find(c => c.uid === tip.uid)).toBeTruthy();
-    expect(auctioneer.cash).toBe(beforeCash); // $0 final price
-  });
-
-  it('Black Market fizzles when unused pool is empty', () => {
-    const s = mkStateWithBlackMarketInMarket();
-    s.unusedInsiderTipPool = []; // empty the pool
-    const beforeMarketLen = s.market.length;
-    advance(s, []);
-    expect(s.auction).toBeNull();
-    expect(s.market.some(c => c.category === 'action' && (c as any).effect.type === 'auction_unused_tip')).toBe(false);
-    // Refill should keep market at full 5.
-    expect(s.market).toHaveLength(beforeMarketLen);
+    const drawn = s.players[0].hand.find(c => c.uid === goal.uid);
+    expect(drawn).toBeTruthy();
+    expect(drawn!.category).toBe('goal');
+    // It's private: not in the public goal row.
+    expect(s.goalRow.find(g => g.uid === goal.uid)).toBeUndefined();
   });
 });
 
@@ -309,27 +235,10 @@ describe('Liquidation (sell_same_bonus) pricing', () => {
   });
 });
 
-describe('Hot Tip', () => {
-  it('peek + ack removes the Hot Tip card from hand', () => {
-    const s = mkState();
-    const hotTip = s.players[0].hand.find(
-      c => c.category === 'action' && (c as any).effect.type === 'peek_top_tip'
-    )!;
-    expect(hotTip).toBeTruthy();
-    submitFreeAction(s, 'p1', { kind: 'play_action_card', cardUid: hotTip.uid });
-    processNextFreeAction(s, []);
-    expect(s.players[0].hand.find(c => c.uid === hotTip.uid)).toBeUndefined();
-    const pr = s.pendingPrompts['p1']!;
-    expect(pr.type).toBe('peek_ack');
-    respondToPrompt(s, 'p1', pr.promptId, {});
-    expect(s.pendingPrompts['p1']).toBeNull();
-  });
-});
-
-describe('Goal claiming', () => {
+describe('Goal claiming (public)', () => {
   function giveStock(state: GameState, playerId: string, color: Color | 'Wild', n = 1): StockCard[] {
     const out: StockCard[] = [];
-    const pool = catalog.stocks.filter(s => s.color === color && s.type === 'blank' || (color === 'Wild' && s.color === 'Wild'));
+    const pool = catalog.stocks.filter(s => (s.color === color && s.type === 'blank') || (color === 'Wild' && s.color === 'Wild'));
     for (let i = 0; i < n; i++) {
       const c = { ...pool[i % pool.length], uid: `synthetic-${color}-${Math.random()}` };
       state.players.find(p => p.playerId === playerId)!.hand.push(c);
@@ -338,10 +247,12 @@ describe('Goal claiming', () => {
     return out;
   }
 
-  it('claims a 2 Blue goal → +$4', () => {
+  it('claims a 2 Blue goal → +$4, bumps the progress tracker', () => {
     const s = mkState();
     const goal: GoalCard = { ...catalog.goals.find(g => g.id === 1)! };
-    s.activeGoals.push(goal);
+    s.goalRow.push(goal);
+    const trackerBefore = s.progressTracker;
+    const cashBefore = s.players[0].cash;
     const [b1, b2] = giveStock(s, 'p1', 'Blue', 2);
     submitFreeAction(s, 'p1', {
       kind: 'claim_goal',
@@ -349,9 +260,10 @@ describe('Goal claiming', () => {
       stockAssignment: { cards: { [b1.uid]: 'Blue', [b2.uid]: 'Blue' } }
     });
     processNextFreeAction(s, []);
-    expect(s.players[0].cash).toBe(34);
-    expect(s.activeGoals.find(g => g.uid === goal.uid)).toBeUndefined();
+    expect(s.players[0].cash).toBe(cashBefore + 4);
+    expect(s.goalRow.find(g => g.uid === goal.uid)).toBeUndefined();
     expect(s.players[0].goalsClaimed.find(g => g.uid === goal.uid)).toBeTruthy();
+    expect(s.progressTracker).toBe(trackerBefore + 1);
     // Stocks remain in hand.
     expect(s.players[0].hand.find(c => c.uid === b1.uid)).toBeTruthy();
   });
@@ -359,7 +271,8 @@ describe('Goal claiming', () => {
   it('uses Wild Share to substitute one color', () => {
     const s = mkState();
     const goal: GoalCard = { ...catalog.goals.find(g => g.id === 1)! };
-    s.activeGoals.push(goal);
+    s.goalRow.push(goal);
+    const cashBefore = s.players[0].cash;
     const [b1] = giveStock(s, 'p1', 'Blue', 1);
     const [w1] = giveStock(s, 'p1', 'Wild', 1);
     submitFreeAction(s, 'p1', {
@@ -368,7 +281,7 @@ describe('Goal claiming', () => {
       stockAssignment: { cards: { [b1.uid]: 'Blue', [w1.uid]: 'Blue' } }
     });
     processNextFreeAction(s, []);
-    expect(s.players[0].cash).toBe(34);
+    expect(s.players[0].cash).toBe(cashBefore + 4);
     // Wild is discarded after use.
     expect(s.players[0].hand.find(c => c.uid === w1.uid)).toBeUndefined();
     expect(s.discardPile.find(c => c.uid === w1.uid)).toBeTruthy();
@@ -377,7 +290,7 @@ describe('Goal claiming', () => {
   it('rejects insufficient stocks', () => {
     const s = mkState();
     const goal: GoalCard = { ...catalog.goals.find(g => g.id === 1)! };
-    s.activeGoals.push(goal);
+    s.goalRow.push(goal);
     const [b1] = giveStock(s, 'p1', 'Blue', 1);
     submitFreeAction(s, 'p1', {
       kind: 'claim_goal',
@@ -387,19 +300,19 @@ describe('Goal claiming', () => {
     const events: any[] = [];
     processNextFreeAction(s, events);
     // Goal NOT claimed.
-    expect(s.activeGoals.find(g => g.uid === goal.uid)).toBeTruthy();
+    expect(s.goalRow.find(g => g.uid === goal.uid)).toBeTruthy();
     expect(events.find(e => e.type === 'error')).toBeTruthy();
   });
 
-  it('reward triggers a prompt: 2 Yellow → set_stock', () => {
+  it('reward triggers a prompt: 2 Green → set_stock', () => {
     const s = mkState();
     const goal: GoalCard = { ...catalog.goals.find(g => g.id === 3)! };
-    s.activeGoals.push(goal);
-    const [y1, y2] = giveStock(s, 'p1', 'Yellow', 2);
+    s.goalRow.push(goal);
+    const [g1, g2] = giveStock(s, 'p1', 'Green', 2);
     submitFreeAction(s, 'p1', {
       kind: 'claim_goal',
       goalUid: goal.uid,
-      stockAssignment: { cards: { [y1.uid]: 'Yellow', [y2.uid]: 'Yellow' } }
+      stockAssignment: { cards: { [g1.uid]: 'Green', [g2.uid]: 'Green' } }
     });
     processNextFreeAction(s, []);
     const pr = s.pendingPrompts['p1']!;
@@ -408,16 +321,16 @@ describe('Goal claiming', () => {
     expect(s.stockPrices.Purple).toBe(6);
   });
 
-  it('end-game cash reward (2 Yellow + 2 Purple → +$11 at end)', () => {
+  it('end-game cash reward (2 Green + 2 Purple → +$11 at end)', () => {
     const s = mkState();
     const goal: GoalCard = { ...catalog.goals.find(g => g.id === 14)! };
-    s.activeGoals.push(goal);
-    const [y1, y2] = giveStock(s, 'p1', 'Yellow', 2);
+    s.goalRow.push(goal);
+    const [g1, g2] = giveStock(s, 'p1', 'Green', 2);
     const [p1, p2] = giveStock(s, 'p1', 'Purple', 2);
     submitFreeAction(s, 'p1', {
       kind: 'claim_goal',
       goalUid: goal.uid,
-      stockAssignment: { cards: { [y1.uid]: 'Yellow', [y2.uid]: 'Yellow', [p1.uid]: 'Purple', [p2.uid]: 'Purple' } }
+      stockAssignment: { cards: { [g1.uid]: 'Green', [g2.uid]: 'Green', [p1.uid]: 'Purple', [p2.uid]: 'Purple' } }
     });
     processNextFreeAction(s, []);
     expect(s.players[0].endGameCashBonus).toBe(11);
@@ -426,7 +339,8 @@ describe('Goal claiming', () => {
   it('Steal from each other player (3 Blue)', () => {
     const s = mkState();
     const goal: GoalCard = { ...catalog.goals.find(g => g.id === 5)! };
-    s.activeGoals.push(goal);
+    s.goalRow.push(goal);
+    const cashBefore = s.players[0].cash;
     const stocks = giveStock(s, 'p1', 'Blue', 3);
     s.players[1].cash = 10;
     s.players[2].cash = 1; // only $1 to give
@@ -438,23 +352,69 @@ describe('Goal claiming', () => {
       }
     });
     processNextFreeAction(s, []);
-    expect(s.players[0].cash).toBe(30 + 2 + 1); // $2 from Bob, $1 from Carol
+    expect(s.players[0].cash).toBe(cashBefore + 2 + 1); // $2 from Bob, $1 from Carol
     expect(s.players[1].cash).toBe(8);
     expect(s.players[2].cash).toBe(0);
   });
 });
 
-describe('end conditions via goal claim', () => {
-  it('triggers game_over when activeGoals reduced to 1 (no-prompt reward)', () => {
+describe('Goal claiming (private)', () => {
+  function giveStock(state: GameState, playerId: string, color: Color, n = 1): StockCard[] {
+    const out: StockCard[] = [];
+    const pool = catalog.stocks.filter(s => s.color === color && s.type === 'blank');
+    for (let i = 0; i < n; i++) {
+      const c = { ...pool[i % pool.length], uid: `priv-${color}-${Math.random()}` };
+      state.players.find(p => p.playerId === playerId)!.hand.push(c);
+      out.push(c);
+    }
+    return out;
+  }
+
+  it('reveals and claims a private goal from hand, removing it and bumping the tracker', () => {
     const s = mkState();
-    // Pick a goal whose reward does NOT set a prompt (gain_cash) so end
-    // conditions fire as soon as advance() drains the queue.
+    const goal: GoalCard = { ...catalog.goals.find(g => g.id === 1)! }; // 2 Blue -> +$4
+    s.players[0].hand.push(goal);
+    const trackerBefore = s.progressTracker;
+    const cashBefore = s.players[0].cash;
+    const [b1, b2] = giveStock(s, 'p1', 'Blue', 2);
+    submitFreeAction(s, 'p1', {
+      kind: 'claim_private_goal',
+      goalUid: goal.uid,
+      stockAssignment: { cards: { [b1.uid]: 'Blue', [b2.uid]: 'Blue' } }
+    });
+    processNextFreeAction(s, []);
+    expect(s.players[0].hand.find(c => c.uid === goal.uid)).toBeUndefined();
+    expect(s.players[0].goalsClaimed.find(g => g.uid === goal.uid)).toBeTruthy();
+    expect(s.players[0].cash).toBe(cashBefore + 4);
+    expect(s.progressTracker).toBe(trackerBefore + 1);
+    // Never appeared in the public row.
+    expect(s.goalRow.find(g => g.uid === goal.uid)).toBeUndefined();
+  });
+
+  it('rejects claiming a private goal that is not in hand', () => {
+    const s = mkState();
+    const goal: GoalCard = { ...catalog.goals.find(g => g.id === 1)! };
+    // Note: NOT pushed into anyone's hand.
+    const events: any[] = [];
+    submitFreeAction(s, 'p1', {
+      kind: 'claim_private_goal',
+      goalUid: goal.uid,
+      stockAssignment: { cards: {} }
+    });
+    processNextFreeAction(s, events);
+    expect(events.find(e => e.type === 'error')).toBeTruthy();
+  });
+});
+
+describe('end conditions via progress tracker', () => {
+  it('claiming a goal that pushes the tracker to the threshold ends the game (no-prompt reward)', () => {
+    const s = mkState();
+    s.progressTracker = s.progressThreshold - 1;
     const noPromptGoal: GoalCard = {
       ...catalog.goals.find(g => g.reward.parsed.type === 'gain_cash')!
     };
-    s.activeGoals = [noPromptGoal, { ...catalog.goals.find(g => g.id !== noPromptGoal.id)! }];
-    const goal = s.activeGoals[0];
-    for (const [color, count] of Object.entries(goal.goal.parsed.requirements)) {
+    s.goalRow.push(noPromptGoal);
+    for (const [color, count] of Object.entries(noPromptGoal.goal.parsed.requirements)) {
       for (let i = 0; i < (count as number); i++) {
         const c = { ...catalog.stocks.find(x => x.color === color && x.type === 'blank')! };
         c.uid = `auto-${color}-${i}-${Math.random()}`;
@@ -469,22 +429,21 @@ describe('end conditions via goal claim', () => {
     }
     submitFreeAction(s, 'p1', {
       kind: 'claim_goal',
-      goalUid: goal.uid,
+      goalUid: noPromptGoal.uid,
       stockAssignment: { cards: assignment }
     });
     advance(s, []);
     expect(s.gameOver).not.toBeNull();
-    expect(s.gameOver!.reason).toBe('one_goal_remaining');
+    expect(s.gameOver!.reason).toBe('progress_threshold_reached');
   });
 
-  it('defers game_over until reward prompt is resolved', () => {
+  it('defers game_over until an open reward prompt is resolved', () => {
     const s = mkState();
-    // Pick a goal whose reward sets a prompt (adjust_stock = ±N). The game
-    // must NOT end until the reward prompt is satisfied.
+    s.progressTracker = s.progressThreshold - 1;
     const goal: GoalCard = {
       ...catalog.goals.find(g => g.reward.parsed.type === 'adjust_stock')!
     };
-    s.activeGoals = [goal, { ...catalog.goals.find(g => g.id !== goal.id)! }];
+    s.goalRow.push(goal);
     for (const [color, count] of Object.entries(goal.goal.parsed.requirements)) {
       for (let i = 0; i < (count as number); i++) {
         const c = { ...catalog.stocks.find(x => x.color === color && x.type === 'blank')! };
@@ -504,15 +463,17 @@ describe('end conditions via goal claim', () => {
       stockAssignment: { cards: assignment }
     });
     advance(s, []);
-    // The reward prompt should be open, and the game must still be running.
+    // The reward prompt should be open, and the game must still be running
+    // even though the tracker already hit the threshold at claim time.
     const pr = s.pendingPrompts['p1']!;
     expect(pr).not.toBeNull();
     expect(pr.type).toBe('pick_color_amount');
     expect(s.gameOver).toBeNull();
+    expect(s.progressTracker).toBe(s.progressThreshold);
     // Resolve the prompt — only now should the game end.
     respondToPrompt(s, 'p1', pr.promptId, { color: 'Blue', sign: 'up' });
     advance(s, []);
     expect(s.gameOver).not.toBeNull();
-    expect(s.gameOver!.reason).toBe('one_goal_remaining');
+    expect(s.gameOver!.reason).toBe('progress_threshold_reached');
   });
 });

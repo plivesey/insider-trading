@@ -2,8 +2,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 import type {
   ActionCard,
+  BonusCard,
   GoalCard,
-  HotTipCard,
   InsiderTipCard,
   LoanCard,
   StockCard
@@ -15,13 +15,34 @@ export interface CardCatalog {
   insiderTips: InsiderTipCard[];
   goals: GoalCard[];
   loans: LoanCard[];
-  hotTips: HotTipCard[];
+  /** Setup-only deck: 12 basic stocks + 7 playable + 5 hidden bonus starter action cards. */
+  starterDeck: (StockCard | ActionCard | BonusCard)[];
+}
+
+interface StarterStockRaw {
+  color: string;
+  type: string;
+}
+interface StarterActionRaw {
+  id: number;
+  name: string;
+  description: string;
+  hidden: boolean;
+  effect: Record<string, unknown> & { type: string };
+}
+
+function isStarterStockRaw(c: StarterStockRaw | StarterActionRaw): c is StarterStockRaw {
+  return 'color' in c;
 }
 
 /**
- * Load the six card JSON files and attach uids + category discriminators.
- * uid scheme matches /playtest/init.js: stock-N, action-N, itip-N, goal-N, loan-N, hot-N.
- * The N counter is per-category (not global), but stays unique because of the prefix.
+ * Load the five card JSON files plus the Starter Deck, and attach uids +
+ * category discriminators.
+ * uid scheme matches /playtest/init.js: stock-N, action-N, itip-N, goal-N,
+ * loan-N. Starter Deck cards use their own starter-stock-N / starter-action-N
+ * / bonus-N prefixes so the frontend can detect starter-deck origin from the
+ * uid alone. The N counter is per-category (not global), but stays unique
+ * because of the prefix.
  */
 export function loadCards(cardsDir: string): CardCatalog {
   const stocksRaw = JSON.parse(fs.readFileSync(path.join(cardsDir, 'stock_cards.json'), 'utf8'));
@@ -29,7 +50,9 @@ export function loadCards(cardsDir: string): CardCatalog {
   const tipsRaw = JSON.parse(fs.readFileSync(path.join(cardsDir, 'insider_tip_cards.json'), 'utf8'));
   const goalsRaw = JSON.parse(fs.readFileSync(path.join(cardsDir, 'goal_cards.json'), 'utf8'));
   const loansRaw = JSON.parse(fs.readFileSync(path.join(cardsDir, 'loan_cards.json'), 'utf8'));
-  const hotTipsRaw = JSON.parse(fs.readFileSync(path.join(cardsDir, 'peek_cards.json'), 'utf8'));
+  const starterRaw: Array<StarterStockRaw | StarterActionRaw> = JSON.parse(
+    fs.readFileSync(path.join(cardsDir, 'starter_deck.json'), 'utf8')
+  );
 
   const stocks: StockCard[] = stocksRaw.map((c: Omit<StockCard, 'uid' | 'category'>, i: number) => ({
     ...c,
@@ -58,13 +81,42 @@ export function loadCards(cardsDir: string): CardCatalog {
     category: 'loan',
     uid: `loan-${i + 1}`
   }));
-  const hotTips: HotTipCard[] = hotTipsRaw.cards.map(
-    (c: Omit<HotTipCard, 'uid' | 'category'>, i: number) => ({
-      ...c,
-      category: 'hot_tip',
-      uid: `hot-${i + 1}`
-    })
-  );
 
-  return { stocks, actions, insiderTips, goals, loans, hotTips };
+  let stockN = 0;
+  let actionN = 0;
+  let bonusN = 0;
+  const starterDeck: (StockCard | ActionCard | BonusCard)[] = starterRaw.map((c) => {
+    if (isStarterStockRaw(c)) {
+      stockN += 1;
+      return {
+        category: 'stock',
+        uid: `starter-stock-${stockN}`,
+        color: c.color,
+        type: c.type
+      } as StockCard;
+    }
+    if (c.hidden) {
+      bonusN += 1;
+      return {
+        category: 'bonus',
+        uid: `bonus-${bonusN}`,
+        id: c.id,
+        name: c.name,
+        description: c.description,
+        effect: c.effect
+      } as BonusCard;
+    }
+    actionN += 1;
+    return {
+      category: 'action',
+      uid: `starter-action-${actionN}`,
+      id: c.id,
+      name: c.name,
+      description: c.description,
+      persistent: false,
+      effect: c.effect
+    } as ActionCard;
+  });
+
+  return { stocks, actions, insiderTips, goals, loans, starterDeck };
 }

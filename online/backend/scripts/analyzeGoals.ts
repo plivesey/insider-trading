@@ -49,14 +49,14 @@ const net = JSON.parse(fs.readFileSync(NET_PATH, 'utf8')) as ValueNetWeights;
 const params = JSON.parse(fs.readFileSync(path.join(NETS_DIR, 'bot_params.json'), 'utf8')) as BotParams;
 
 function stockColors(p: PlayerPrivate): Record<string, number> {
-  const out: Record<string, number> = { Blue: 0, Orange: 0, Yellow: 0, Purple: 0, Wild: 0 };
+  const out: Record<string, number> = { Blue: 0, Orange: 0, Green: 0, Purple: 0, Wild: 0 };
   for (const c of p.hand) if (c.category === 'stock') out[c.color]++;
   return out;
 }
 
 /** Min cards still needed to complete a goal given a player's stocks (+wilds). */
 function gapToGoal(p: PlayerPrivate, goal: GoalCard): number {
-  const counts: Record<Color, number> = { Blue: 0, Orange: 0, Yellow: 0, Purple: 0 };
+  const counts: Record<Color, number> = { Blue: 0, Orange: 0, Green: 0, Purple: 0 };
   let wild = 0;
   for (const c of p.hand) {
     if (c.category !== 'stock') continue;
@@ -114,8 +114,6 @@ let counted = 0;
 let stuck = 0;
 let goalsClaimedTotal = 0;
 let zeroGoalGames = 0;
-let tipEnd = 0;
-let goalEnd = 0;
 let loansTotal = 0;
 let stocksTotal = 0;
 let playersTotal = 0;
@@ -132,8 +130,6 @@ for (let g = 0; g < GAMES; g++) {
   }
   counted++;
   turns.push(state.turnNumber);
-  if (state.gameOver.reason === 'insider_tip_deck_empty') tipEnd++;
-  else goalEnd++;
   const claimed = state.players.reduce((a, p) => a + p.goalsClaimed.length, 0);
   goalsClaimedTotal += claimed;
   claimedHist[claimed] = (claimedHist[claimed] ?? 0) + 1;
@@ -144,7 +140,7 @@ for (let g = 0; g < GAMES; g++) {
     playersTotal++;
     loansTotal += p.loans;
     stocksTotal += p.hand.filter(c => c.category === 'stock').length;
-    for (const goal of state.activeGoals) {
+    for (const goal of state.goalRow) {
       const gap = gapToGoal(p, goal);
       if (gap < bestGap) bestGap = gap;
       if (gap === 0) anyClaimable = true;
@@ -163,7 +159,8 @@ const f1 = (x: number) => x.toFixed(2);
 const turnsMean = turns.reduce((a, b) => a + b, 0) / Math.max(1, turns.length);
 console.log(`\n=== Goal-pursuit analysis — ${SEATS}p, ${counted} games (${stuck} stuck) ===`);
 console.log(`Turns:                avg ${f1(turnsMean)}, p50 ${pctile(turns, 0.5)}, p90 ${pctile(turns, 0.9)}`);
-console.log(`End reason:           ${f1((100 * goalEnd) / counted)}% goals,  ${f1((100 * tipEnd) / counted)}% tips`);
+// V5 has a single end condition (progress tracker threshold) -- no more
+// goal-vs-tip end-reason split to report.
 console.log(`Goals claimed / game: ${f1(goalsClaimedTotal / counted)}  (game has ${SEATS + 2} goals, needs ${SEATS + 1} claimed to end on goals)`);
 console.log(`Goals claimed / player: ${f1(goalsClaimedTotal / counted / SEATS)}`);
 console.log(`Games with 0 goals:   ${f1((100 * zeroGoalGames) / counted)}%`);
@@ -179,7 +176,7 @@ if (TRACE) {
   const state = drive(SEED, cap);
   console.log(`\n=== Trace of game seed ${SEED} (${SEATS}p) — ended ${state.gameOver?.reason} at turn ${state.turnNumber} ===`);
   console.log('Active goals at end:');
-  for (const goal of state.activeGoals) {
+  for (const goal of state.goalRow) {
     console.log(`  - ${goal.goal.text}  | reward: ${goal.reward.text}`);
   }
   const interesting = new Set([
@@ -199,6 +196,6 @@ if (TRACE) {
   console.log('\nFinal hands (stock colors):');
   for (const p of state.players) {
     const sc = stockColors(p);
-    console.log(`  ${p.name}: Blue ${sc.Blue} Orange ${sc.Orange} Yellow ${sc.Yellow} Purple ${sc.Purple} Wild ${sc.Wild} | cash ${p.cash} loans ${p.loans} claimed ${p.goalsClaimed.length}`);
+    console.log(`  ${p.name}: Blue ${sc.Blue} Orange ${sc.Orange} Green ${sc.Green} Purple ${sc.Purple} Wild ${sc.Wild} | cash ${p.cash} loans ${p.loans} claimed ${p.goalsClaimed.length}`);
   }
 }

@@ -121,7 +121,7 @@ for (const p of players) {
   );
 }
 console.log('Active goals:');
-for (const g of state.activeGoals) {
+for (const g of state.goalRow) {
   const req = g.goal.parsed.requirements;
   const desc = Object.entries(req).map(([c, n]) => `${n}${c[0]}`).join('+');
   console.log(`  - ${desc} -> ${g.reward.parsed.type} (${JSON.stringify(g.reward.parsed)})`);
@@ -315,5 +315,5 @@ for (const e of allEventsLog) {
 // Stock price trajectory
 console.log('\n=== STOCK PRICE HISTORY (per turn end) ===');
 for (const tp of turnPriceHistory) {
-  console.log(`T${String(tp.turn).padStart(2)} B=${tp.prices.Blue} O=${tp.prices.Orange} Y=${tp.prices.Yellow} P=${tp.prices.Purple}`);
+  console.log(`T${String(tp.turn).padStart(2)} B=${tp.prices.Blue} O=${tp.prices.Orange} G=${tp.prices.Green} P=${tp.prices.Purple}`);
 }

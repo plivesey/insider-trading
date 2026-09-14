@@ -1,20 +1,22 @@
 import type {
   ActionCard,
   Color,
+  DeckCard,
   GameLogEntry,
   GameState,
   PlayerId,
   PlayerPrivate,
   StockCard
 } from '@insider-trading/shared';
-import { COLORS, MAX_LOANS, LOAN_CASH } from '@insider-trading/shared';
+import { MAX_LOANS, LOAN_CASH } from '@insider-trading/shared';
 import { adjust } from '../domain/prices.js';
 import { reshuffleDiscardIfNeeded } from '../domain/deck.js';
 import type { MutationResult } from '../domain/mutate.js';
 import { event } from './events.js';
 import { setPrompt, hasAnyPendingPrompt } from './prompts.js';
-import { adjustAllStocks, flipAndResolveTopTip } from './insiderTip.js';
-import { rollD6, nextRng } from './rng.js';
+import { adjustAllStocks, drawFromEventDeck } from './eventDeck.js';
+import { describeEventCardForPrompt } from './goals.js';
+import { drawDieFromBag, rollDieFace, nextRng } from './rng.js';
 import { computeBreakdown, selectWinners } from './scoring.js';
 
 export function currentPlayer(state: GameState): PlayerPrivate {
@@ -84,21 +86,7 @@ export function sellStock(state: GameState, playerId: PlayerId, stockUid: string
     })
   );
 
-  // Informant: when sold, peek at the top insider tip.
-  if (card.type === 'peek_sell') {
-    const top = state.insiderTipDeck[0];
-    if (top) {
-      setPrompt(
-        state,
-        playerId,
-        'peek_ack',
-        `Informant: top Insider Tip is "${top.text}". Acknowledge to continue.`,
-        { tip: { text: top.text, type: top.type } }
-      );
-    }
-  }
-
-  state.turnPhase = 'awaiting_die_roll';
+  state.turnPhase = 'awaiting_dice_bag_draw';
   return { ok: true, events };
 }
 
@@ -135,21 +123,35 @@ export function resolveStockSpecialOnBuy(
       break;
     }
     case 'peek_buy': {
-      const top = state.insiderTipDeck[0];
-      if (top) {
+      // Scout: peek the top 1 card of the event deck.
+      const top = state.eventDeck.slice(0, 1);
+      if (top.length > 0) {
         setPrompt(
           state,
           buyer.playerId,
           'peek_ack',
-          `Scout: top Insider Tip is "${top.text}". Acknowledge to continue.`,
-          { tip: { text: top.text, type: top.type } }
+          `Scout: top event card is "${top[0].category === 'insider_tip' ? top[0].text : top[0].goal.text}". Acknowledge to continue.`,
+          { cards: top.map(describeEventCardForPrompt) }
         );
       }
       break;
     }
-    case 'peek_sell':
+    case 'peek_sell': {
+      // Informant (V5: triggers on buy, same as Scout): peek the top 2 cards.
+      const top = state.eventDeck.slice(0, 2);
+      if (top.length > 0) {
+        setPrompt(
+          state,
+          buyer.playerId,
+          'peek_ack',
+          `Informant: top ${top.length} event card${top.length > 1 ? 's' : ''}. Acknowledge to continue.`,
+          { cards: top.map(describeEventCardForPrompt) }
+        );
+      }
+      break;
+    }
     case 'blank':
-      // No on-buy effect for these.
+      // No on-buy effect.
       break;
   }
 }
@@ -157,15 +159,12 @@ export function resolveStockSpecialOnBuy(
 export function refillMarketIfNeeded(state: GameState, events: GameLogEntry[]): void {
   while (state.market.length < 5) {
     if (state.mainDeck.length === 0) {
-      // Reshuffle deckable cards from discard. Hot Tips don't reshuffle.
       const reshufflable = state.discardPile.filter(
-        (c): c is import('@insider-trading/shared').DeckCard =>
-          c.category === 'stock' || c.category === 'action'
+        (c): c is DeckCard => c.category === 'stock' || c.category === 'action'
       );
       if (reshufflable.length === 0) break;
       reshuffleDiscardIfNeeded(state.mainDeck, reshufflable, 1, makeMutationRng(state));
-      // Remove reshuffled cards from discardPile.
-      state.discardPile = state.discardPile.filter(c => c.category === 'hot_tip');
+      state.discardPile = [];
     }
     if (state.mainDeck.length === 0) break;
     const next = state.mainDeck.shift()!;
@@ -183,9 +182,9 @@ function makeMutationRng(state: GameState) {
 }
 
 /**
- * Draw the top card of the main (auction) deck into `player`'s hand,
- * reshuffling the discard pile in if the deck is empty. Returns the drawn
- * card, or null if no card could be drawn (deck and discard both empty).
+ * Draw the top card of the market deck into `player`'s hand, reshuffling the
+ * discard pile in if the deck is empty. Returns the drawn card, or null if
+ * no card could be drawn (deck and discard both empty).
  */
 export function drawTopOfDeck(
   state: GameState,
@@ -194,12 +193,11 @@ export function drawTopOfDeck(
 ): (StockCard | ActionCard) | null {
   if (state.mainDeck.length === 0) {
     const reshufflable = state.discardPile.filter(
-      (c): c is import('@insider-trading/shared').DeckCard =>
-        c.category === 'stock' || c.category === 'action'
+      (c): c is DeckCard => c.category === 'stock' || c.category === 'action'
     );
     if (reshufflable.length > 0) {
       reshuffleDiscardIfNeeded(state.mainDeck, reshufflable, 1, makeMutationRng(state));
-      state.discardPile = state.discardPile.filter(c => c.category === 'hot_tip');
+      state.discardPile = [];
     }
   }
   if (state.mainDeck.length === 0) return null;
@@ -211,46 +209,69 @@ export function drawTopOfDeck(
 export function describeCard(card: { category: string; color?: string; name?: string; uid: string }): string {
   if (card.category === 'stock') return `${(card as StockCard).color}${(card as StockCard).name ? ` ${(card as StockCard).name}` : ''}`;
   if (card.category === 'action') return `Action: ${(card as ActionCard).name}`;
-  if (card.category === 'insider_tip') return 'Insider Tip';
+  if (card.category === 'insider_tip') return 'Market Movement';
+  if (card.category === 'goal') return 'Goal';
   return card.uid;
 }
 
-// ---- END OF TURN: die roll ----
+// ---- END OF TURN: dice bag draw ----
 
-export function rollEndOfTurnDie(state: GameState, events: GameLogEntry[]): void {
-  const die = rollD6(state);
+export function resolveEndOfTurnDiceBag(state: GameState, events: GameLogEntry[]): void {
+  const dieId = drawDieFromBag(state);
+  const face = rollDieFace(dieId, state);
   events.push(
-    event('die_roll', `Die rolled: ${die}`, { payload: { die } })
+    event('die_roll', `Dice bag: drew ${dieId}, rolled ${face}`, { payload: { die: dieId, face } })
   );
-  if (die === 1) {
-    if (state.insiderTipDeck.length > 0) {
-      flipAndResolveTopTip(state, events);
-    } else {
-      events.push(event('die_effect_noop', 'Die roll: 1, but Insider Tip deck is empty', {}));
+  switch (face) {
+    case 'nothing':
+      events.push(event('die_effect_noop', 'Dice bag: nothing happens', {}));
+      return;
+    case 'bull': {
+      const before = { ...state.stockPrices };
+      adjustAllStocks(state, 1);
+      events.push(
+        event('die_effect_bull', 'Bull Market — all stocks rise +1', {
+          payload: { before, after: { ...state.stockPrices } }
+        })
+      );
+      return;
     }
-  } else if (die === 6) {
-    const before = { ...state.stockPrices };
-    adjustAllStocks(state, 1);
-    events.push(
-      event('die_effect_all_up', 'Die roll: 6 — all stocks rise +1', {
-        payload: { before, after: { ...state.stockPrices } }
-      })
-    );
+    case 'bear': {
+      const before = { ...state.stockPrices };
+      adjustAllStocks(state, -1);
+      events.push(
+        event('die_effect_bear', 'Bear Market — all stocks fall −1', {
+          payload: { before, after: { ...state.stockPrices } }
+        })
+      );
+      return;
+    }
+    case 'draw1':
+      drawFromEventDeck(state, 1, events);
+      return;
+    case 'draw2':
+      drawFromEventDeck(state, 2, events);
+      return;
+    case 'draw3':
+      drawFromEventDeck(state, 3, events);
+      return;
   }
 }
 
-// ---- END CONDITIONS + SCORING ----
+// ---- END CONDITION + SCORING ----
 
-export function checkEndConditions(state: GameState, events: GameLogEntry[]): void {
+/**
+ * V5's sole end condition: the progress tracker has reached its threshold.
+ * Deck exhaustion and "only 2 goals remain" (V4's end conditions) no longer
+ * apply.
+ */
+export function checkProgressThreshold(state: GameState, events: GameLogEntry[]): void {
   if (state.gameOver) return;
-  let reason: 'insider_tip_deck_empty' | 'one_goal_remaining' | null = null;
-  if (state.insiderTipDeck.length === 0) reason = 'insider_tip_deck_empty';
-  else if (state.activeGoals.length <= (state.rules?.goalStopCount ?? 1)) reason = 'one_goal_remaining';
-  if (!reason) return;
+  if (state.progressTracker < state.progressThreshold) return;
   const breakdown = computeBreakdown(state);
   const winners = selectWinners(breakdown);
   state.gameOver = {
-    reason,
+    reason: 'progress_threshold_reached',
     winnerPlayerIds: winners,
     breakdown,
     endedAt: new Date().toISOString()
@@ -260,10 +281,10 @@ export function checkEndConditions(state: GameState, events: GameLogEntry[]): vo
   events.push(
     event(
       'game_over',
-      `Game over (${reason}). Winner(s): ${winners
+      `Game over (progress tracker reached ${state.progressTracker}/${state.progressThreshold}). Winner(s): ${winners
         .map(id => state.players.find(p => p.playerId === id)?.name)
         .join(', ')}`,
-      { payload: { reason, winnerPlayerIds: winners, breakdown } }
+      { payload: { reason: 'progress_threshold_reached', winnerPlayerIds: winners, breakdown } }
     )
   );
 }

@@ -1,6 +1,6 @@
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { loadCards, CLASSIC_RULES, type GameState } from '@insider-trading/shared';
+import { loadCards, type GameState } from '@insider-trading/shared';
 import { createGameState } from '../../src/domain/setup.js';
 import { sellStock, payBank, currentPlayer } from '../../src/engine/turn.js';
 import { startAuction, bid, pass } from '../../src/engine/auction.js';
@@ -12,8 +12,13 @@ const HERE = path.dirname(fileURLToPath(import.meta.url));
 const CARDS_DIR = path.resolve(HERE, '../../../../cards');
 const catalog = loadCards(CARDS_DIR);
 
+/**
+ * Build a state for engine-mechanics tests, past the setup draft (these
+ * tests exercise turn/auction/sell mechanics, not the draft itself -- that
+ * has its own dedicated test file, setupDraft.test.ts).
+ */
 function mkState(seed = 1): GameState {
-  return createGameState({
+  const state = createGameState({
     catalog,
     players: [
       { playerId: 'p1', name: 'A' },
@@ -22,29 +27,25 @@ function mkState(seed = 1): GameState {
     ],
     seed,
     gameId: 'g',
-    startedAt: '2026-01-01T00:00:00.000Z',
-    rules: CLASSIC_RULES // engine-mechanics tests use the classic setup (empty starting hand)
+    startedAt: '2026-01-01T00:00:00.000Z'
   });
+  state.turnPhase = 'awaiting_turn_action';
+  return state;
 }
 
-describe('loanPenaltyFor: escalating per-player loan cost', () => {
-  it('0 loans → 0 penalty', () => {
+describe('loanPenaltyFor: V5 tiered loan cost (max 2 loans)', () => {
+  it('0 loans → $0', () => {
     expect(loanPenaltyFor(0)).toBe(0);
   });
-  it('1 loan → $12 (base)', () => {
+  it('1 loan → $12', () => {
     expect(loanPenaltyFor(1)).toBe(12);
   });
-  it('2 loans → $25 (12 + 13)', () => {
-    expect(loanPenaltyFor(2)).toBe(25);
+  it('2 loans → $26 (12 + 14)', () => {
+    expect(loanPenaltyFor(2)).toBe(26);
   });
-  it('3 loans → $39 (12 + 13 + 14)', () => {
-    expect(loanPenaltyFor(3)).toBe(39);
-  });
-  it('4 loans → $54 (12 + 13 + 14 + 15)', () => {
-    expect(loanPenaltyFor(4)).toBe(54);
-  });
-  it('6 loans → $87 (12 + 13 + 14 + 15 + 16 + 17)', () => {
-    expect(loanPenaltyFor(6)).toBe(87);
+  it('Easy Credit: every loan costs a flat $10 instead', () => {
+    expect(loanPenaltyFor(1, true)).toBe(10);
+    expect(loanPenaltyFor(2, true)).toBe(20);
   });
 });
 
@@ -94,6 +95,7 @@ describe('startAuction', () => {
   it('resolves to auctioneer if no one else bids', () => {
     const state = mkState();
     const me = currentPlayer(state);
+    const startCash = me.cash;
     const card = state.market.find(c => c.category === 'stock') ?? state.market[0];
     startAuction(state, me.playerId, card.uid, 3);
     // Every other player passes.
@@ -104,21 +106,21 @@ describe('startAuction', () => {
     }
     // Auction resolved; me holds the card.
     expect(me.hand.find(c => c.uid === card.uid)).toBeTruthy();
-    expect(me.cash).toBe(30 - 3);
+    expect(me.cash).toBe(startCash - 3);
   });
 });
 
-describe('full turn drive — start auction, others pass, die roll, advance', () => {
-  it('completes a turn including end-of-turn die roll and player advance', async () => {
+describe('full turn drive — start auction, others pass, dice bag draw, advance', () => {
+  it('completes a turn including end-of-turn dice bag draw and player advance', async () => {
     const state = mkState(123);
     const events: any[] = [];
     const before = state.players[state.currentPlayerIndex].playerId;
     const card = state.market.find(c => c.category === 'stock' && c.color !== 'Wild') ?? state.market[0];
     const r1 = startAuction(state, before, card.uid, 1);
     events.push(...r1.events);
-    // Drain any auctions (including Black Market side-auctions triggered by
-    // refills) by passing every bid. Then resolve any sub-prompts and call
-    // advance() until the next turn lands.
+    // Drain the auction by passing every bid, resolve any sub-prompts
+    // (Tip-Off color pick, Scout/Informant peek ack), and call advance()
+    // until the next turn lands.
     for (let i = 0; i < 50; i++) {
       if (state.auction) {
         const awaiting = state.auction.awaitingBidderId!;
@@ -133,7 +135,7 @@ describe('full turn drive — start auction, others pass, die roll, advance', ()
         const [id, p] = open;
         if (p.type === 'pick_color') {
           const exclude = p.payload.exclude;
-          const color = ['Blue', 'Orange', 'Yellow', 'Purple'].find(c => c !== exclude)!;
+          const color = ['Blue', 'Orange', 'Green', 'Purple'].find(c => c !== exclude)!;
           const r = respondToPrompt(state, id, p.promptId, { color });
           events.push(...r.events);
           continue;
@@ -166,16 +168,17 @@ describe('sellStock', () => {
     const r = sellStock(state, other.playerId, stock.uid);
     expect(r.ok).toBe(false);
   });
-  it('sells a blue stock at current price, lowers price -1', () => {
+  it('sells an orange stock at current price, lowers price -1', () => {
     const state = mkState();
     const me = currentPlayer(state);
+    const startCash = me.cash;
     const orange = catalog.stocks.find(s => s.color === 'Orange' && s.type === 'blank')!;
     me.hand.push(orange);
     const r = sellStock(state, me.playerId, orange.uid);
     expect(r.ok).toBe(true);
-    expect(me.cash).toBe(30 + 4);
+    expect(me.cash).toBe(startCash + 4);
     expect(state.stockPrices.Orange).toBe(3);
-    expect(state.turnPhase).toBe('awaiting_die_roll');
+    expect(state.turnPhase).toBe('awaiting_dice_bag_draw');
   });
   it('refuses to sell a Wild Share', () => {
     const state = mkState();
@@ -185,15 +188,14 @@ describe('sellStock', () => {
     const r = sellStock(state, me.playerId, wild.uid);
     expect(r.ok).toBe(false);
   });
-  it('Informant sets a peek prompt on sale', () => {
+  it('Informant no longer triggers on sale (V5: it triggers on buy instead)', () => {
     const state = mkState();
     const me = currentPlayer(state);
     const informant = catalog.stocks.find(s => s.color === 'Purple' && s.type === 'peek_sell')!;
     me.hand.push(informant);
     const r = sellStock(state, me.playerId, informant.uid);
     expect(r.ok).toBe(true);
-    expect(state.pendingPrompts[me.playerId]).not.toBeNull();
-    expect(state.pendingPrompts[me.playerId]?.type).toBe('peek_ack');
+    expect(state.pendingPrompts[me.playerId]).toBeNull();
   });
 });
 

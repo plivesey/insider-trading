@@ -1,7 +1,7 @@
 // Card type definitions matching /cards/*.json exactly.
 // Every card gets a `uid` and a `category` discriminator at load time.
 
-export type Color = 'Blue' | 'Orange' | 'Yellow' | 'Purple';
+export type Color = 'Blue' | 'Orange' | 'Green' | 'Purple';
 export type StockColor = Color | 'Wild';
 
 export type StockType = 'blank' | 'extra_up' | 'other_up' | 'peek_buy' | 'peek_sell' | 'wild';
@@ -26,9 +26,14 @@ export type ActionEffect =
   | { type: 'steal_stock' }
   | { type: 'adjust_all_stocks'; amount: number }
   | { type: 'draw_tip' }
-  | { type: 'auction_unused_tip' }
-  | { type: 'buy_from_market' }
-  | { type: 'peek_top_tip' };
+  | { type: 'broker_discount'; color: Color }
+  | { type: 'fire_sale' }
+  | { type: 'first_look' }
+  | { type: 'foresight' }
+  | { type: 'windfall' }
+  | { type: 'market_panic' }
+  | { type: 'backroom_deal' }
+  | { type: 'double_down' };
 
 export interface ActionCard {
   category: 'action';
@@ -98,20 +103,38 @@ export interface LoanCard {
   endGameValue: number;
 }
 
-export interface HotTipCard {
-  category: 'hot_tip';
+/**
+ * "Hidden end-game bonus" cards from the Starter Deck. Never played -- they
+ * sit secretly in a player's hand for the whole game and auto-score at final
+ * wealth calculation (see engine/scoring.ts). No `persistent` field: the
+ * concept doesn't apply since there's no "play" action for these at all.
+ */
+export type BonusEffect =
+  | { type: 'flat_cash'; amount: number }
+  | { type: 'per_stock_held'; amount: number }
+  | { type: 'per_goal_completed'; amount: number }
+  | { type: 'no_loans_bonus'; amount: number }
+  | { type: 'easy_credit' };
+
+export interface BonusCard {
+  category: 'bonus';
   uid: string;
   id: number;
-  name: 'Hot Tip';
+  name: string;
   description: string;
-  uses: number;
+  effect: BonusEffect;
 }
 
-export type AnyCard = StockCard | ActionCard | InsiderTipCard | GoalCard | LoanCard | HotTipCard;
+export type AnyCard = StockCard | ActionCard | InsiderTipCard | GoalCard | LoanCard | BonusCard;
 export type DeckCard = StockCard | ActionCard;
-export type HandCard = StockCard | ActionCard | InsiderTipCard;
+/**
+ * Everything that can legally sit in a player's hand. V5 widens this from V4's
+ * 3-member union to also include GoalCard (a privately-drafted/drawn secret
+ * goal) and BonusCard (a hidden end-game bonus card).
+ */
+export type HandCard = StockCard | ActionCard | InsiderTipCard | GoalCard | BonusCard;
 
-export const COLORS: Color[] = ['Blue', 'Orange', 'Yellow', 'Purple'];
+export const COLORS: Color[] = ['Blue', 'Orange', 'Green', 'Purple'];
 
 export function isStock(card: AnyCard): card is StockCard {
   return card.category === 'stock';
@@ -125,6 +148,6 @@ export function isInsiderTip(card: AnyCard): card is InsiderTipCard {
 export function isGoal(card: AnyCard): card is GoalCard {
   return card.category === 'goal';
 }
-export function isHotTip(card: AnyCard): card is HotTipCard {
-  return card.category === 'hot_tip';
+export function isBonus(card: AnyCard): card is BonusCard {
+  return card.category === 'bonus';
 }

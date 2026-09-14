@@ -20,9 +20,10 @@ import { chooseActionCardToPlay } from './actionHeuristics.js';
 import {
   bestOwnedColor,
   effectivePrices,
-  ownedColoredStockCount,
   perceivedActionCardValue,
+  perceivedBonusCardValue,
   perceivedCardValue,
+  perceivedGoalCardValue,
   perceivedStockCardValue,
   perceivedStockValue,
   perceivedWildShareValue,
@@ -32,9 +33,9 @@ import {
 /**
  * Auction tuning. `winnerMargin` is the discount from perceived value the bot
  * keeps as its "winner's curse" buffer — bidding to exactly your private
- * valuation has zero expected profit. The next-loan cost is escalating: the
- * n-th loan a player takes costs (11 + n) at game end vs. $10 cash now, so the
- * marginal net cost of taking a loan when you already hold L loans is about
+ * valuation has zero expected profit. The next-loan cost is roughly the
+ * escalating loan schedule ($12 then $14) vs. $10 cash now, so the marginal
+ * net cost of taking a loan when you already hold L loans is about
  * L + `loanCostOffset`. Both come from BotParams (see botParams.ts).
  */
 function nextLoanCost(currentLoans: number, loanCostOffset: number): number {
@@ -57,7 +58,7 @@ function effectiveBidCeiling(
 ): number {
   const adjusted = perceived - params.winnerMargin;
   if (adjusted <= cash) return adjusted;
-  // Otherwise we'd need a loan. Never bid beyond the loan cap (max 3 loans).
+  // Otherwise we'd need a loan. Never bid beyond the loan cap (max 2 loans).
   const maxAfford = maxAffordableSpend(cash, currentLoans);
   if (maxAfford > cash && adjusted - nextLoanCost(currentLoans, params.loanCostOffset) > cash) {
     return Math.min(adjusted, cash + 10, maxAfford);
@@ -106,57 +107,38 @@ export function decideBotAction(
 
   // Prune resolved peeks from the profile (no-op if none).
   if (profile.knownPeekedTips.length > 0) {
-    const resolvedUids = new Set(state.resolvedInsiderTips.map(t => t.uid));
+    const resolvedUids = new Set(state.resolvedEventCards.map(t => t.uid));
     profile.knownPeekedTips = profile.knownPeekedTips.filter(t => !resolvedUids.has(t.uid));
   }
 
-  // 1. Pending prompt → respond.
+  // 1. Pending prompt → respond. (This also handles the setup-draft's
+  // 'setup_draft_pick' prompt, since it's just another PromptType.)
   const prompt = state.pendingPrompts[botId] ?? null;
   if (prompt) return respondToPrompt(state, bot, profile, prompt, ctx);
 
+  // While the setup draft is still in progress, a bot with no prompt of its
+  // own (it already picked for this round, but others haven't) has nothing
+  // else to do -- goal claims and action-card plays are not legal yet, and
+  // free actions queued now would never drain: advance() intentionally
+  // refuses to process the queue while turnPhase is 'setup_draft', so
+  // queuing one here would livelock the runner once every bot runs out of
+  // draft prompts to answer.
+  if (state.turnPhase === 'setup_draft') return null;
+
   // Skip free-action generation if this bot already has one queued — it'll
   // process when advance() can drain (i.e., when all pending prompts clear).
-  // Without this guard, a bot would re-enqueue the same goal/Hot Tip every
-  // tick while a different bot has an open prompt, livelocking the runner.
+  // Without this guard, a bot would re-enqueue the same goal every tick while
+  // a different bot has an open prompt, livelocking the runner.
   const alreadyQueued = state.freeActionQueue.some(e => e.playerId === botId);
   if (alreadyQueued) return null;
 
-  // 2. Claimable goal.
-  const claim = tryBuildGoalClaim(state, botId, profile);
+  // 2. Claimable goal (public or private).
+  const claim = tryBuildGoalClaim(state, botId);
   if (claim) {
     return { kind: 'free_action', request: claim };
   }
 
-  // 3. Hot Tip (if threshold reached). Now a single-use action card in hand.
-  const hotTipCard = bot.hand.find(
-    c => c.category === 'action' && (c as ActionCard).effect.type === 'peek_top_tip'
-  );
-  if (
-    hotTipCard &&
-    state.resolvedInsiderTips.length >= profile.hotTipThreshold &&
-    state.insiderTipDeck.length > 0
-  ) {
-    return {
-      kind: 'free_action',
-      request: { kind: 'play_action_card', cardUid: hotTipCard.uid }
-    };
-  }
-
-  // 3c. Market Order (experimental buy-from-market card): play it the moment the
-  // bot's buy strategy finds a target in the market.
-  if (profile.buyCardStrategy) {
-    const buyCard = bot.hand.find(
-      c => c.category === 'action' && (c as ActionCard).effect.type === 'buy_from_market'
-    );
-    if (buyCard && chooseBuyTarget(state, profile, botId) !== null) {
-      return {
-        kind: 'free_action',
-        request: { kind: 'play_action_card', cardUid: buyCard.uid }
-      };
-    }
-  }
-
-  // 4. Single-use action card in hand worth playing.
+  // 3. Single-use action card in hand worth playing.
   const cardToPlay = chooseActionCardToPlay(state, profile, botId);
   if (cardToPlay) {
     return {
@@ -165,13 +147,13 @@ export function decideBotAction(
     };
   }
 
-  // 4b. Insider Tip in hand worth playing (positive tipScore for the bot).
+  // 4. Market-movement card in hand worth playing (positive tipScore for the bot).
   for (const c of bot.hand) {
     if (c.category !== 'insider_tip') continue;
     if (tipScoreForBot(state, c, botId) > 0) {
       return {
         kind: 'free_action',
-        request: { kind: 'play_insider_tip', cardUid: c.uid }
+        request: { kind: 'play_market_movement', cardUid: c.uid }
       };
     }
   }
@@ -188,54 +170,75 @@ export function decideBotAction(
 }
 
 // -----------------------------------------------------------------------------
-// Goal claim helper. Per rules.md, colored stocks stay in hand after
-// claiming — only Wild Shares used as substitutes are discarded. Claiming is
-// therefore free money: the bot always claims any goal it can satisfy,
-// burning Wilds without hesitation if needed.
+// Goal claim helpers.
 // -----------------------------------------------------------------------------
-function tryBuildGoalClaim(
-  state: GameState,
-  botId: PlayerId,
-  _profile: BotProfile
-): FreeActionRequest | null {
+
+/** Find a valid stock assignment for `requirements` from `hand`, or null if unsatisfiable. */
+function buildStockAssignment(
+  hand: HandCard[],
+  requirements: Partial<Record<Color, number>>
+): Record<string, Color> | null {
+  const need: Partial<Record<Color, number>> = { ...requirements };
+  const assignment: Record<string, Color> = {};
+  const usedUids = new Set<string>();
+  for (const c of hand) {
+    if (c.category !== 'stock' || c.color === 'Wild') continue;
+    if (usedUids.has(c.uid)) continue;
+    const remaining = need[c.color] ?? 0;
+    if (remaining > 0) {
+      assignment[c.uid] = c.color;
+      usedUids.add(c.uid);
+      need[c.color] = remaining - 1;
+    }
+  }
+  for (const color of COLORS) {
+    while ((need[color] ?? 0) > 0) {
+      const wild = hand.find(c => c.category === 'stock' && c.color === 'Wild' && !usedUids.has(c.uid));
+      if (!wild) break;
+      assignment[wild.uid] = color;
+      usedUids.add(wild.uid);
+      need[color] = (need[color] ?? 0) - 1;
+    }
+  }
+  const satisfied = COLORS.every(c => (need[c] ?? 0) <= 0);
+  return satisfied ? assignment : null;
+}
+
+/**
+ * Public goals: colored stocks stay in hand after claiming (only Wild Shares
+ * used as substitutes are discarded), so claiming is free money — the bot
+ * always claims instantly once satisfiable. No new information is created by
+ * claiming a card everyone can already see.
+ *
+ * Private goals: claim instantly too, UNLESS holding a Trophy Case bonus card
+ * with enough estimated progress-tracker headroom left to plausibly bank more
+ * completions first — a deliberately shallow "maybe wait" heuristic. Actually
+ * bluffing/concealing a completed private goal is out of scope for a
+ * heuristic-only bot.
+ */
+function tryBuildGoalClaim(state: GameState, botId: PlayerId): FreeActionRequest | null {
   const bot = state.players.find(p => p.playerId === botId);
   if (!bot) return null;
-  for (const goal of state.activeGoals) {
-    const req = { ...goal.goal.parsed.requirements };
-    const need: Partial<Record<Color, number>> = { ...req };
-    const assignment: Record<string, Color> = {};
-    const usedUids = new Set<string>();
-    // Use exact-color stocks first.
-    for (const c of bot.hand) {
-      if (c.category !== 'stock') continue;
-      if (c.color === 'Wild') continue;
-      if (usedUids.has(c.uid)) continue;
-      const remaining = need[c.color] ?? 0;
-      if (remaining > 0) {
-        assignment[c.uid] = c.color;
-        usedUids.add(c.uid);
-        need[c.color] = remaining - 1;
-      }
+
+  for (const goal of state.goalRow) {
+    const assignment = buildStockAssignment(bot.hand, goal.goal.parsed.requirements);
+    if (assignment) {
+      return { kind: 'claim_goal', goalUid: goal.uid, stockAssignment: { cards: assignment } };
     }
-    // Fill with Wild Shares.
-    for (const color of COLORS) {
-      while ((need[color] ?? 0) > 0) {
-        const wild = bot.hand.find(
-          c => c.category === 'stock' && c.color === 'Wild' && !usedUids.has(c.uid)
-        );
-        if (!wild) break;
-        assignment[wild.uid] = color;
-        usedUids.add(wild.uid);
-        need[color] = (need[color] ?? 0) - 1;
-      }
+  }
+
+  const hasTrophyCase = bot.hand.some(
+    c => c.category === 'bonus' && c.effect.type === 'per_goal_completed'
+  );
+  const remainingProgress = state.progressThreshold - state.progressTracker;
+  if (hasTrophyCase && remainingProgress > 3) return null;
+
+  for (const card of bot.hand) {
+    if (card.category !== 'goal') continue;
+    const assignment = buildStockAssignment(bot.hand, card.goal.parsed.requirements);
+    if (assignment) {
+      return { kind: 'claim_private_goal', goalUid: card.uid, stockAssignment: { cards: assignment } };
     }
-    const satisfied = COLORS.every(c => (need[c] ?? 0) <= 0);
-    if (!satisfied) continue;
-    return {
-      kind: 'claim_goal',
-      goalUid: goal.uid,
-      stockAssignment: { cards: assignment }
-    };
   }
   return null;
 }
@@ -290,13 +293,14 @@ function decideTurnAction(
   // matching colors the bot already owns; opening bid = perceivedValue −
   // randInt(0, 3), clamped to [0, cash + 10] (the +10 leans on a loan).
   if (state.market.length === 0) return null;
-  const ownedCounts: Record<Color, number> = { Blue: 0, Orange: 0, Yellow: 0, Purple: 0 };
+  const ownedCounts: Record<Color, number> = { Blue: 0, Orange: 0, Green: 0, Purple: 0 };
   for (const c of bot.hand) {
     if (c.category === 'stock' && c.color !== 'Wild') ownedCounts[c.color]++;
   }
   // Goal-aware targeting: strongly prefer auctioning a color that would COMPLETE
-  // an active goal, and nudge toward colors that ADVANCE a near goal. (Bidding/
-  // winning stays model-driven; this only steers which card the bot puts up.)
+  // a goal (public or private), and nudge toward colors that ADVANCE a near
+  // goal. (Bidding/winning stays model-driven; this only steers which card the
+  // bot puts up.)
   const goalBoost = goalTargetBoostByColor(state, bot.playerId);
   const weights = state.market.map(c => {
     if (c.category === 'stock' && c.color !== 'Wild') {
@@ -353,20 +357,11 @@ function respondToPrompt(
       // ceiling each turn because cash changes between bids.
       let perceived = profile.auctionCeilings[auction.cardUid];
       if (perceived === undefined) {
-        if (auction.sideAuctionTip) {
-          // Black Market side-auction: tip is face-down (we don't know which).
-          // Value it as the average tipScore over the unused pool + the tip
-          // already pulled — but the pulled one is the actual tip, which the
-          // bot can't see. Use the mean absolute impact across the remaining
-          // pool as a proxy for blind value. Cheap and conservative.
-          perceived = blindTipPerceivedValue(state, botId);
-        } else {
-          const card = state.market.find(c => c.uid === auction.cardUid);
-          if (!card) {
-            return { kind: 'auction_bid', action: { type: 'pass' } };
-          }
-          perceived = Math.floor(marketCardValue(card, state, profile, botId));
+        const card = state.market.find(c => c.uid === auction.cardUid);
+        if (!card) {
+          return { kind: 'auction_bid', action: { type: 'pass' } };
         }
+        perceived = Math.floor(marketCardValue(card, state, profile, botId));
         profile.auctionCeilings[auction.cardUid] = perceived;
       }
       // Recompute maxBid each round (cash changes between bids). minBid =
@@ -383,22 +378,17 @@ function respondToPrompt(
     }
 
     case 'peek_ack': {
-      // Capture any revealed tip into the bot's knowledge for future valuation.
-      const tip = payload.tip as { text: string; type: string } | undefined;
-      const tips = payload.tips as Array<{ text: string; type: string }> | undefined;
-      // We only have the projected (sanitized) payload here, so look up the
-      // actual tip(s) by matching the top of insiderTipDeck.
-      if (tip) {
-        const top = state.insiderTipDeck[0];
-        if (top && !profile.knownPeekedTips.some(t => t.uid === top.uid)) {
-          profile.knownPeekedTips.push(top);
-        }
-      }
-      if (tips && tips.length > 0) {
-        for (let i = 0; i < tips.length; i++) {
-          const t = state.insiderTipDeck[i];
-          if (t && !profile.knownPeekedTips.some(k => k.uid === t.uid)) {
-            profile.knownPeekedTips.push(t);
+      // Capture any revealed market-movement card into the bot's knowledge for
+      // future valuation (peeked goal cards are ignored -- the bot already
+      // knows its own private goals directly, and a peeked-but-not-yet-drawn
+      // goal has little actionable value for a heuristic bot).
+      const cards = payload.cards as Array<{ uid: string; kind: string }> | undefined;
+      if (cards) {
+        for (const c of cards) {
+          if (c.kind !== 'market_movement') continue;
+          const found = state.eventDeck.find(d => d.uid === c.uid) as InsiderTipCard | undefined;
+          if (found && !profile.knownPeekedTips.some(t => t.uid === found.uid)) {
+            profile.knownPeekedTips.push(found);
           }
         }
       }
@@ -406,14 +396,14 @@ function respondToPrompt(
     }
 
     case 'peek_bottom_choice': {
-      // Peek the top N tips; optionally send ONE to the bottom. Move the worst
-      // tip (most negative effect on our held stocks) iff it would drop our net
-      // worth by $3 or more (tipScore <= -3). Deferring the biggest hit is best,
-      // so pick the single most-negative qualifying tip.
+      // Peek the top N event cards; optionally send ONE market-movement card to
+      // the bottom. Move the worst one (most negative effect on our held
+      // stocks) iff it would drop our net worth by $3 or more (score <= -3).
       const count = payload.count as number;
-      const top = state.insiderTipDeck.slice(0, count);
+      const top = state.eventDeck.slice(0, count);
       let worst: { uid: string; score: number } | null = null;
       for (const card of top) {
+        if (card.category !== 'insider_tip') continue;
         const score = tipScoreForBot(state, card, botId);
         if (!worst || score < worst.score) worst = { uid: card.uid, score };
       }
@@ -444,7 +434,7 @@ function respondToPrompt(
         // Rumor Mill / similar: set each color to +amount if bot owns ≥1 of
         // that color, else -amount (lower colors it doesn't own).
         const owned = countByColor(bot.hand);
-        const choices: Record<Color, number> = { Blue: 0, Orange: 0, Yellow: 0, Purple: 0 };
+        const choices: Record<Color, number> = { Blue: 0, Orange: 0, Green: 0, Purple: 0 };
         for (const c of COLORS) {
           choices[c] = owned[c] > 0 ? amount : -amount;
         }
@@ -538,8 +528,6 @@ function respondToPrompt(
             response: { stockUid: best.uid }
           };
         }
-        // Nothing to sell — but Pump-and-Dump shouldn't be played without stocks.
-        // The engine will error; we send done as a defensive escape.
         return {
           kind: 'prompt_response',
           promptId: prompt.promptId,
@@ -575,7 +563,7 @@ function respondToPrompt(
         const locked = payload.lockedColor as Color | undefined;
         let targetColor = locked;
         if (!targetColor) {
-          const counts: Record<Color, number> = { Blue: 0, Orange: 0, Yellow: 0, Purple: 0 };
+          const counts: Record<Color, number> = { Blue: 0, Orange: 0, Green: 0, Purple: 0 };
           for (const c of bot.hand) {
             if (c.category === 'stock' && c.color !== 'Wild') counts[c.color]++;
           }
@@ -645,29 +633,22 @@ function respondToPrompt(
     }
 
     case 'pick_market_card': {
-      // Market Order buy: pick the strategy-driven target (pairs / goal). The
-      // engine only accepts a colored stock here, so the fallback is the
-      // highest-priced colored market stock (never an action card).
-      if (payload.mode === 'buy_from_market') {
-        let target = chooseBuyTarget(state, profile, botId);
-        if (!target) {
-          const auctionedUid = state.auction?.cardUid;
-          let best: { uid: string; price: number } | null = null;
-          for (const c of state.market) {
-            if (c.category !== 'stock' || c.color === 'Wild' || c.uid === auctionedUid) continue;
-            const price = state.stockPrices[c.color];
-            if (!best || price > best.price) best = { uid: c.uid, price };
-          }
-          target = best?.uid ?? null;
-        }
-        if (target) {
-          return { kind: 'prompt_response', promptId: prompt.promptId, response: { cardUid: target } };
-        }
-      }
-      // Corner the Market / swap_with_market: pick the market card with the
-      // highest perceived value. Exclude the card currently under auction — the
-      // engine forbids grabbing it (promptResponse.ts), so picking it is invalid.
+      const mode = payload.mode as string | undefined;
       const auctionedUid = state.auction?.cardUid;
+      if (mode === 'fire_sale') {
+        // Fire Sale must buy a colored stock — restrict candidates accordingly.
+        let best: { uid: string; value: number } | null = null;
+        for (const c of state.market) {
+          if (c.category !== 'stock' || c.color === 'Wild' || c.uid === auctionedUid) continue;
+          const v = perceivedStockCardValue(state, profile, c as StockCard, botId);
+          if (!best || v > best.value) best = { uid: c.uid, value: v };
+        }
+        if (!best) return null;
+        return { kind: 'prompt_response', promptId: prompt.promptId, response: { cardUid: best.uid } };
+      }
+      // Corner the Market / swap_with_market / Backroom Deal: pick the market
+      // card with the highest perceived value. Exclude the card currently
+      // under auction — the engine forbids grabbing it.
       const eligible = state.market.filter(c => c.uid !== auctionedUid);
       let best: { uid: string; value: number } | null = null;
       for (const c of eligible) {
@@ -683,26 +664,9 @@ function respondToPrompt(
     }
 
     case 'pick_hand_stock_for_swap': {
-      // Swap one of my cards for a chosen market card. Any hand card is eligible
-      // now (stocks, Wild Shares, action cards, even Insider Tips), so give up
-      // the LOWEST-value one. A tip's value here is what it's worth to us if
-      // played (bad tips → 0, so we happily offload them).
-      let worst: { uid: string; value: number } | null = null;
-      for (const c of bot.hand) {
-        let v: number;
-        if (c.category === 'stock') {
-          v =
-            c.color === 'Wild'
-              ? perceivedWildShareValue(state, profile, botId)
-              : perceivedStockCardValue(state, profile, c as StockCard, botId);
-        } else if (c.category === 'action') {
-          v = perceivedActionCardValue(c as ActionCard, state, profile, botId);
-        } else {
-          v = Math.max(0, tipScoreForBot(state, c as InsiderTipCard, botId));
-        }
-        if (!worst || v < worst.value) worst = { uid: c.uid, value: v };
-      }
-      const stockUid = worst?.uid;
+      // Swap one of my cards for a chosen market card. Give up the
+      // LOWEST-value one (bonus cards are never eligible here).
+      const stockUid = worstTradeableHandCardUid(state, profile, bot, botId);
       return {
         kind: 'prompt_response',
         promptId: prompt.promptId,
@@ -712,7 +676,7 @@ function respondToPrompt(
 
     case 'draw_and_keep': {
       // Keep the highest-perceived-value drawn cards. Drawn cards come from the
-      // main deck so they're stocks or actions (never tips).
+      // market deck so they're stocks or actions (never event-deck cards).
       const drawn = (payload.drawn as Array<{ uid: string; card: StockCard | ActionCard }>) ?? [];
       const keepCount = payload.keepCount as number;
       const sorted = drawn
@@ -729,60 +693,150 @@ function respondToPrompt(
       };
     }
 
-    case 'final_tip_play_choice': {
-      // The bot drew the last Insider Tip. Resolve it iff doing so improves
-      // the bot's score (raises owned colors, lowers no-stake colors, etc.).
-      const tipUid = payload.tipUid as string;
-      const bot = state.players.find(p => p.playerId === botId)!;
-      const tip = bot.hand.find(c => c.uid === tipUid && c.category === 'insider_tip') as
-        | InsiderTipCard
-        | undefined;
-      const score = tip ? tipScoreForBot(state, tip, botId) : 0;
+    case 'setup_draft_pick': {
+      // Rank the current round's candidates and keep the best one. Look them
+      // up from the true (unsanitized) draft state, not the prompt payload.
+      const candidates = state.draft?.hands[botId] ?? [];
+      if (candidates.length === 0) return null;
+      let best: { uid: string; value: number } | null = null;
+      for (const c of candidates) {
+        const value = perceivedDraftCardValue(state, profile, c, botId);
+        if (!best || value > best.value) best = { uid: c.uid, value };
+      }
       return {
         kind: 'prompt_response',
         promptId: prompt.promptId,
-        response: { play: score > 0 }
+        response: { keepUid: best!.uid }
+      };
+    }
+
+    case 'foresight_reorder': {
+      // Sort the peeked cards by the bot's own benefit (market-movement cards
+      // scored by tipScoreForBot; goals/others treated as neutral), keep the
+      // best on top, and bury the single worst one if it's actively bad.
+      const candidateUids = payload.candidateUids as string[];
+      const cards = state.eventDeck.slice(0, candidateUids.length);
+      const scored = cards.map(c => ({
+        uid: c.uid,
+        score: c.category === 'insider_tip' ? tipScoreForBot(state, c as InsiderTipCard, botId) : 0
+      }));
+      scored.sort((a, b) => b.score - a.score);
+      const worst = scored[scored.length - 1];
+      const buryWorst = worst.score < 0;
+      const kept = buryWorst ? scored.slice(0, -1) : scored;
+      return {
+        kind: 'prompt_response',
+        promptId: prompt.promptId,
+        response: buryWorst
+          ? { keepOrder: kept.map(s => s.uid), buriedUid: worst.uid }
+          : { keepOrder: kept.map(s => s.uid) }
+      };
+    }
+
+    case 'backroom_deal_pick_own_card': {
+      const stockUid = worstTradeableHandCardUid(state, profile, bot, botId);
+      if (!stockUid) return null;
+      return {
+        kind: 'prompt_response',
+        promptId: prompt.promptId,
+        response: { cardUid: stockUid }
+      };
+    }
+
+    case 'double_down_pick_card': {
+      const eligibleUids = (payload.eligibleUids as string[]) ?? [];
+      let best: { uid: string; value: number } | null = null;
+      for (const uid of eligibleUids) {
+        const card = bot.hand.find(c => c.uid === uid);
+        if (!card || card.category !== 'action') continue;
+        const v = perceivedActionCardValue(card as ActionCard, state, profile, botId);
+        if (!best || v > best.value) best = { uid, value: v };
+      }
+      if (!best) return null;
+      return {
+        kind: 'prompt_response',
+        promptId: prompt.promptId,
+        response: { cardUid: best.uid }
       };
     }
   }
   return null;
 }
 
-/**
- * Bot value for a face-down Insider Tip from the unused pool (Black Market
- * side-auction). The bot can't see the card. Estimate as the mean of the
- * bot-perspective tipScore over the remaining pool, clamped to ≥0 — a
- * conservative speculative ceiling.
- */
-function blindTipPerceivedValue(state: GameState, botId: PlayerId): number {
-  const pool = state.unusedInsiderTipPool;
-  if (pool.length === 0) return 0;
-  let sum = 0;
-  for (const t of pool) sum += tipScoreForBot(state, t, botId);
-  const mean = sum / pool.length;
-  return Math.max(0, Math.round(mean));
-}
-
 // ---- small helpers -----------------------------------------------------------
 
 /**
  * Perceived value of a face-up market card for bidding/picking. Stocks and
- * action cards use the normal valuation; an Insider Tip swapped into the market
- * is valued by what it's worth to us if played (bad tips floor at 0).
+ * action cards use the normal valuation; a market-movement or goal card
+ * swapped into the market (via Backroom Deal or swap_with_market) is valued
+ * by what it's worth to the bot if drawn (floored at 0 for a bad tip).
  */
 function marketCardValue(
-  card: StockCard | ActionCard | InsiderTipCard,
+  card: StockCard | ActionCard | InsiderTipCard | GoalCard,
   state: GameState,
   profile: BotProfile,
   botId: PlayerId
 ): number {
-  return card.category === 'insider_tip'
-    ? Math.max(0, tipScoreForBot(state, card, botId))
-    : perceivedCardValue(card, state, profile, botId);
+  if (card.category === 'insider_tip') return Math.max(0, tipScoreForBot(state, card, botId));
+  if (card.category === 'goal') return perceivedGoalCardValue(state, card, profile.params);
+  return perceivedCardValue(card, state, profile, botId);
+}
+
+/** Value of a hand card for "what am I willing to give away" purposes (swap_with_market, Backroom Deal). Bonus cards are never eligible. */
+function worstTradeableHandCardUid(
+  state: GameState,
+  profile: BotProfile,
+  bot: { hand: HandCard[] },
+  botId: PlayerId
+): string | undefined {
+  let worst: { uid: string; value: number } | null = null;
+  for (const c of bot.hand) {
+    if (c.category === 'bonus') continue;
+    let v: number;
+    if (c.category === 'stock') {
+      v =
+        c.color === 'Wild'
+          ? perceivedWildShareValue(state, profile, botId)
+          : perceivedStockCardValue(state, profile, c as StockCard, botId);
+    } else if (c.category === 'action') {
+      v = perceivedActionCardValue(c as ActionCard, state, profile, botId);
+    } else if (c.category === 'insider_tip') {
+      v = Math.max(0, tipScoreForBot(state, c as InsiderTipCard, botId));
+    } else {
+      v = perceivedGoalCardValue(state, c as GoalCard, profile.params);
+    }
+    if (!worst || v < worst.value) worst = { uid: c.uid, value: v };
+  }
+  return worst?.uid;
+}
+
+/** Value of any card that could show up in the setup draft's candidate pile. */
+function perceivedDraftCardValue(
+  state: GameState,
+  profile: BotProfile,
+  card: HandCard,
+  botId: PlayerId
+): number {
+  switch (card.category) {
+    case 'stock':
+      return card.color === 'Wild'
+        ? perceivedWildShareValue(state, profile, botId)
+        : perceivedStockCardValue(state, profile, card, botId);
+    case 'action':
+      return perceivedActionCardValue(card, state, profile, botId);
+    case 'insider_tip':
+      // A small flat premium over the raw score: holding it has optionality
+      // (play it whenever the score turns favorable) even if it's ~0 now.
+      return Math.max(0, tipScoreForBot(state, card, botId)) + 2;
+    case 'goal':
+      return perceivedGoalCardValue(state, card, profile.params);
+    case 'bonus':
+      return perceivedBonusCardValue(state, card, botId);
+  }
 }
 
 function countByColor(hand: HandCard[]): Record<Color, number> {
-  const out: Record<Color, number> = { Blue: 0, Orange: 0, Yellow: 0, Purple: 0 };
+  const out: Record<Color, number> = { Blue: 0, Orange: 0, Green: 0, Purple: 0 };
   for (const c of hand) {
     if (c.category === 'stock' && c.color !== 'Wild') out[c.color]++;
   }
@@ -821,26 +875,6 @@ function bestColorByGoal(state: GameState, profile: BotProfile, botId: PlayerId)
   return best;
 }
 
-// -----------------------------------------------------------------------------
-// Market Order (experimental buy-from-market card) target selection.
-// -----------------------------------------------------------------------------
-
-/** Special-ability desirability rank for the "prefer the better bonus" tiebreak. */
-function stockSpecialRank(type: StockCard['type']): number {
-  switch (type) {
-    case 'extra_up':
-      return 4; // Boom
-    case 'other_up':
-      return 3; // Tip-Off
-    case 'peek_buy':
-      return 2; // Scout
-    case 'peek_sell':
-      return 1; // Informant
-    default:
-      return 0; // blank / wild
-  }
-}
-
 // Auction-targeting boosts (heuristic action-selection, not pricing): how much
 // to prefer starting an auction on a color, by its goal usefulness.
 const COMPLETE_TARGET_BOOST = 12; // color would finish a goal now
@@ -848,21 +882,26 @@ const ADVANCE_TARGET_BOOST = 4; // color brings a near goal one card closer
 
 /**
  * Per-color weight boost for choosing which market card to auction: high if
- * acquiring that color would complete an active goal, smaller if it advances a
- * near goal (down to ≤1 card away). Colors the bot doesn't need score 0.
+ * acquiring that color would complete a goal (public or the bot's own
+ * private goals), smaller if it advances a near goal (down to ≤1 card away).
+ * Colors the bot doesn't need score 0.
  */
 function goalTargetBoostByColor(state: GameState, botId: PlayerId): Record<Color, number> {
-  const out: Record<Color, number> = { Blue: 0, Orange: 0, Yellow: 0, Purple: 0 };
+  const out: Record<Color, number> = { Blue: 0, Orange: 0, Green: 0, Purple: 0 };
   const bot = state.players.find(p => p.playerId === botId);
   if (!bot) return out;
-  const owned: Record<Color, number> = { Blue: 0, Orange: 0, Yellow: 0, Purple: 0 };
+  const owned: Record<Color, number> = { Blue: 0, Orange: 0, Green: 0, Purple: 0 };
   let wild = 0;
   for (const c of bot.hand) {
     if (c.category !== 'stock') continue;
     if (c.color === 'Wild') wild++;
     else owned[c.color]++;
   }
-  for (const g of state.activeGoals) {
+  const relevantGoals: GoalCard[] = [
+    ...state.goalRow,
+    ...bot.hand.filter((c): c is GoalCard => c.category === 'goal')
+  ];
+  for (const g of relevantGoals) {
     const req = g.goal.parsed.requirements;
     let rawGap = 0;
     for (const col of COLORS) {
@@ -883,23 +922,27 @@ function goalTargetBoostByColor(state: GameState, botId: PlayerId): Record<Color
 
 /**
  * Per-color "don't sell this" usefulness: how much a HELD stock of each color is
- * committed to a goal the bot can complete or is one card away from. Used by
- * emergency-sell to dump the least goal-useful stock instead of the priciest.
- * A color counts as useful only if the bot isn't already holding surplus of it
- * beyond what a near goal needs (so an extra 3rd Blue is still sellable).
+ * committed to a goal (public or private) the bot can complete or is one card
+ * away from. Used by emergency-sell to dump the least goal-useful stock
+ * instead of the priciest. A color counts as useful only if the bot isn't
+ * already holding surplus of it beyond what a near goal needs.
  */
 function goalHoldUsefulnessByColor(state: GameState, botId: PlayerId): Record<Color, number> {
-  const out: Record<Color, number> = { Blue: 0, Orange: 0, Yellow: 0, Purple: 0 };
+  const out: Record<Color, number> = { Blue: 0, Orange: 0, Green: 0, Purple: 0 };
   const bot = state.players.find(p => p.playerId === botId);
   if (!bot) return out;
-  const owned: Record<Color, number> = { Blue: 0, Orange: 0, Yellow: 0, Purple: 0 };
+  const owned: Record<Color, number> = { Blue: 0, Orange: 0, Green: 0, Purple: 0 };
   let wild = 0;
   for (const c of bot.hand) {
     if (c.category !== 'stock') continue;
     if (c.color === 'Wild') wild++;
     else owned[c.color]++;
   }
-  for (const g of state.activeGoals) {
+  const relevantGoals: GoalCard[] = [
+    ...state.goalRow,
+    ...bot.hand.filter((c): c is GoalCard => c.category === 'goal')
+  ];
+  for (const g of relevantGoals) {
     const req = g.goal.parsed.requirements;
     let rawGap = 0;
     for (const col of COLORS) {
@@ -915,66 +958,4 @@ function goalHoldUsefulnessByColor(state: GameState, botId: PlayerId): Record<Co
     }
   }
   return out;
-}
-
-/** Can the goal be satisfied using these colored+wild stocks? */
-function canSatisfyGoal(stocks: StockCard[], goal: GoalCard): boolean {
-  const counts: Record<Color, number> = { Blue: 0, Orange: 0, Yellow: 0, Purple: 0 };
-  let wild = 0;
-  for (const s of stocks) {
-    if (s.color === 'Wild') wild++;
-    else counts[s.color]++;
-  }
-  let shortfall = 0;
-  for (const c of COLORS) {
-    const req = goal.goal.parsed.requirements[c] ?? 0;
-    if (req > counts[c]) shortfall += req - counts[c];
-  }
-  return wild >= shortfall;
-}
-
-/**
- * Pick which market stock the bot should buy with its Market Order, per its
- * `buyCardStrategy`, or null if no trigger fires. Used both to decide whether to
- * play the card and to answer the resulting pick_market_card prompt.
- *   'pairs': market shows ≥2 of a color → buy the best-bonus one of those.
- *   'goal' : a market stock that, added to hand (+Wilds), completes a goal.
- * The card under auction is excluded (the engine forbids buying it).
- */
-export function chooseBuyTarget(
-  state: GameState,
-  profile: BotProfile,
-  botId: PlayerId
-): string | null {
-  const strat = profile.buyCardStrategy;
-  if (!strat) return null;
-  const bot = state.players.find(p => p.playerId === botId);
-  if (!bot) return null;
-  const auctionedUid = state.auction?.cardUid;
-  const eligible = state.market.filter(
-    (c): c is StockCard => c.category === 'stock' && c.color !== 'Wild' && c.uid !== auctionedUid
-  );
-  if (eligible.length === 0) return null;
-
-  if (strat === 'pairs') {
-    const countByColor: Record<string, number> = {};
-    for (const c of eligible) countByColor[c.color] = (countByColor[c.color] ?? 0) + 1;
-    const paired = eligible.filter(c => countByColor[c.color] >= 2);
-    if (paired.length === 0) return null;
-    paired.sort(
-      (a, b) =>
-        stockSpecialRank(b.type) - stockSpecialRank(a.type) ||
-        state.stockPrices[b.color as Color] - state.stockPrices[a.color as Color]
-    );
-    return paired[0].uid;
-  }
-
-  // strat === 'goal'
-  const handStocks = bot.hand.filter((c): c is StockCard => c.category === 'stock');
-  for (const c of eligible) {
-    for (const g of state.activeGoals) {
-      if (canSatisfyGoal([...handStocks, c], g)) return c.uid;
-    }
-  }
-  return null;
 }

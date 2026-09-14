@@ -80,7 +80,7 @@ describe('valueNetFeatures encoder', () => {
       g => (g.goal.parsed.requirements.Blue ?? 0) === 2 &&
         Object.values(g.goal.parsed.requirements).reduce((s, n) => s + (n as number), 0) === 2
     )!;
-    state.activeGoals = [blueGoal];
+    state.goalRow = [blueGoal];
     // Bot holds one Blue: buying a second Blue COMPLETES the goal.
     a.hand = [catalog.stocks.find(s => s.color === 'Blue' && s.type === 'blank')!];
     const blueX = encodeColorFeatures(state, 'Blue', false, 'a', profile());

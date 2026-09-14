@@ -1,25 +1,27 @@
 import type {
   ActionCard,
   Color,
+  DeckCard,
   GameLogEntry,
   GameState,
   PlayerPrivate,
-  StockCard,
-  HandCard
+  StockCard
 } from '@insider-trading/shared';
 import { COLORS } from '@insider-trading/shared';
-import { adjust, setPrice } from '../domain/prices.js';
 import { reshuffleDiscardIfNeeded } from '../domain/deck.js';
+import { drawEventCardsIntoHand } from './eventDeck.js';
 import { event } from './events.js';
 import { setPrompt } from './prompts.js';
 import { nextRng } from './rng.js';
-import { describeCard } from './turn.js';
+import { describeCard, drawTopOfDeck, payBank, receiveBank } from './turn.js';
 
 /**
- * Begin processing a played action card. Most cards set a prompt awaiting
- * player input; some resolve immediately. Persistent cards go to
- * persistentEffects. The played card otherwise goes to the discard pile
- * (unless explicitly removed from game).
+ * Begin processing a played action card. Persistent cards (Preferred Bidder,
+ * the 4 Broker cards) just activate and stay in `persistentEffects` forever
+ * -- handled generically here, since activation is identical regardless of
+ * which persistent effect it is. Everything else is discarded and its
+ * effect resolved via `resolveActionEffect` (also called directly, twice,
+ * by Double Down).
  */
 export function startActionCard(
   state: GameState,
@@ -27,34 +29,51 @@ export function startActionCard(
   card: ActionCard,
   events: GameLogEntry[]
 ): void {
+  if (card.persistent) {
+    player.persistentEffects.push(card);
+    events.push(
+      event('persistent_activated', `${player.name} activates ${card.name}`, {
+        actor: player.playerId,
+        payload: { uid: card.uid }
+      })
+    );
+    return;
+  }
+  state.discardPile.push(card);
+  resolveActionEffect(state, player, card, events);
+}
+
+/**
+ * Resolve a single-use action card's effect. Does NOT touch the discard pile
+ * -- the caller (`startActionCard`, or Double Down resolving its target
+ * twice) owns that.
+ */
+export function resolveActionEffect(
+  state: GameState,
+  player: PlayerPrivate,
+  card: ActionCard,
+  events: GameLogEntry[]
+): void {
   switch (card.effect.type) {
-    case 'tie_breaker': {
-      // Persistent: move to persistentEffects rather than discard.
-      player.persistentEffects.push(card);
-      events.push(
-        event('persistent_activated', `${player.name} activates Preferred Bidder`, {
-          actor: player.playerId,
-          payload: { uid: card.uid }
-        })
-      );
+    case 'tie_breaker':
+    case 'broker_discount':
+      // Persistent effects never reach here -- startActionCard activates
+      // them directly. Listed only for switch exhaustiveness.
       return;
-    }
+
     case 'draw_and_choose': {
       const { drawCount, keepCount } = card.effect;
       const rng = nextRng(state);
-      // Ensure we have enough cards.
       if (state.mainDeck.length < drawCount) {
         const reshufflable = state.discardPile.filter(
-          (c): c is import('@insider-trading/shared').DeckCard =>
-            c.category === 'stock' || c.category === 'action'
+          (c): c is DeckCard => c.category === 'stock' || c.category === 'action'
         );
         if (reshufflable.length > 0) {
           reshuffleDiscardIfNeeded(state.mainDeck, reshufflable, drawCount, rng);
-          state.discardPile = state.discardPile.filter(c => c.category === 'hot_tip');
+          state.discardPile = [];
         }
       }
       const drawn = state.mainDeck.splice(0, Math.min(drawCount, state.mainDeck.length));
-      state.discardPile.push(card);
       if (drawn.length === 0) {
         events.push(event('draw_and_choose_empty', 'No cards left to draw', {}));
         return;
@@ -68,17 +87,13 @@ export function startActionCard(
           drawn: drawn.map(c => ({ uid: c.uid, summary: describeCard(c), card: c })),
           keepCount,
           sourceUid: card.uid,
-          stagedUids: drawn.map(c => c.uid)
+          stagedCards: drawn
         }
       );
-      // Park drawn cards on the player's hand temporarily — they'll move based
-      // on response. Simpler: keep them inside the prompt payload.
-      // We'll use payload.stagedCards to resolve.
-      (state.pendingPrompts[player.playerId]!.payload as any).stagedCards = drawn;
       return;
     }
+
     case 'take_face_up': {
-      state.discardPile.push(card);
       setPrompt(
         state,
         player.playerId,
@@ -88,8 +103,8 @@ export function startActionCard(
       );
       return;
     }
+
     case 'sell_double': {
-      state.discardPile.push(card);
       const sellable = player.hand.some(c => c.category === 'stock' && c.color !== 'Wild');
       if (!sellable) {
         events.push(
@@ -110,8 +125,8 @@ export function startActionCard(
       );
       return;
     }
+
     case 'sell_same_bonus': {
-      state.discardPile.push(card);
       const sellable = player.hand.some(c => c.category === 'stock' && c.color !== 'Wild');
       if (!sellable) {
         events.push(
@@ -132,8 +147,8 @@ export function startActionCard(
       );
       return;
     }
+
     case 'adjust_stock': {
-      state.discardPile.push(card);
       setPrompt(
         state,
         player.playerId,
@@ -143,9 +158,9 @@ export function startActionCard(
       );
       return;
     }
+
     case 'flip_and_adjust': {
       // Wild Speculation: reveal until colored stock or deck cap, then prompt.
-      state.discardPile.push(card);
       const revealed: (StockCard | ActionCard)[] = [];
       let stockRevealed: StockCard | null = null;
       const maxIter = state.mainDeck.length;
@@ -158,7 +173,6 @@ export function startActionCard(
           break;
         }
       }
-      // All revealed cards go to the bottom regardless.
       state.mainDeck.push(...revealed);
       if (!stockRevealed) {
         events.push(event('wild_speculation_no_stock', 'Wild Speculation: no stock found in deck', {}));
@@ -178,8 +192,8 @@ export function startActionCard(
       );
       return;
     }
+
     case 'steal_stock': {
-      state.discardPile.push(card);
       setPrompt(
         state,
         player.playerId,
@@ -189,8 +203,8 @@ export function startActionCard(
       );
       return;
     }
+
     case 'adjust_all_stocks': {
-      state.discardPile.push(card);
       setPrompt(
         state,
         player.playerId,
@@ -200,67 +214,37 @@ export function startActionCard(
       );
       return;
     }
-    case 'auction_unused_tip': {
-      // Black Market triggers from the market on reveal, not from a player's
-      // hand. If somehow this card ends up being played from hand (shouldn't
-      // happen — it's removed from the game on trigger), log and discard.
-      state.discardPile.push(card);
-      events.push(
-        event(
-          'black_market_in_hand_noop',
-          `${player.name} plays Black Market from hand — no effect`,
-          { actor: player.playerId, payload: { uid: card.uid } }
-        )
-      );
-      return;
-    }
+
     case 'draw_tip': {
-      state.discardPile.push(card);
-      if (state.insiderTipDeck.length === 0) {
-        // Shouldn't happen — game would have ended — but guard anyway.
+      // Insider Source: draw the top event-deck card into hand. If it's a
+      // market-movement card, it's playable later as a free action; if it's
+      // a goal card, it's now simply a private goal (privacy is positional).
+      const [drawn] = drawEventCardsIntoHand(state, 1);
+      if (!drawn) {
         events.push(
-          event('insider_source_empty', `${player.name} plays Insider Source but the tip deck is empty`, {
+          event('insider_source_empty', `${player.name} plays Insider Source but the event deck is empty`, {
             actor: player.playerId
           })
         );
         return;
       }
-      const tip = state.insiderTipDeck.shift()!;
-      player.hand.push(tip);
-      const wasLast = state.insiderTipDeck.length === 0;
+      player.hand.push(drawn);
+      const kind = drawn.category === 'insider_tip' ? 'a market-movement card' : 'a private goal';
       events.push(
-        event('insider_tip_drawn', `${player.name} draws an Insider Tip into hand`, {
+        event('insider_source_drawn', `${player.name} draws ${kind} into hand via Insider Source`, {
           actor: player.playerId,
-          payload: { uid: tip.uid, wasLast }
+          payload: { uid: drawn.uid, category: drawn.category }
         })
       );
-      if (wasLast) {
-        // Drawing the last tip empties the deck, which triggers game end. Give
-        // the drawer one chance to play (resolve) it first.
-        setPrompt(
-          state,
-          player.playerId,
-          'final_tip_play_choice',
-          `Insider Source drew the LAST Insider Tip. Play "${tip.text}" now (resolves it) or decline — either way the game ends.`,
-          { tipUid: tip.uid, tipText: tip.text, tipType: tip.type }
-        );
-      }
       return;
     }
-    case 'buy_from_market': {
-      // Market Order: buy one colored stock from the market at its current
-      // price (the buy itself raises that color +1). The card is consumed
-      // whether or not a buy completes; if the market has no colored stock, it
-      // fizzles. Resolution happens on the pick_market_card response.
-      state.discardPile.push(card);
-      const hasColoredStock = state.market.some(
-        c => c.category === 'stock' && c.color !== 'Wild'
-      );
-      if (!hasColoredStock) {
+
+    case 'fire_sale': {
+      const hasStock = state.market.some(c => c.category === 'stock');
+      if (!hasStock) {
         events.push(
-          event('market_order_no_stock', `${player.name} plays Market Order but the market has no colored stock — fizzles`, {
-            actor: player.playerId,
-            payload: { uid: card.uid }
+          event('fire_sale_no_stock', `${player.name} plays Fire Sale but the market has no stock — fizzles`, {
+            actor: player.playerId
           })
         );
         return;
@@ -269,30 +253,108 @@ export function startActionCard(
         state,
         player.playerId,
         'pick_market_card',
-        'Market Order: pick a market stock to buy at its current price.',
-        { sourceUid: card.uid, mode: 'buy_from_market' }
+        'Fire Sale: pick a market stock to buy for a flat $3 (no price move, no special ability).',
+        { sourceUid: card.uid, mode: 'fire_sale' }
       );
       return;
     }
-    case 'peek_top_tip': {
-      // Hot Tip: peek at the top Insider Tip. Single-use — the card is removed
-      // from the game (not discarded) once played.
-      const top = state.insiderTipDeck[0];
+
+    case 'first_look': {
+      const drawn = drawTopOfDeck(state, player, events);
       events.push(
-        event('hot_tip_used', `${player.name} uses Hot Tip`, {
+        event(
+          'first_look_drawn',
+          drawn
+            ? `${player.name} draws ${describeCard(drawn)} from the market deck via First Look`
+            : `${player.name} plays First Look but the market deck is empty`,
+          { actor: player.playerId, payload: drawn ? { uid: drawn.uid } : {} }
+        )
+      );
+      return;
+    }
+
+    case 'foresight': {
+      const top = state.eventDeck.slice(0, 4);
+      if (top.length === 0) {
+        events.push(event('foresight_empty', `${player.name} plays Foresight but the event deck is empty`, { actor: player.playerId }));
+        return;
+      }
+      setPrompt(
+        state,
+        player.playerId,
+        'foresight_reorder',
+        `Foresight: reorder the top ${top.length} event cards, optionally burying one at the bottom.`,
+        { candidateUids: top.map(c => c.uid) }
+      );
+      return;
+    }
+
+    case 'windfall': {
+      receiveBank(player, 5);
+      events.push(
+        event('windfall', `${player.name} gains $5 from Windfall`, {
           actor: player.playerId,
-          payload: top ? { tip: { text: top.text, type: top.type } } : { empty: true }
+          payload: { newCash: player.cash }
         })
       );
-      if (top) {
-        setPrompt(
-          state,
-          player.playerId,
-          'peek_ack',
-          `Hot Tip: top Insider Tip is "${top.text}". Acknowledge to continue.`,
-          { tip: { text: top.text, type: top.type } }
+      return;
+    }
+
+    case 'market_panic': {
+      for (const other of state.players) {
+        if (other.playerId === player.playerId) continue;
+        const before = other.cash;
+        other.cash = Math.max(0, other.cash - 3);
+        events.push(
+          event('market_panic_hit', `${other.name} loses $${before - other.cash} to Market Panic`, {
+            payload: { playerId: other.playerId, newCash: other.cash }
+          })
         );
       }
+      return;
+    }
+
+    case 'backroom_deal': {
+      if (player.hand.length === 0) {
+        events.push(
+          event('backroom_deal_no_card', `${player.name} plays Backroom Deal but has no card to trade — fizzles`, {
+            actor: player.playerId
+          })
+        );
+        return;
+      }
+      setPrompt(
+        state,
+        player.playerId,
+        'backroom_deal_pick_own_card',
+        'Backroom Deal: pick one of your cards to trade away.',
+        { sourceUid: card.uid }
+      );
+      return;
+    }
+
+    case 'double_down': {
+      payBank(player, 2, events);
+      const eligible = player.hand.filter(
+        c => c.category === 'action' && !(c as ActionCard).persistent
+      );
+      if (eligible.length === 0) {
+        events.push(
+          event(
+            'double_down_no_target',
+            `${player.name} plays Double Down but has no eligible action card to double — fizzles ($2 still spent)`,
+            { actor: player.playerId }
+          )
+        );
+        return;
+      }
+      setPrompt(
+        state,
+        player.playerId,
+        'double_down_pick_card',
+        'Double Down: pick a different single-use action card in your hand to resolve twice.',
+        { eligibleUids: eligible.map(c => c.uid) }
+      );
       return;
     }
   }

@@ -8,6 +8,25 @@ import { startServer, type StartedServer } from '../../src/server.js';
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const CARDS_DIR = path.resolve(HERE, '../../../../cards');
 
+/** Resolve every player's setup-draft prompts (always keep the first candidate offered) until the draft finishes. */
+async function driveDraft(a: any, b: any, maxIters = 20): Promise<void> {
+  for (let i = 0; i < maxIters; i++) {
+    const sa = (await a.get('/api/state')).body.state;
+    const sb = (await b.get('/api/state')).body.state;
+    const aDraft = sa?.myPrompt?.type === 'setup_draft_pick';
+    const bDraft = sb?.myPrompt?.type === 'setup_draft_pick';
+    if (!aDraft && !bDraft) return;
+    if (aDraft) {
+      const uid = sa.myPrompt.payload.candidateUids[0];
+      await a.post('/api/prompt-response').send({ promptId: sa.myPrompt.promptId, response: { keepUid: uid } });
+    }
+    if (bDraft) {
+      const uid = sb.myPrompt.payload.candidateUids[0];
+      await b.post('/api/prompt-response').send({ promptId: sb.myPrompt.promptId, response: { keepUid: uid } });
+    }
+  }
+}
+
 describe('HTTP layer', () => {
   let server: StartedServer;
   let tmpDir: string;
@@ -20,8 +39,6 @@ describe('HTTP layer', () => {
       logsDir: path.join(tmpDir, 'game_logs'),
       cardsDir: CARDS_DIR,
       silent: true,
-      // Fixed seed avoids flaky test behavior when a Black Market gets dealt
-      // into the initial market (which would trigger an immediate side-auction).
       defaultSeed: 1
     });
   });
@@ -107,31 +124,14 @@ describe('HTTP layer', () => {
     await a.post('/api/join').send({ name: 'Alice' });
     await b.post('/api/join').send({ name: 'Bob' });
     await a.post('/api/start');
+    // Clear the setup draft (3 rounds) before normal turns can begin.
+    await driveDraft(a, b);
     // Discover whose turn it is.
     let state = (await a.get('/api/state')).body.state;
     const currentPid = state.players[state.currentPlayerIndex].playerId;
     const currentAgent = currentPid === state.myPlayer.playerId ? a : b;
     const otherAgent = currentAgent === a ? b : a;
-    // If a Black Market triggered an auto side-auction at game start, drain
-    // it first (everyone passes) so the test can run its scripted turn flow.
-    if (state.auction) {
-      for (let i = 0; i < 10; i++) {
-        const sA = (await a.get('/api/state')).body.state;
-        const sB = (await b.get('/api/state')).body.state;
-        if (!sA.auction) break;
-        if (sA.myPrompt?.type === 'auction_bid') {
-          await a.post('/api/auction-bid').send({ type: 'pass' });
-        } else if (sB.myPrompt?.type === 'auction_bid') {
-          await b.post('/api/auction-bid').send({ type: 'pass' });
-        } else {
-          break;
-        }
-      }
-      state = (await a.get('/api/state')).body.state;
-    }
-    const cardUid = state.market.find((c: any) =>
-      !(c.category === 'action' && c.effect?.type === 'auction_unused_tip')
-    ).uid;
+    const cardUid = state.market[0].uid;
     const r = await currentAgent.post('/api/turn-action').send({
       type: 'start_auction',
       cardUid,
@@ -154,7 +154,7 @@ describe('HTTP layer', () => {
         if (pr.type === 'peek_ack') body = {};
         else if (pr.type === 'pick_color') {
           const exclude = pr.payload?.exclude;
-          body = { color: ['Blue', 'Orange', 'Yellow', 'Purple'].find(c => c !== exclude) };
+          body = { color: ['Blue', 'Orange', 'Green', 'Purple'].find(c => c !== exclude) };
         } else if (pr.type === 'auction_bid') {
           await currentAgent.post('/api/auction-bid').send({ type: 'pass' });
           cur = (await currentAgent.get('/api/state')).body.state;

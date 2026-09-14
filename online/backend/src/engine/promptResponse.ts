@@ -1,20 +1,19 @@
 import type {
+  ActionCard,
   Color,
   DeckCard,
   GameLogEntry,
   GameState,
-  HandCard,
   PlayerId,
-  PlayerPrivate,
-  StockCard,
-  InsiderTipCard
+  StockCard
 } from '@insider-trading/shared';
 import { COLORS, maxAffordableSpend } from '@insider-trading/shared';
 import type { MutationResult } from '../domain/mutate.js';
 import { adjust, setPrice } from '../domain/prices.js';
+import { resolveActionEffect } from './actionCards.js';
 import { event } from './events.js';
-import { resolveTip } from './insiderTip.js';
 import { clearPrompt, getPrompt, setPrompt } from './prompts.js';
+import { handleDraftPick } from './setupDraft.js';
 import {
   describeCard,
   drawTopOfDeck,
@@ -53,29 +52,29 @@ export function respondToPrompt(
       return { ok: true, events };
 
     case 'peek_bottom_choice': {
-      // Peeked the top N tips; may move ONE of them to the bottom of the deck.
-      // `{}` / no bottomUid = keep them in place. The deck size is unchanged, so
-      // this never ends the game.
+      // Peeked the top N event cards; may move ONE of them to the bottom of
+      // the deck. No bottomUid = keep them in place. The deck size is
+      // unchanged either way, so this never ends the game.
       const bottomUid = response.bottomUid as string | undefined;
       if (bottomUid) {
         const count = payload.count as number;
-        const idx = state.insiderTipDeck.findIndex(t => t.uid === bottomUid);
+        const idx = state.eventDeck.findIndex(t => t.uid === bottomUid);
         if (idx < 0 || idx >= count) {
-          return { ok: false, error: 'tip not among the peeked top cards', events };
+          return { ok: false, error: 'card not among the peeked top cards', events };
         }
-        const [tip] = state.insiderTipDeck.splice(idx, 1);
-        state.insiderTipDeck.push(tip);
+        const [card] = state.eventDeck.splice(idx, 1);
+        state.eventDeck.push(card);
         clearPrompt(state, playerId);
         events.push(
-          event('peek_tip_to_bottom', `${player.name} moves an Insider Tip to the bottom of the deck`, {
+          event('peek_card_to_bottom', `${player.name} moves an event card to the bottom of the deck`, {
             actor: playerId,
-            payload: { uid: tip.uid }
+            payload: { uid: card.uid }
           })
         );
       } else {
         clearPrompt(state, playerId);
         events.push(
-          event('peek_tip_kept', `${player.name} leaves the peeked Insider Tips in place`, { actor: playerId })
+          event('peek_cards_kept', `${player.name} leaves the peeked event cards in place`, { actor: playerId })
         );
       }
       return { ok: true, events };
@@ -214,20 +213,6 @@ export function respondToPrompt(
             { actor: playerId, payload: { color: card.color, payout, newPrice: state.stockPrices[card.color] } }
           )
         );
-        // Informant: when sold (including via Pump-and-Dump), peek at the top
-        // Insider Tip. Matches the normal sellStock flow in turn.ts.
-        if ((card as StockCard).type === 'peek_sell') {
-          const top = state.insiderTipDeck[0];
-          if (top) {
-            setPrompt(
-              state,
-              playerId,
-              'peek_ack',
-              `Informant: top Insider Tip is "${top.text}". Acknowledge to continue.`,
-              { tip: { text: top.text, type: top.type } }
-            );
-          }
-        }
         return { ok: true, events };
       }
       if (mode === 'sell_bonus_batch' || mode === 'sell_same_bonus') {
@@ -368,24 +353,17 @@ export function respondToPrompt(
         );
         return { ok: true, events };
       }
-      if (mode === 'buy_from_market') {
-        // Market Order: pay the chosen stock's current price (auto-loan if
-        // short) and take it; the purchase raises that color +1, then the
-        // stock's special-on-buy ability resolves — same as a normal buy.
+      if (mode === 'fire_sale') {
         const target = state.market[mIdx];
         if (target.category !== 'stock' || target.color === 'Wild') {
-          return { ok: false, error: 'Market Order must buy a colored stock', events };
+          return { ok: false, error: 'Fire Sale must buy a colored stock', events };
         }
-        const color = target.color as Color;
-        const price = state.stockPrices[color];
+        const price = 3;
         if (price > maxAffordableSpend(player.cash, player.loans)) {
-          // Can't afford within the loan cap — fizzle gracefully (card already
-          // discarded), rather than forcing an illegal 4th loan.
           clearPrompt(state, playerId);
           events.push(
-            event('market_order_unaffordable', `${player.name}'s Market Order fizzles — can't afford ${color} within the loan limit`, {
-              actor: playerId,
-              payload: { cardUid: target.uid, price }
+            event('fire_sale_unaffordable', `${player.name}'s Fire Sale fizzles — can't afford $3 within the loan limit`, {
+              actor: playerId
             })
           );
           return { ok: true, events };
@@ -393,17 +371,36 @@ export function respondToPrompt(
         state.market.splice(mIdx, 1);
         player.hand.push(target);
         payBank(player, price, events);
-        adjust(state.stockPrices, color, 1);
+        clearPrompt(state, playerId);
         events.push(
           event(
-            'market_order_buy',
-            `${player.name} buys ${color}${target.name ? ` (${target.name})` : ''} from market for $${price}`,
-            { actor: playerId, payload: { cardUid: target.uid, color, price, newPrice: state.stockPrices[color] } }
+            'fire_sale_buy',
+            `${player.name} buys ${target.color}${target.name ? ` (${target.name})` : ''} via Fire Sale for $3 (no price move, no special ability)`,
+            { actor: playerId, payload: { cardUid: target.uid, color: target.color } }
           )
         );
-        clearPrompt(state, playerId);
-        resolveStockSpecialOnBuy(state, player, target, events);
         refillMarketIfNeeded(state, events);
+        return { ok: true, events };
+      }
+      if (mode === 'backroom_deal') {
+        const ownCardUid = payload.ownCardUid as string;
+        const hIdx = player.hand.findIndex(c => c.uid === ownCardUid);
+        if (hIdx < 0) return { ok: false, error: 'your traded card is no longer in hand', events };
+        const handCard = player.hand[hIdx];
+        if (handCard.category === 'bonus') {
+          return { ok: false, error: 'a hidden end-game bonus card cannot be traded away', events };
+        }
+        const marketCard = state.market[mIdx];
+        player.hand[hIdx] = marketCard;
+        state.market[mIdx] = handCard;
+        clearPrompt(state, playerId);
+        events.push(
+          event(
+            'backroom_deal_resolved',
+            `${player.name} trades ${describeCard(handCard)} for ${describeCard(marketCard)} via Backroom Deal`,
+            { actor: playerId, payload: { tradedAwayUid: handCard.uid, takenUid: marketCard.uid } }
+          )
+        );
         return { ok: true, events };
       }
       return { ok: false, error: 'unknown pick_market_card mode', events };
@@ -417,11 +414,13 @@ export function respondToPrompt(
       const mIdx = state.market.findIndex(c => c.uid === marketCardUid);
       if (hIdx < 0 || mIdx < 0) return { ok: false, error: 'card not found', events };
       const handCard = player.hand[hIdx];
+      if (handCard.category === 'bonus') {
+        return { ok: false, error: 'a hidden end-game bonus card cannot be swapped', events };
+      }
       const marketCard = state.market[mIdx];
       // Any hand card may be swapped into the market — stocks, action cards,
-      // starter cards, even Insider Tips. Once in the market it is auctioned
-      // like any other market card.
-      // Swap.
+      // starter cards, even private goals or market-movement cards. Once in
+      // the market it is auctioned like any other market card.
       player.hand[hIdx] = marketCard;
       state.market[mIdx] = handCard;
       clearPrompt(state, playerId);
@@ -482,37 +481,83 @@ export function respondToPrompt(
       return { ok: true, events };
     }
 
-    case 'final_tip_play_choice': {
-      const tipUid = payload.tipUid as string;
-      const play = response.play as boolean | undefined;
-      if (play !== true && play !== false) {
-        return { ok: false, error: 'response.play must be boolean', events };
+    case 'setup_draft_pick': {
+      const keepUid = response.keepUid as string | undefined;
+      if (!keepUid) return { ok: false, error: 'keepUid required', events };
+      const result = handleDraftPick(state, playerId, keepUid, events);
+      if (!result.ok) return { ok: false, error: result.error ?? 'draft pick failed', events };
+      return { ok: true, events };
+    }
+
+    case 'foresight_reorder': {
+      const candidateUids = payload.candidateUids as string[];
+      const keepOrder = response.keepOrder as string[] | undefined;
+      const buriedUid = response.buriedUid as string | undefined;
+      if (!keepOrder || !Array.isArray(keepOrder)) return { ok: false, error: 'keepOrder required', events };
+      const expectedKeepLen = buriedUid ? candidateUids.length - 1 : candidateUids.length;
+      if (keepOrder.length !== expectedKeepLen) {
+        return { ok: false, error: `keepOrder must have ${expectedKeepLen} entries`, events };
+      }
+      const allUids = buriedUid ? [...keepOrder, buriedUid] : keepOrder;
+      if (allUids.slice().sort().join(',') !== candidateUids.slice().sort().join(',')) {
+        return { ok: false, error: 'keepOrder/buriedUid must cover exactly the peeked cards', events };
+      }
+      const topCards = state.eventDeck.splice(0, candidateUids.length);
+      const byUid = new Map(topCards.map(c => [c.uid, c]));
+      const reordered = keepOrder.map(uid => byUid.get(uid)!);
+      state.eventDeck.unshift(...reordered);
+      if (buriedUid) {
+        state.eventDeck.push(byUid.get(buriedUid)!);
       }
       clearPrompt(state, playerId);
-      if (play) {
-        const idx = player.hand.findIndex(c => c.uid === tipUid);
-        if (idx < 0) {
-          // Edge case: tip somehow already gone from hand. Log + proceed.
-          events.push(event('error', `final_tip: ${player.name} no longer holds ${tipUid}`, {}));
-        } else {
-          const tip = player.hand.splice(idx, 1)[0] as InsiderTipCard;
-          events.push(
-            event('insider_tip_played', `${player.name} plays the final Insider Tip`, {
-              actor: playerId,
-              payload: { uid: tip.uid, final: true }
-            })
-          );
-          resolveTip(state, tip, events, 'played_from_hand');
-        }
-      } else {
-        events.push(
-          event('final_tip_declined', `${player.name} declines to play the final Insider Tip`, {
-            actor: playerId,
-            payload: { uid: tipUid }
-          })
-        );
+      events.push(
+        event(
+          'foresight_resolved',
+          `${player.name} reorders the top ${candidateUids.length} event cards${buriedUid ? ' and buries one at the bottom' : ''}`,
+          { actor: playerId, payload: { keepOrder, buriedUid } }
+        )
+      );
+      return { ok: true, events };
+    }
+
+    case 'backroom_deal_pick_own_card': {
+      const cardUid = response.cardUid as string | undefined;
+      if (!cardUid) return { ok: false, error: 'cardUid required', events };
+      const idx = player.hand.findIndex(c => c.uid === cardUid);
+      if (idx < 0) return { ok: false, error: 'card not in hand', events };
+      if (player.hand[idx].category === 'bonus') {
+        return { ok: false, error: 'a hidden end-game bonus card cannot be traded away', events };
       }
-      // Either way, the deck is empty; advance() will end the game.
+      setPrompt(
+        state,
+        playerId,
+        'pick_market_card',
+        'Backroom Deal: pick a market card to take in exchange.',
+        { mode: 'backroom_deal', ownCardUid: cardUid }
+      );
+      return { ok: true, events };
+    }
+
+    case 'double_down_pick_card': {
+      const cardUid = response.cardUid as string | undefined;
+      const eligibleUids = payload.eligibleUids as string[];
+      if (!cardUid || !eligibleUids.includes(cardUid)) {
+        return { ok: false, error: 'cardUid must be one of the eligible cards', events };
+      }
+      const idx = player.hand.findIndex(c => c.uid === cardUid);
+      if (idx < 0) return { ok: false, error: 'card no longer in hand', events };
+      const target = player.hand.splice(idx, 1)[0];
+      if (target.category !== 'action') return { ok: false, error: 'target is not an action card', events };
+      state.discardPile.push(target);
+      clearPrompt(state, playerId);
+      events.push(
+        event('double_down_resolved', `${player.name} doubles ${target.name} via Double Down`, {
+          actor: playerId,
+          payload: { targetUid: target.uid }
+        })
+      );
+      resolveActionEffect(state, player, target as ActionCard, events);
+      resolveActionEffect(state, player, target as ActionCard, events);
       return { ok: true, events };
     }
   }

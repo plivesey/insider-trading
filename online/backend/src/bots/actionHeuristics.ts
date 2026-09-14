@@ -8,8 +8,10 @@ import {
   maxColorCount,
   ownsAnyColoredStock,
   perceivedActionCardValue,
-  perceivedCardValue
+  perceivedCardValue,
+  perceivedStockCardValue
 } from './valuation.js';
+import type { StockCard } from '@insider-trading/shared';
 
 /**
  * Should the bot bother playing this action card right now?
@@ -46,6 +48,7 @@ export function shouldPlayActionCard(
       return maxColorCount(state, botId) >= 1;
     case 'flip_and_adjust':
     case 'tie_breaker':
+    case 'broker_discount':
       return true;
     case 'steal_stock': {
       // Hostile Takeover — useful only if some opponent has ≥1 stock.
@@ -56,19 +59,38 @@ export function shouldPlayActionCard(
     case 'adjust_all_stocks':
       return true;
     case 'draw_tip':
-      // Insider Source — only play if there's a tip to draw.
-      return state.insiderTipDeck.length > 0;
-    case 'auction_unused_tip':
-      // Black Market triggers from the market on reveal, not from hand.
-      return false;
-    case 'buy_from_market':
-      // Market Order is played via a dedicated strategy path (chooseBuyTarget),
-      // not the generic value-ranked path.
-      return false;
-    case 'peek_top_tip':
-      // Hot Tip is played via the dedicated hot-tip path in decide.ts, not the
-      // generic value-ranked path.
-      return false;
+      // Insider Source — only play if there's a card to draw.
+      return state.eventDeck.length > 0;
+    case 'fire_sale': {
+      // Only worth the flat $3 if some market stock is worth more than that.
+      let best = 0;
+      for (const c of state.market) {
+        if (c.category === 'stock' && c.color !== 'Wild') {
+          const v = perceivedStockCardValue(state, profile, c as StockCard, botId);
+          if (v > best) best = v;
+        }
+      }
+      return best > 3;
+    }
+    case 'first_look':
+      return state.mainDeck.length > 0;
+    case 'foresight':
+      return state.eventDeck.length > 0;
+    case 'windfall':
+      return true;
+    case 'market_panic':
+      return state.players.some(p => p.playerId !== botId);
+    case 'backroom_deal': {
+      const bot = state.players.find(p => p.playerId === botId);
+      return !!bot && bot.hand.some(c => c.category !== 'bonus') && state.market.length > 0;
+    }
+    case 'double_down': {
+      const bot = state.players.find(p => p.playerId === botId);
+      return (
+        !!bot &&
+        bot.hand.some(c => c.category === 'action' && c.uid !== card.uid && !(c as ActionCard).persistent)
+      );
+    }
   }
 }
 
