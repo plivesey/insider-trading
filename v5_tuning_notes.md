@@ -33,8 +33,8 @@ new merge-and-draft setup.
 ## 4. Slump-card color-pair asymmetry
 
 Slump cards (-2/-2 to two colors) only cover 4 of the 6 possible color
-pairs (a 4-color cycle: Blue-Orange, Orange-Purple, Purple-Yellow,
-Yellow-Blue) — the two "diagonal" pairs (Blue-Purple, Orange-Yellow) have
+pairs (a 4-color cycle: Blue-Orange, Orange-Purple, Purple-Green,
+Green-Blue) — the two "diagonal" pairs (Blue-Purple, Orange-Green) have
 no slump card. By contrast, the two-pair goal cards use all 6 combinations.
 Not necessarily a problem, but worth deciding whether to add the missing 2
 slump variants for symmetry, or leave it as an intentional asymmetry.
@@ -75,3 +75,29 @@ either a market-movement card (as before) or a goal card. `rules.md`
 currently treats a drawn goal card as becoming a private goal for that
 player, same as one drafted at setup — this is an inferred extension, not
 something you explicitly specified, so double-check it's what you want.
+
+## 9. Color-blindness risk: Orange vs. Green
+
+Swapping V4's Yellow for **Green** (Rail) means the four stock colors are
+now Blue, Orange, Green, Purple. **Orange and Green are a known problem
+pair for red-green color blindness** (deuteranopia/protanopia, ~8% of
+men) — both can shift toward a similar brownish/olive hue, which is a
+common accessibility complaint in board games that put those two colors
+next to each other. Blue and Purple can also be mixed up by some
+colorblind viewers, though it's usually a milder issue than Orange/Green.
+
+The game already has a built-in mitigation: each color's cards carry a
+distinct **thematic icon** (`icon-oil.png`, `icon-rail.png`,
+`icon-steel.png`, `icon-bank.png` in `cards/assets/`), so as long as
+every physical card and the price board show the icon alongside the
+color swatch (not color alone), colorblind players have a non-color way
+to tell stocks apart. Worth double-checking that convention holds
+everywhere before finalizing card art — the price board in particular
+should show icons, not just colored bars. Consider running a colorblind
+simulator over the final card/board art before printing.
+
+## 10. Broker card names are drafts
+
+Oil Broker / Rail Broker / Steel Broker / Bank Broker (the new $2-auction-
+discount persistent cards) are placeholder names — open to change once
+finalized.

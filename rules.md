@@ -15,12 +15,14 @@ A strategic trading and market-manipulation game for 2-6 players set in the 1920
 
 ---
 
-## Components (109 cards + 6 dice)
+## Components (113 cards + 6 dice)
 
-### Market Deck (49 cards)
-- **36 stock cards:** 32 colored (8 each of **Blue**, **Orange**, **Yellow**, **Purple** — 4 blank + 4 special per color) + **4 Wild Share** cards (colorless).
-- **13 action cards:** one-shot and persistent powers.
+### Market Deck (53 cards)
+- **36 stock cards:** 32 colored (8 each of **Blue** [Steel], **Orange** [Oil], **Green** [Rail], **Purple** [Bank] — 4 blank + 4 special per color) + **4 Wild Share** cards (colorless).
+- **17 action cards:** one-shot and persistent powers (13 carried over from V4 + 4 new persistent Broker cards, see Action Cards).
 - Shuffled together into one face-down deck; auctioned during play exactly as in V4.
+
+> **Changed in V5:** the fourth stock color is now **Green** (Rail-themed), replacing V4's Yellow.
 
 ### Event Deck (30 cards)
 The old Insider Tip deck and Goal deck are now **one shuffled deck**:
@@ -31,11 +33,13 @@ Cards from this deck can end up **public** (face-up in the goal row, or resolved
 
 ### Starter Deck (24 cards — setup only)
 Used only to build starting hands, then **set aside for the rest of the game**:
-- **12 basic stock cards:** 3 each of Blue, Orange, Yellow, Purple (blank, no special ability — newly printed cards, separate from the Market Deck's stocks).
-- **12 starter action cards** — *placeholder, TBD* (see `v5_tuning_notes.md`).
+- **12 basic stock cards:** 3 each of Blue, Orange, Green, Purple (blank, no special ability — newly printed cards, separate from the Market Deck's stocks).
+- **12 starter action cards**, of two kinds — see Starter Action Cards below.
 
 ### Loan Cards (6 cards)
-Unchanged from V4. Face-up on the table. Auto-issued when a player can't cover a payment. Escalating end-game cost per player: 1st = **−$12**, 2nd = **−$13**, 3rd = **−$14**, … (n-th loan costs $(11 + n)). Max 3 per player.
+Face-up on the table. Auto-issued when a player can't cover a payment. **Max 2 loans per player**: 1st loan costs **−$12** at game end, 2nd (and final) loan costs **−$14**.
+
+> **Changed in V5:** V4's 3-loan cap with a uniform +$1-per-loan escalation ($12 / $13 / $14) is replaced by a 2-loan cap at $12 then $14.
 
 ### Removed from V5
 - **Hot Tip cards** (the starting single-use "peek the top event card" power) no longer exist.
@@ -72,6 +76,34 @@ Each color has one of each of these four special stocks (16 specials total). The
 
 ---
 
+## Starter Action Cards (12)
+
+These 12 cards only exist in the Starter Deck (see Components/Setup) — once drafted into a hand, they behave like any other action card, except for the 5 "hidden" ones noted below. Names are new for V5 and open to change.
+
+**Played normally** — free action, any time, discarded after use:
+
+| Card | Effect |
+|---|---|
+| **Fire Sale** | Buy any one face-up market stock for a flat **$3**, regardless of its listed price. This is *not* a normal "buy": no price move, no special ability triggers. |
+| **First Look** | Draw the top card of the market deck into your hand. |
+| **Foresight** | Look at the top 4 cards of the event deck. Put them back on top in any order; optionally, move one of the 4 to the bottom of the deck instead of keeping all 4 on top. No card leaves the game either way. |
+| **Windfall** | Gain $5 from the bank. |
+| **Market Panic** | Every other player loses $3. A player with less than $3 just drops to $0 — this does **not** trigger a loan. |
+| **Backroom Deal** | Trade any one card from your hand — a stock, action card, market-movement card, or even a private goal — for any one face-up market card. Your card goes face-up into that market slot and is auctioned normally later like any other market card (the winner takes it into their hand — a private goal or a playable market-movement card, as applicable). Taking the market card this way is a plain swap: no price move, no special ability triggers. Note this exposes the traded card's identity to the whole table, even if it was a private goal. |
+| **Double Down** | Pay $2 to the bank (this can trigger a loan if you can't cover it) — then choose a *different* single-use action card in your hand, resolve its effect **twice**, and discard it. Cannot target a persistent card (Preferred Bidder, a Broker card, etc.) or any of the 5 hidden end-game bonus cards below — none of those are ever "played" in the normal sense. |
+
+**Hidden end-game bonus cards** — never played. Keep them secret in your hand for the whole game; each one scores automatically at final wealth calculation (see Determining the Winner) whether or not you ever reveal it beforehand:
+
+| Card | Effect at game end |
+|---|---|
+| **Nest Egg** | Worth a flat **+$7**. |
+| **Portfolio** | **+$2** for every stock card you hold (Wild Shares count). |
+| **Trophy Case** | **+$3** for every goal you've completed — public or private claims both count; an unclaimed private goal does not. |
+| **Clean Ledger** | **+$10** if you took zero loans the entire game. |
+| **Easy Credit** | Every loan you took costs a flat **−$10** at game end instead of the normal −$12 / −$14. |
+
+---
+
 ## Buying & Selling — Prices Always Move
 
 This is unchanged from V4: **every purchase pushes a price up, every sale pushes a price down.**
@@ -85,7 +117,7 @@ These moves happen on **every** purchase and **every** sale, including sales mad
 
 ## Setup
 
-1. **Build the market deck:** Shuffle all 36 stock cards and 13 action cards into one **49-card** face-down market deck.
+1. **Build the market deck:** Shuffle all 36 stock cards and 17 action cards into one **53-card** face-down market deck.
 2. **Reveal the market:** Turn up **5 cards** from the market deck side by side.
 3. **Build the event deck & reveal starting goals:**
    a. Shuffle all **30 event deck cards** (16 market-movement + 14 goal) together.
@@ -102,13 +134,13 @@ These moves happen on **every** purchase and **every** sale, including sales mad
    b. Each player looks at the 3-card hand just received, **keeps 1**, and passes the remaining 2 to their left.
    c. Each player looks at the 2-card hand just received, **keeps 1**, and **discards the last card face-down** (removed from the game).
    d. Every player now holds a hand of exactly **3 cards** — any mix of starter stocks, starter actions, event market-movement cards, and/or private goal cards.
-7. **Bank:** Give each player **$30**.
+7. **Bank:** Give each player **$25**.
 8. **Prices:** Set all four stock prices to **$4**.
-9. **Loans:** Place the loan cards face-up within reach of all players (max **3 loans per player**).
+9. **Loans:** Place the loan cards face-up within reach of all players (max **2 loans per player**).
 10. **Progress tracker:** Set to **0**. The game-end threshold is currently **4 × players** *(placeholder — see Progress Tracker & Game End)*.
 11. **First player:** Choose randomly. Play proceeds clockwise.
 
-**Players start with $30, a drafted 3-card hand (contents vary by luck of the draft), and zero additional stocks beyond whatever ended up in that hand.**
+**Players start with $25, a drafted 3-card hand (contents vary by luck of the draft), and zero additional stocks beyond whatever ended up in that hand.**
 
 ---
 
@@ -189,7 +221,9 @@ Goal cards can enter play two different ways, and behave differently depending o
 
 ---
 
-## Action Cards (13)
+## Action Cards (17)
+
+These are shuffled into the **market deck** (unlike the Starter Action Cards above, which only live in the Starter Deck).
 
 | Card | Effect |
 |------|--------|
@@ -204,6 +238,12 @@ Goal cards can enter play two different ways, and behave differently depending o
 | **Rumor Mill** | Adjust every stock by +1 or −1 (choose one direction for each stock). |
 | **Insider Source** ×2 | Draw the top card of the **event deck** into your hand. If it's a market-movement card, play it later at any time as a free action (bumps the progress tracker when played). If it's a goal card, it's now a **private goal** only you can complete, exactly like one drafted at setup. *(Updated for V5's merged deck — the old "if only one tip remains" end-game clause is gone, since deck exhaustion no longer ends the game.)* |
 | **Black Market** ×2 | ⚠️ **Needs a decision.** In V4 this triggered a side-auction for a tip drawn from a separate "unused tip pool" — that pool no longer exists in V5, since the whole event deck goes into circulation at setup. Needs a redefinition (e.g. auctioning off the actual top card of the live event deck?) before this card can be used. See `v5_tuning_notes.md`. |
+| **Oil Broker** | New in V5. **Persistent:** once played, pay **$2 less** whenever you win an auction for an Oil (Orange) stock (minimum payment $0). Price still moves +1 and any special ability still triggers as normal — only the amount you pay changes. |
+| **Rail Broker** | New in V5. **Persistent:** once played, pay **$2 less** whenever you win an auction for a Rail (Green) stock (minimum payment $0). |
+| **Steel Broker** | New in V5. **Persistent:** once played, pay **$2 less** whenever you win an auction for a Steel (Blue) stock (minimum payment $0). |
+| **Bank Broker** | New in V5. **Persistent:** once played, pay **$2 less** whenever you win an auction for a Bank (Purple) stock (minimum payment $0). |
+
+Names for the 4 new Broker cards are drafts — open to change.
 
 ---
 
@@ -267,11 +307,13 @@ The current action/turn finishes resolving fully before the game is declared ove
 
 ## Loans
 
-Unchanged from V4. You may **bid or spend more money than you currently hold.**
+You may **bid or spend more money than you currently hold.**
 
-- The instant a payment exceeds your cash, you are **automatically issued loan cards**. Each loan card gives you **$10** immediately. Take as many $10 loans as needed to cover the payment — **up to a maximum of 3 loans per player.** You cannot bid or commit to a payment beyond `cash + (3 − loans held) × $10`.
+- The instant a payment exceeds your cash, you are **automatically issued loan cards**. Each loan card gives you **$10** immediately. Take as many $10 loans as needed to cover the payment — **up to a maximum of 2 loans per player.** You cannot bid or commit to a payment beyond `cash + (2 − loans held) × $10`.
 - Loans are **never taken voluntarily** and **cannot be repaid**.
-- **End-game cost is escalating per player.** Your **1st** loan counts **−$12**, your **2nd** loan **−$13**, your **3rd** loan **−$14**, and so on (the n-th loan you personally take costs $(11 + n)). Two loans total = −$25; three = −$39.
+- **End-game cost:** your **1st** loan costs **−$12**, your **2nd** (and final) loan costs **−$14**. Two loans total = −$26. If you're holding an unplayed **Easy Credit** starter card (see Starter Action Cards), every loan you took instead costs a flat **−$10** each.
+
+> **Changed in V5:** max loans dropped from 3 to 2, and the escalation is no longer a uniform +$1 per loan (V4: $12/$13/$14) — it's now $12 then $14.
 
 ---
 
@@ -281,8 +323,9 @@ When the game ends, each player totals their wealth:
 
 - **Cash** on hand, plus
 - **Stock value:** each colored stock × its current price (Wild Shares are worth $0), plus
-- **End-of-game goal bonuses** (e.g., a goal that pays out at game end), minus
-- **Escalating loan penalty:** sum of $(11 + n) over each loan you took.
+- **End-of-game goal bonuses** (e.g., a goal that pays out at game end), plus
+- **Hidden end-game bonus cards** still in your hand from the Starter Deck (Nest Egg, Portfolio, Trophy Case, Clean Ledger, Easy Credit — see Starter Action Cards), minus
+- **Loan penalty:** −$12 for a 1st loan, −$14 for a 2nd (max 2 loans per player) — or a flat −$10 per loan instead if you're holding an unplayed **Easy Credit** card.
 
 **Highest total wealth wins.**
 
@@ -310,6 +353,6 @@ If the **market deck** runs out, shuffle its discard pile to form a new market d
 
 **Progress tracker:** +1 per market-movement card resolved, +1 per goal completed. **Game ends immediately** when it hits the threshold (placeholder: 4 × players).
 
-**Starting conditions:** $30 cash, a drafted 3-card hand (mixed contents), 0 additional stocks; all prices $4; 5 market cards; 4 public goals to start; progress tracker at 0.
+**Starting conditions:** $25 cash, a drafted 3-card hand (mixed contents), 0 additional stocks; all prices $4; 5 market cards; 4 public goals to start; progress tracker at 0.
 
-**Wealth = cash + (stocks × price) + end-game goal bonuses − escalating loan penalty (n-th loan costs $(11 + n)); max 3 loans per player.**
+**Wealth = cash + (stocks × price) + end-game goal bonuses + hidden end-game bonus cards − loan penalty (1st loan −$12, 2nd −$14, or flat −$10 each with Easy Credit); max 2 loans per player.**
