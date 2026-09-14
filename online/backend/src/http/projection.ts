@@ -12,7 +12,6 @@ export function projectState(game: GameState, viewerId: PlayerId | null): Projec
     name: p.name,
     cash: p.cash,
     handSize: p.hand.length,
-    hotTipAvailable: p.hotTipAvailable,
     persistentEffects: p.persistentEffects,
     loans: p.loans,
     goalsClaimed: p.goalsClaimed,

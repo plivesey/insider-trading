@@ -161,16 +161,17 @@ describe('sellStock', () => {
   it('refuses to sell from non-current player', () => {
     const state = mkState();
     const other = state.players[(state.currentPlayerIndex + 1) % 3];
-    other.hand.push(catalog.stocks.find(s => s.color === 'Blue' && s.type === 'blank')!);
-    const stock = other.hand[0];
+    const stock = catalog.stocks.find(s => s.color === 'Blue' && s.type === 'blank')!;
+    other.hand.push(stock);
     const r = sellStock(state, other.playerId, stock.uid);
     expect(r.ok).toBe(false);
   });
   it('sells a blue stock at current price, lowers price -1', () => {
     const state = mkState();
     const me = currentPlayer(state);
-    me.hand.push(catalog.stocks.find(s => s.color === 'Orange' && s.type === 'blank')!);
-    const r = sellStock(state, me.playerId, me.hand[0].uid);
+    const orange = catalog.stocks.find(s => s.color === 'Orange' && s.type === 'blank')!;
+    me.hand.push(orange);
+    const r = sellStock(state, me.playerId, orange.uid);
     expect(r.ok).toBe(true);
     expect(me.cash).toBe(30 + 4);
     expect(state.stockPrices.Orange).toBe(3);
@@ -179,8 +180,9 @@ describe('sellStock', () => {
   it('refuses to sell a Wild Share', () => {
     const state = mkState();
     const me = currentPlayer(state);
-    me.hand.push(catalog.stocks.find(s => s.color === 'Wild')!);
-    const r = sellStock(state, me.playerId, me.hand[0].uid);
+    const wild = catalog.stocks.find(s => s.color === 'Wild')!;
+    me.hand.push(wild);
+    const r = sellStock(state, me.playerId, wild.uid);
     expect(r.ok).toBe(false);
   });
   it('Informant sets a peek prompt on sale', () => {

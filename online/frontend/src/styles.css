@@ -465,7 +465,7 @@ html, body {
   border-color: var(--brass);
 }
 
-/* ---- Cash chip + Hot Tip / Claim Goal buttons in the right cluster ---- */
+/* ---- Cash chip in the right cluster ---- */
 .cash-chip {
   padding: 8px 14px;
   background: linear-gradient(180deg, var(--brass), var(--brass2));
@@ -481,22 +481,6 @@ html, body {
 .cash-chip__value {
   font-family: var(--font-num); font-size: 22px;
   color: var(--ink); line-height: 1; font-weight: 600;
-}
-
-.hot-tip-btn {
-  display: flex; align-items: center; justify-content: center; gap: 8px;
-  padding: 10px 14px;
-  background: linear-gradient(180deg, rgba(201, 163, 90, 0.15), var(--felt));
-  border: 1px dashed var(--brass);
-  border-radius: 2px;
-  color: var(--brass);
-  font-family: var(--font-deco); font-size: 11px;
-  letter-spacing: 0.3em; text-transform: uppercase;
-  cursor: pointer;
-}
-.hot-tip-btn[disabled] { opacity: 0.35; cursor: not-allowed; }
-.hot-tip-btn__star {
-  font-family: var(--font-display); font-size: 18px;
 }
 
 /* ============================================================

@@ -60,6 +60,29 @@ export function PromptModal({ prompt, state }: Props) {
             </div>
           </>
         );
+      case 'peek_bottom_choice': {
+        const tips = (prompt.payload?.tips as Array<{ uid: string; text: string; type: string }>) ?? [];
+        return (
+          <>
+            <div className="deco-modal__notice">
+              Top {tips.length} Insider Tip{tips.length > 1 ? 's' : ''} (top first). You may send one to the
+              bottom of the deck.
+            </div>
+            <div className="deco-modal__row">
+              {tips.map((t, i) => (
+                <BrassButton
+                  key={t.uid}
+                  label={`↓ Bottom: ${relabelColors(t.text)}${i === 0 ? ' (next)' : ''}`}
+                  onClick={() => send({ bottomUid: t.uid })}
+                />
+              ))}
+            </div>
+            <div className="deco-modal__footer">
+              <BrassButton label="Keep both" primary onClick={() => send({})} />
+            </div>
+          </>
+        );
+      }
       case 'pick_color': {
         const exclude = prompt.payload?.exclude as Color | undefined;
         return (
@@ -250,23 +273,49 @@ export function PromptModal({ prompt, state }: Props) {
           </div>
         );
       }
-      case 'pick_market_card':
+      case 'pick_market_card': {
+        const mode = (prompt.payload?.mode as string) ?? '';
+        const auctionUid = state.auction?.cardUid;
+        const pickable = state.market.filter(c => {
+          // The card being auctioned is never a valid target.
+          if (c.uid === auctionUid) return false;
+          // Market Order is a real purchase: only colored stocks (no actions,
+          // no Wild Shares). Other modes may target any market card.
+          if (mode === 'buy_from_market') {
+            return c.category === 'stock' && c.color !== 'Wild';
+          }
+          return true;
+        });
         return (
           <div className="deco-modal__row">
-            {state.market.map(c => (
+            {pickable.map(c => (
               <BrassButton
                 key={c.uid}
-                label={
-                  c.category === 'stock'
-                    ? `${INDUSTRY[c.color].label}${c.name ? ` ${c.name}` : ''}`
-                    : `Action: ${c.name}`
-                }
+                label={describeCard(c).title}
                 onClick={() => send({ cardUid: c.uid })}
               />
             ))}
           </div>
         );
-      case 'pick_hand_stock_for_swap':
+      }
+      case 'pick_hand_stock_for_swap': {
+        const my = state.myPlayer;
+        if (!my) return null;
+        // Swap allows ANY card in hand — stocks, Wild Shares, action/starter
+        // cards, even Insider Tips. The chosen card goes into the market to be
+        // auctioned normally.
+        return (
+          <div className="deco-modal__row">
+            {my.hand.map(c => (
+              <BrassButton
+                key={c.uid}
+                label={describeCard(c).title}
+                onClick={() => send({ stockUid: c.uid })}
+              />
+            ))}
+          </div>
+        );
+      }
       case 'pick_stock_from_hand': {
         const my = state.myPlayer;
         if (!my) return null;
@@ -283,7 +332,7 @@ export function PromptModal({ prompt, state }: Props) {
                 />
               ))}
             </div>
-            {mode === 'sell_bonus_batch' && (
+            {(mode === 'sell_bonus_batch' || mode === 'sell_same_bonus') && (
               <div className="deco-modal__footer">
                 <BrassButton label="Done" primary onClick={() => send({ done: true })} />
               </div>

@@ -211,6 +211,7 @@ export function drawTopOfDeck(
 export function describeCard(card: { category: string; color?: string; name?: string; uid: string }): string {
   if (card.category === 'stock') return `${(card as StockCard).color}${(card as StockCard).name ? ` ${(card as StockCard).name}` : ''}`;
   if (card.category === 'action') return `Action: ${(card as ActionCard).name}`;
+  if (card.category === 'insider_tip') return 'Insider Tip';
   return card.uid;
 }
 

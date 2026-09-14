@@ -1,0 +1,414 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background: #14161a;
+  color: #e8e6e1;
+}
+
+.app-shell {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 24px;
+}
+
+a {
+  color: #7ab8ff;
+}
+
+.top-nav {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 24px;
+  font-size: 14px;
+}
+
+h1 {
+  font-size: 22px;
+}
+
+.page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.error {
+  color: #ff8080;
+  background: #3a1f1f;
+  border: 1px solid #5c2b2b;
+  border-radius: 6px;
+  padding: 8px 12px;
+}
+
+.hint {
+  color: #9a9890;
+  font-size: 12px;
+}
+
+button {
+  background: #2a2d34;
+  color: #e8e6e1;
+  border: 1px solid #444852;
+  border-radius: 6px;
+  padding: 6px 12px;
+  cursor: pointer;
+}
+
+button:hover {
+  background: #34383f;
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+button.danger {
+  border-color: #5c2b2b;
+  color: #ff9a9a;
+}
+
+input,
+textarea,
+select {
+  background: #1c1f24;
+  color: #e8e6e1;
+  border: 1px solid #3a3e46;
+  border-radius: 6px;
+  padding: 6px 8px;
+  font-family: inherit;
+  font-size: 14px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 16px;
+  max-width: 480px;
+}
+
+.field textarea {
+  resize: vertical;
+}
+
+/* Settings */
+.settings-form {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-width: 320px;
+}
+
+.generation-settings-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  background: #1c1f24;
+  border: 1px solid #2e323a;
+  border-radius: 6px;
+  padding: 8px 12px;
+  margin-bottom: 20px;
+  font-size: 12px;
+}
+
+.generation-settings-summary-label {
+  color: #9a9890;
+}
+
+.generation-settings-chip {
+  background: #2a2d34;
+  border: 1px solid #3a3e46;
+  border-radius: 999px;
+  padding: 3px 10px;
+  color: #e8e6e1;
+}
+
+.generation-settings-summary-edit {
+  margin-left: auto;
+  font-size: 12px;
+}
+
+/* Card list */
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.card-tile {
+  display: block;
+  background: #1c1f24;
+  border: 1px solid #2e323a;
+  border-radius: 8px;
+  padding: 12px;
+  text-decoration: none;
+  color: inherit;
+}
+
+.card-tile:hover {
+  border-color: #556;
+}
+
+.card-tile-name {
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.card-tile-prompt {
+  font-size: 13px;
+  color: #b7b5ad;
+  margin-bottom: 8px;
+  min-height: 2.6em;
+  overflow: hidden;
+}
+
+.card-tile-meta {
+  font-size: 12px;
+  color: #8a8880;
+}
+
+/* Templates */
+.upload-form {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.template-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.template-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  background: #1c1f24;
+  border: 1px solid #2e323a;
+  border-radius: 8px;
+  padding: 8px;
+  text-align: center;
+}
+
+.template-tile img {
+  width: 100%;
+  aspect-ratio: 2.5 / 3.5;
+  object-fit: cover;
+  border-radius: 4px;
+}
+
+.template-tile.selected {
+  border-color: #7ab8ff;
+}
+
+.template-detail {
+  background: #1c1f24;
+  border: 1px solid #2e323a;
+  border-radius: 8px;
+  padding: 16px;
+  max-width: 520px;
+}
+
+.placement-preview {
+  position: relative;
+  width: 100%;
+  max-width: 320px;
+  container-type: inline-size;
+  margin-bottom: 12px;
+}
+
+.placement-preview img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  border-radius: 4px;
+}
+
+.placement-box {
+  border: 2px dashed #7ab8ff;
+  background: rgba(122, 184, 255, 0.15);
+}
+
+.placement-box.text-box {
+  border-color: #ffb85c;
+  background: rgba(255, 184, 92, 0.15);
+  display: flex;
+  align-items: flex-start;
+  overflow: hidden;
+}
+
+.placement-box-label {
+  font-size: 9px;
+  color: #ffb85c;
+  background: rgba(20, 22, 26, 0.7);
+  padding: 1px 3px;
+  white-space: nowrap;
+}
+
+.placement-fields {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+
+.placement-fields label,
+.text-overlay-row label {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 11px;
+  color: #9a9890;
+}
+
+.placement-fields input,
+.text-overlay-row input[type='number'] {
+  width: 70px;
+}
+
+/* Card editor */
+.card-editor-layout {
+  display: flex;
+  gap: 32px;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+
+.card-editor {
+  flex: 1 1 480px;
+  max-width: 640px;
+}
+
+.card-editor-preview-col {
+  flex: 0 0 300px;
+  position: sticky;
+  top: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.card-preview-frame {
+  position: relative;
+  width: 100%;
+  container-type: inline-size;
+  border-radius: 4px;
+  overflow: hidden;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+}
+
+.card-preview-empty {
+  color: #9a9890;
+  font-size: 13px;
+  border: 1px dashed #3a3e46;
+  border-radius: 6px;
+  padding: 24px;
+  text-align: center;
+}
+
+.preview-bg,
+.preview-art {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+}
+
+.preview-art-box {
+  overflow: hidden;
+}
+
+.preview-text {
+  display: flex;
+  align-items: center;
+  white-space: nowrap;
+  overflow: hidden;
+  line-height: 1;
+  font-weight: 600;
+}
+
+.card-name,
+.template-name-field {
+  font-size: 20px;
+  font-weight: 600;
+  width: 100%;
+  margin-bottom: 16px;
+}
+
+.template-detail .page-header .template-name-field {
+  width: auto;
+  flex: 1;
+  margin-bottom: 0;
+}
+
+.text-overlay-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.text-overlay-row {
+  display: flex;
+  gap: 8px;
+  align-items: end;
+  flex-wrap: wrap;
+  background: #1c1f24;
+  border: 1px solid #2e323a;
+  border-radius: 6px;
+  padding: 8px;
+}
+
+.overlay-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #b7b5ad;
+  min-width: 48px;
+}
+
+.text-values-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.prompt-panel {
+  margin-bottom: 8px;
+}
+
+.generation-strip {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+.generation-thumb {
+  padding: 2px;
+  border: 2px solid transparent;
+  border-radius: 6px;
+  background: #1c1f24;
+}
+
+.generation-thumb img {
+  width: 70px;
+  height: 70px;
+  object-fit: cover;
+  border-radius: 4px;
+  display: block;
+}
+
+.generation-thumb.selected {
+  border-color: #7ab8ff;
+}

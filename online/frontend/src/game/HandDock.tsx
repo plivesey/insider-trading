@@ -33,14 +33,6 @@ export function HandDock({ state, canPlayActions }: Props) {
     }
   }
 
-  async function useHotTip() {
-    try {
-      await api.freeAction({ request: { kind: 'use_hot_tip' } });
-    } catch (e) {
-      showError((e as Error).message);
-    }
-  }
-
   return (
     <div className="gb-hand">
       <div className={`gb-hand__cards${hovered ? ' has-hover' : ''}`}>
@@ -86,15 +78,6 @@ export function HandDock({ state, canPlayActions }: Props) {
 
       <div className="gb-hand__cluster">
         <CashChip cash={me.cash} />
-        <button
-          className="hot-tip-btn"
-          disabled={!me.hotTipAvailable}
-          onClick={useHotTip}
-          title={me.hotTipAvailable ? 'Peek the top Insider Tip' : 'Already used'}
-        >
-          <span className="hot-tip-btn__star">✦</span>
-          {me.hotTipAvailable ? 'Hot Tip' : 'Hot Tip · Spent'}
-        </button>
       </div>
     </div>
   );

@@ -35,6 +35,19 @@ function makeBuyCard(seat: number): ActionCard {
   };
 }
 
+/** The "Hot Tip" peek card, dealt one per player as a single-use hand card. */
+function makeHotTipCard(seat: number): ActionCard {
+  return {
+    category: 'action',
+    uid: `hottip-${seat}`,
+    id: 2000 + seat,
+    name: 'Hot Tip',
+    description: 'Peek at the top card of the Insider Tip deck.',
+    persistent: false,
+    effect: { type: 'peek_top_tip' }
+  };
+}
+
 /** Mirror of /playtest/init.js but seeded + typed. */
 export function createGameState(input: SetupInput): GameState {
   const { catalog, players, seed, gameId, startedAt } = input;
@@ -66,8 +79,10 @@ export function createGameState(input: SetupInput): GameState {
     playerId: p.playerId,
     name: p.name,
     cash: 30,
-    hand: (rules.startingBuyCard ? [makeBuyCard(seat) as HandCard] : []) as HandCard[],
-    hotTipAvailable: true,
+    hand: [
+      makeHotTipCard(seat) as HandCard,
+      ...(rules.startingBuyCard ? [makeBuyCard(seat) as HandCard] : [])
+    ] as HandCard[],
     persistentEffects: [],
     loans: 0,
     endGameCashBonus: 0,

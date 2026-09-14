@@ -28,8 +28,13 @@ describe('createGameState', () => {
     expect(g.activeGoals).toHaveLength(6); // default ruleset: 3 + 2 + 1
     expect(g.mainDeck).toHaveLength(36 + 13 - 5); // buy card isn't drawn from the deck
     expect(g.players.every(p => p.cash === 30)).toBe(true);
-    expect(g.players.every(p => p.hand.length === 1)).toBe(true); // each starts with a Market Order
-    expect(g.players.every(p => p.hotTipAvailable)).toBe(true);
+    // Each starts with a Hot Tip and a Market Order card.
+    expect(g.players.every(p => p.hand.length === 2)).toBe(true);
+    expect(
+      g.players.every(p =>
+        p.hand.some(c => c.category === 'action' && (c as any).effect.type === 'peek_top_tip')
+      )
+    ).toBe(true);
     expect(g.stockPrices).toEqual({ Blue: 4, Orange: 4, Yellow: 4, Purple: 4 });
     expect(g.gameOver).toBeNull();
     expect(g.eventCounter).toBe(1);

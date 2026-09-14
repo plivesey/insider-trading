@@ -52,10 +52,8 @@ function PlayerRow({
           </span>
           {current && <span className="player-row__tag">· On the clock</span>}
           {offline && <span className="player-row__tag player-row__tag--offline">· Offline</span>}
-          {(effects.length > 0 || player.hotTipAvailable) && (
+          {effects.length > 0 && (
             <span className="player-row__effects">
-              {player.hotTipAvailable && '✦ Hot Tip'}
-              {player.hotTipAvailable && effects.length > 0 && '  ·  '}
               {effects.join(' · ')}
             </span>
           )}

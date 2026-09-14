@@ -24,7 +24,11 @@ const CARDS_DIR = path.resolve(HERE, '../../../cards');
 const catalog = loadCards(CARDS_DIR);
 
 function findCardInGame(state: GameState, uid: string): StockCard | ActionCard | null {
-  for (const c of state.market) if (c.uid === uid) return c;
+  for (const c of state.market) {
+    if (c.uid === uid && (c.category === 'stock' || c.category === 'action')) {
+      return c as StockCard | ActionCard;
+    }
+  }
   for (const p of state.players) {
     for (const c of p.hand) {
       if (c.uid === uid && (c.category === 'stock' || c.category === 'action')) {

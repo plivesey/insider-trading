@@ -1,0 +1,62 @@
+Category,Name,Count,Color,Subtype,Deck,Requirement,Text
+Stock,Common Share,4,Steel,blank,Main deck (auctioned),,
+Stock,Boom,1,Steel,extra_up,Main deck (auctioned),,"When bought, Steel rises an extra +1 (Steel rises +2 total)."
+Stock,Tip-Off,1,Steel,other_up,Main deck (auctioned),,"When bought, raise a different stock of your choice by +1."
+Stock,Scout,1,Steel,peek_buy,Main deck (auctioned),,"When bought, look at the top Insider Tip card."
+Stock,Informant,1,Steel,peek_sell,Main deck (auctioned),,"When sold, look at the top Insider Tip card."
+Stock,Common Share,4,Oil,blank,Main deck (auctioned),,
+Stock,Boom,1,Oil,extra_up,Main deck (auctioned),,"When bought, Oil rises an extra +1 (Oil rises +2 total)."
+Stock,Tip-Off,1,Oil,other_up,Main deck (auctioned),,"When bought, raise a different stock of your choice by +1."
+Stock,Scout,1,Oil,peek_buy,Main deck (auctioned),,"When bought, look at the top Insider Tip card."
+Stock,Informant,1,Oil,peek_sell,Main deck (auctioned),,"When sold, look at the top Insider Tip card."
+Stock,Common Share,4,Rail,blank,Main deck (auctioned),,
+Stock,Boom,1,Rail,extra_up,Main deck (auctioned),,"When bought, Rail rises an extra +1 (Rail rises +2 total)."
+Stock,Tip-Off,1,Rail,other_up,Main deck (auctioned),,"When bought, raise a different stock of your choice by +1."
+Stock,Scout,1,Rail,peek_buy,Main deck (auctioned),,"When bought, look at the top Insider Tip card."
+Stock,Informant,1,Rail,peek_sell,Main deck (auctioned),,"When sold, look at the top Insider Tip card."
+Stock,Common Share,4,Bank,blank,Main deck (auctioned),,
+Stock,Boom,1,Bank,extra_up,Main deck (auctioned),,"When bought, Bank rises an extra +1 (Bank rises +2 total)."
+Stock,Tip-Off,1,Bank,other_up,Main deck (auctioned),,"When bought, raise a different stock of your choice by +1."
+Stock,Scout,1,Bank,peek_buy,Main deck (auctioned),,"When bought, look at the top Insider Tip card."
+Stock,Informant,1,Bank,peek_sell,Main deck (auctioned),,"When sold, look at the top Insider Tip card."
+Stock,Wild Share,4,Wild,wild,Main deck (auctioned),,"No cash value and cannot be sold. When claiming a Goal, may count as one stock of any one color, then is discarded."
+Action,Tipster's Choice,1,,single-use,Main deck (auctioned),,"Draw 2 cards, keep 1, return the other to the bottom."
+Action,Liquidation,1,,single-use,Main deck (auctioned),,Sell any number of stocks of a single color; gain +$1 per stock sold.
+Action,Corner the Market,1,,single-use,Main deck (auctioned),,"Take one face-up market stock for free (no price move, no ability)."
+Action,Pump and Dump,1,,single-use,Main deck (auctioned),,Sell 1 stock at double its price.
+Action,The Squeeze,1,,single-use,Main deck (auctioned),,"Raise one stock +2, or lower one stock -2."
+Action,Wild Speculation,1,,single-use,Main deck (auctioned),,"Reveal the top deck card to the bottom. If colored, raise or lower that color by 3; if not, reveal again."
+Action,Preferred Bidder,1,,persistent,Main deck (auctioned),,"For the rest of the game, you win any bid you tie."
+Action,Hostile Takeover,1,,single-use,Main deck (auctioned),,Look at another player's hand and take 1 stock. They draw the top deck card.
+Action,Rumor Mill,1,,single-use,Main deck (auctioned),,Adjust every stock +1 or -1 (your choice per stock).
+Action,Insider Source,2,,single-use,Main deck (auctioned),,Draw the top Insider Tip into your hand; play it as a free action anytime.
+Action,Black Market,2,,single-use,Main deck (auctioned),,"When revealed in the market, auction a face-down Insider Tip from the unused pool."
+Insider Tip,Insider Tip,2,,crash,Insider Tip deck,,Steel stock value is halved (round down)
+Insider Tip,Insider Tip,2,,crash,Insider Tip deck,,Oil stock value is halved (round down)
+Insider Tip,Insider Tip,2,,crash,Insider Tip deck,,Rail stock value is halved (round down)
+Insider Tip,Insider Tip,2,,crash,Insider Tip deck,,Bank stock value is halved (round down)
+Insider Tip,Insider Tip,1,,surge,Insider Tip deck,,Steel +4
+Insider Tip,Insider Tip,1,,surge,Insider Tip deck,,Oil +4
+Insider Tip,Insider Tip,1,,surge,Insider Tip deck,,Rail +4
+Insider Tip,Insider Tip,1,,surge,Insider Tip deck,,Bank +4
+Insider Tip,Insider Tip,1,,slump,Insider Tip deck,,Steel -2 / Oil -2
+Insider Tip,Insider Tip,1,,slump,Insider Tip deck,,Oil -2 / Bank -2
+Insider Tip,Insider Tip,1,,slump,Insider Tip deck,,Bank -2 / Rail -2
+Insider Tip,Insider Tip,1,,slump,Insider Tip deck,,Rail -2 / Steel -2
+Goal,2 Steel,1,,pair,Goals (public),2 Steel,Gain $4
+Goal,2 Oil,1,,pair,Goals (public),2 Oil,Adjust any one stock by +/-3
+Goal,2 Rail,1,,pair,Goals (public),2 Rail,Set any one stock to exactly $6
+Goal,2 Bank,1,,pair,Goals (public),2 Bank,Look at the top 2 Insider Tips; you may put one on the bottom of the deck
+Goal,3 Steel,1,,three_of_a_kind,Goals (public),3 Steel,Steal $2 from each other player
+Goal,3 Oil,1,,three_of_a_kind,Goals (public),3 Oil,Sell all your stocks; gain +$3 per stock sold
+Goal,3 Rail,1,,three_of_a_kind,Goals (public),3 Rail,Gain $8
+Goal,3 Bank,1,,three_of_a_kind,Goals (public),3 Bank,Swap one of your cards with a face-up market card
+Goal,2 Steel + 2 Oil,1,,two_pair,Goals (public),2 Steel + 2 Oil,Gain $9
+Goal,2 Steel + 2 Rail,1,,two_pair,Goals (public),2 Steel + 2 Rail,Draw 2 unused Insider Tips into your hand
+Goal,2 Steel + 2 Bank,1,,two_pair,Goals (public),2 Steel + 2 Bank,Adjust any one stock by +4 and another stock by -4
+Goal,2 Oil + 2 Rail,1,,two_pair,Goals (public),2 Oil + 2 Rail,Draw the top Insider Tip from the deck into your hand and gain $7
+Goal,2 Oil + 2 Bank,1,,two_pair,Goals (public),2 Oil + 2 Bank,"Draw 3 cards from the main deck, keep 1"
+Goal,2 Rail + 2 Bank,1,,two_pair,Goals (public),2 Rail + 2 Bank,"At the end of the game, gain $11"
+Loan,Bank Loan,6,,,Bank (auto-issued),,"Take $10 now. End-game penalty escalates per player: 1st −$12, 2nd −$13, 3rd −$14 (max 3 loans/player)."
+Hot Tip,Hot Tip,6 (1 per player),,,Starter (each player),,"Single-use: look at the top Insider Tip card, then discard this card"
+Starter,Market Order,1 per player,,single-use,Starter (each player),,Buy one stock from the market at its current price (that color rises +1). Only colored stocks; not the card being auctioned.

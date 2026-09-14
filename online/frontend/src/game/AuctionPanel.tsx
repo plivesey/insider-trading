@@ -4,7 +4,8 @@ import type {
   PlayerPublic,
   PromptEnvelope,
   StockCard,
-  ActionCard
+  ActionCard,
+  InsiderTipCard
 } from '@insider-trading/shared';
 import { api } from '../lib/api.js';
 import { showError } from '../lib/toast.js';
@@ -16,7 +17,7 @@ interface Props {
   players: PlayerPublic[];
   myPrompt: PromptEnvelope | null;
   myPlayerId: string;
-  market: (StockCard | ActionCard)[];
+  market: (StockCard | ActionCard | InsiderTipCard)[];
 }
 
 export function AuctionPanel({ auction, players, myPrompt, myPlayerId, market }: Props) {

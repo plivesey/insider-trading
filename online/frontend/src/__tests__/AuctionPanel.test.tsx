@@ -16,8 +16,8 @@ beforeEach(() => {
 });
 
 const players: PlayerPublic[] = [
-  { playerId: 'p1', name: 'Alice', cash: 30, handSize: 0, hotTipAvailable: true, persistentEffects: [], loans: 0, goalsClaimed: [], connected: true },
-  { playerId: 'p2', name: 'Bob', cash: 30, handSize: 0, hotTipAvailable: true, persistentEffects: [], loans: 0, goalsClaimed: [], connected: true }
+  { playerId: 'p1', name: 'Alice', cash: 30, handSize: 0, persistentEffects: [], loans: 0, goalsClaimed: [], connected: true },
+  { playerId: 'p2', name: 'Bob', cash: 30, handSize: 0, persistentEffects: [], loans: 0, goalsClaimed: [], connected: true }
 ];
 
 const auction: AuctionState = {

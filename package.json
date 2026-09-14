@@ -7,7 +7,7 @@
     "test:watch": "jest --watch"
   },
   "jest": {
-    "testPathIgnorePatterns": ["/node_modules/", "/v2/", "/v3/", "/online/"]
+    "testPathIgnorePatterns": ["/node_modules/", "/v2/", "/v3/", "/online/", "/card-studio/"]
   },
   "devDependencies": {
     "jest": "^29.7.0"

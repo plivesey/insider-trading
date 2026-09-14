@@ -60,8 +60,8 @@
         }
       },
       "reward": {
-        "text": "Look at the top 2 Insider Tip cards",
-        "parsed": { "type": "peek_tips", "count": 2 }
+        "text": "Look at the top 2 Insider Tips; you may put one on the bottom of the deck",
+        "parsed": { "type": "peek_tips_bottom", "count": 2 }
       }
     },
     {
@@ -92,8 +92,8 @@
         }
       },
       "reward": {
-        "text": "Sell any number of stocks, gain +$2 per stock sold",
-        "parsed": { "type": "sell_bonus_batch", "bonus": 2 }
+        "text": "Sell all your stocks; gain +$3 per stock sold",
+        "parsed": { "type": "sell_bonus_batch", "bonus": 3 }
       }
     },
     {
@@ -124,8 +124,8 @@
         }
       },
       "reward": {
-        "text": "Adjust every stock by +2 or -2 (choose per stock)",
-        "parsed": { "type": "adjust_all_stocks", "amount": 2 }
+        "text": "Swap one of your cards with a face-up market card",
+        "parsed": { "type": "swap_with_market" }
       }
     },
     {
@@ -172,8 +172,8 @@
         }
       },
       "reward": {
-        "text": "Adjust any one stock by +3 and another stock by -3",
-        "parsed": { "type": "adjust_two_stocks", "up": 3, "down": 3 }
+        "text": "Adjust any one stock by +4 and another stock by -4",
+        "parsed": { "type": "adjust_two_stocks", "up": 4, "down": 4 }
       }
     },
     {
@@ -188,8 +188,8 @@
         }
       },
       "reward": {
-        "text": "Swap one of your cards with a face-up market card",
-        "parsed": { "type": "swap_with_market" }
+        "text": "Draw the top Insider Tip from the deck into your hand and gain $7",
+        "parsed": { "type": "draw_deck_tip", "cash": 7 }
       }
     },
     {

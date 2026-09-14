@@ -79,13 +79,8 @@ function ActionBody({ card }: { card: ActionCard }) {
   return (
     <>
       <div className="card-tile__action-tag">Action</div>
-      <div className="card-tile__art card-tile__art--action">
-        <span className="card-tile__art-label">art</span>
-      </div>
       <div className="card-tile__name">{card.name}</div>
-      <div className="card-tile__desc">
-        {text.length > 70 ? text.slice(0, 68) + '…' : text}
-      </div>
+      <div className="card-tile__desc">{text}</div>
     </>
   );
 }

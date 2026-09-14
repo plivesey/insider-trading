@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import type { Color, ProjectedGameState, StockCard } from '@insider-trading/shared';
 import { api } from '../lib/api.js';
 import { showError } from '../lib/toast.js';
+import { describeCard } from './cardLabel.js';
 import { BrassButton, INDUSTRY } from './theme.js';
 
 interface Props {
@@ -112,9 +113,7 @@ export function TurnPanel({ state, myPlayerId, pickedCardUid, onClearPick }: Pro
           >
             {state.market.map(c => (
               <option key={c.uid} value={c.uid}>
-                {c.category === 'stock'
-                  ? `${INDUSTRY[c.color].label}${c.name ? ` ${c.name}` : ''}`
-                  : `Action: ${c.name}`}
+                {describeCard(c).title}
               </option>
             ))}
           </select>

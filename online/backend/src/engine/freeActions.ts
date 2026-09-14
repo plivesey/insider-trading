@@ -10,7 +10,6 @@ import type {
 } from '@insider-trading/shared';
 import type { MutationResult } from '../domain/mutate.js';
 import { event } from './events.js';
-import { setPrompt } from './prompts.js';
 import { startActionCard } from './actionCards.js';
 import { claimGoal } from './goals.js';
 import { resolveTip } from './insiderTip.js';
@@ -39,8 +38,6 @@ function describe(r: FreeActionRequest): string {
       return `play action card ${r.cardUid}`;
     case 'play_insider_tip':
       return `play Insider Tip ${r.cardUid}`;
-    case 'use_hot_tip':
-      return 'use Hot Tip';
     case 'claim_goal':
       return `claim goal ${r.goalUid}`;
   }
@@ -70,9 +67,6 @@ export function processNextFreeAction(state: GameState, events: GameLogEntry[]):
       break;
     case 'play_insider_tip':
       handlePlayInsiderTip(state, player, entry.request.cardUid, events);
-      break;
-    case 'use_hot_tip':
-      handleUseHotTip(state, player, events);
       break;
     case 'claim_goal':
       claimGoal(
@@ -136,28 +130,4 @@ function handlePlayInsiderTip(
     })
   );
   resolveTip(state, card as InsiderTipCard, events, 'played_from_hand');
-}
-
-function handleUseHotTip(state: GameState, player: PlayerPrivate, events: GameLogEntry[]): void {
-  if (!player.hotTipAvailable) {
-    events.push(event('error', `${player.name} has no Hot Tip available`, {}));
-    return;
-  }
-  player.hotTipAvailable = false;
-  const top = state.insiderTipDeck[0];
-  events.push(
-    event('hot_tip_used', `${player.name} uses Hot Tip`, {
-      actor: player.playerId,
-      payload: top ? { tip: { text: top.text, type: top.type } } : { empty: true }
-    })
-  );
-  if (top) {
-    setPrompt(
-      state,
-      player.playerId,
-      'peek_ack',
-      `Hot Tip: top Insider Tip is "${top.text}". Acknowledge to continue.`,
-      { tip: { text: top.text, type: top.type } }
-    );
-  }
 }

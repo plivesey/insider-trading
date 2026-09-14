@@ -83,6 +83,9 @@ export function rewardCashEquivalent(
       return Math.max(params.rewardFlatValue, reward.amount / 2);
     case 'peek_tips':
       return reward.count * params.rewardPeekMult;
+    case 'peek_tips_bottom':
+      // Peek plus the option to bury one bad tip — a bit better than a pure peek.
+      return reward.count * params.rewardPeekMult + 1;
     case 'draw_tips':
       // Drawing tips into hand (playable later) is worth more than a peek.
       return reward.count * params.rewardDrawTipsMult;
@@ -97,6 +100,9 @@ export function rewardCashEquivalent(
     case 'draw_and_choose':
       // Draw 3 from the deck, keep the best — ~a good stock's worth.
       return 6;
+    case 'draw_deck_tip':
+      // A tip in hand (playable later) plus flat cash.
+      return reward.cash + params.rewardDrawTipsMult;
   }
 }
 
@@ -367,6 +373,10 @@ function actionCardBaseValue(
     case 'buy_from_market':
       // Market Order is never auctioned; the bot plays it via a dedicated
       // strategy path (see chooseBuyTarget in decide.ts), not by value.
+      return 0;
+    case 'peek_top_tip':
+      // Hot Tip is a starting hand card, never auctioned; no perceived
+      // hand-value here (played via the dedicated hot-tip path in decide.ts).
       return 0;
   }
 }

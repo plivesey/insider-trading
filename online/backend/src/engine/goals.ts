@@ -8,6 +8,7 @@ import type {
   StockCard
 } from '@insider-trading/shared';
 import { COLORS } from '@insider-trading/shared';
+import { adjust } from '../domain/prices.js';
 import { event } from './events.js';
 import { setPrompt } from './prompts.js';
 import { describeCard, findPlayer, receiveBank } from './turn.js';
@@ -174,6 +175,30 @@ function applyReward(
       );
       return;
     }
+    case 'peek_tips_bottom': {
+      const n = Math.min(r.count, state.insiderTipDeck.length);
+      if (n === 0) {
+        events.push(
+          event('reward_peek_empty', `${player.name}'s peek reward: the Insider Tip deck is empty`, {
+            actor: player.playerId
+          })
+        );
+        return;
+      }
+      const top = state.insiderTipDeck.slice(0, n);
+      setPrompt(
+        state,
+        player.playerId,
+        'peek_bottom_choice',
+        `Reward: peek at the top ${n} Insider Tip${n > 1 ? 's' : ''}; you may move one to the bottom of the deck.`,
+        {
+          tips: top.map(t => ({ uid: t.uid, text: t.text, type: t.type })),
+          count: n,
+          goalReward: true
+        }
+      );
+      return;
+    }
     case 'adjust_all_stocks':
       setPrompt(
         state,
@@ -216,15 +241,77 @@ function applyReward(
         { mode: 'swap_with_market_stage1', goalReward: true }
       );
       return;
-    case 'sell_bonus_batch':
-      setPrompt(
-        state,
-        player.playerId,
-        'pick_stock_from_hand',
-        `Reward: sell any number of stocks; gain $${r.bonus} per stock sold (in addition to sale price).`,
-        { mode: 'sell_bonus_batch', bonus: r.bonus, multiple: true, goalReward: true }
+    case 'sell_bonus_batch': {
+      // Sell EVERY colored stock in hand at once. Each stock pays its color's
+      // current price + bonus; all payouts use pre-batch prices (so a color's
+      // price doesn't cannibalize its own sales). Price drops (−1 per stock
+      // sold) are applied only AFTER the whole batch. Wild Shares can't be sold.
+      const toSell = player.hand.filter(
+        (c): c is StockCard => c.category === 'stock' && (c as StockCard).color !== 'Wild'
+      );
+      if (toSell.length === 0) {
+        events.push(
+          event('sell_bonus_none', `${player.name} has no stocks to sell for the reward`, {
+            actor: player.playerId
+          })
+        );
+        return;
+      }
+      const soldByColor: Partial<Record<Color, number>> = {};
+      let total = 0;
+      for (const card of toSell) {
+        const color = card.color as Color;
+        const payout = state.stockPrices[color] + r.bonus; // pre-batch price
+        receiveBank(player, payout);
+        total += payout;
+        soldByColor[color] = (soldByColor[color] ?? 0) + 1;
+        const hIdx = player.hand.findIndex(c => c.uid === card.uid);
+        if (hIdx >= 0) player.hand.splice(hIdx, 1);
+        state.discardPile.push(card);
+      }
+      // Apply all price drops after the batch resolves.
+      for (const color of Object.keys(soldByColor) as Color[]) {
+        adjust(state.stockPrices, color, -(soldByColor[color] ?? 0));
+      }
+      events.push(
+        event(
+          'sell_bonus_batch_all',
+          `${player.name} sells ${toSell.length} stock${toSell.length === 1 ? '' : 's'} for $${total} total (+$${r.bonus} each); prices drop after the batch`,
+          { actor: player.playerId, payload: { count: toSell.length, total, bonus: r.bonus, soldByColor } }
+        )
       );
       return;
+    }
+    case 'draw_deck_tip': {
+      // Draw the top Insider Tip from the DECK (not the unused pool) into hand,
+      // then gain cash. Drawing the deck's last tip empties it, which ends the
+      // game via advance()'s end-condition check; the drawn tip stays in hand
+      // unresolved (same as Insider Source). Wilds/cash apply immediately.
+      const tip = state.insiderTipDeck.shift();
+      if (tip) {
+        player.hand.push(tip);
+        events.push(
+          event('reward_draw_deck_tip', `${player.name} draws the top Insider Tip from the deck into hand`, {
+            actor: player.playerId,
+            payload: { uid: tip.uid, wasLast: state.insiderTipDeck.length === 0 }
+          })
+        );
+      } else {
+        events.push(
+          event('reward_draw_deck_tip_empty', `${player.name}'s reward: the Insider Tip deck is empty`, {
+            actor: player.playerId
+          })
+        );
+      }
+      receiveBank(player, r.cash);
+      events.push(
+        event('reward_cash', `${player.name} gains $${r.cash}`, {
+          actor: player.playerId,
+          payload: { amount: r.cash, newCash: player.cash }
+        })
+      );
+      return;
+    }
     case 'draw_and_choose': {
       // Pull `drawCount` from main deck and prompt player to keep `keepCount`.
       const drawn = state.mainDeck.splice(0, Math.min(r.drawCount, state.mainDeck.length));

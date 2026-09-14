@@ -16,7 +16,6 @@ export interface PlayerPrivate {
   name: string;
   cash: number;
   hand: HandCard[];
-  hotTipAvailable: boolean;
   persistentEffects: ActionCard[];
   loans: number;
   endGameCashBonus: number;
@@ -29,7 +28,6 @@ export interface PlayerPublic {
   name: string;
   cash: number;
   handSize: number;
-  hotTipAvailable: boolean;
   persistentEffects: ActionCard[];
   loans: number;
   goalsClaimed: GoalCard[];
@@ -64,6 +62,7 @@ export type PromptType =
   | 'auction_bid'
   | 'pick_color' // Tip-Off
   | 'peek_ack' // Scout / Informant / Hot Tip / 2P peek_tips
+  | 'peek_bottom_choice' // peek top N tips, optionally move one to the bottom
   | 'pick_color_amount' // The Squeeze, Rumor Mill per-color, 3 Purple, 2B+2Y, 2B+2P (per side)
   | 'pick_stock_from_hand' // Pump and Dump, sell_bonus_batch
   | 'pick_target_player' // Hostile Takeover step 1
@@ -88,7 +87,6 @@ export interface PromptEnvelope {
 export type FreeActionRequest =
   | { kind: 'play_action_card'; cardUid: string; payload?: Record<string, unknown> }
   | { kind: 'play_insider_tip'; cardUid: string }
-  | { kind: 'use_hot_tip' }
   | { kind: 'claim_goal'; goalUid: string; stockAssignment: StockAssignment };
 
 export interface StockAssignment {
@@ -158,7 +156,12 @@ export interface GameState {
   /** Active auction, if `turnPhase === 'in_auction'`. */
   auction: AuctionState | null;
   players: PlayerPrivate[];
-  market: (StockCard | ActionCard)[];
+  /**
+   * Face-up market. Normally stocks/actions from the main deck, but a player
+   * can swap an Insider Tip into it (via the swap-with-market goal reward); a
+   * tip sitting in the market is auctioned like any other card.
+   */
+  market: (StockCard | ActionCard | InsiderTipCard)[];
   mainDeck: (StockCard | ActionCard)[];
   discardPile: (StockCard | ActionCard | HotTipCard)[];
   insiderTipDeck: InsiderTipCard[];
@@ -264,7 +267,7 @@ export interface ProjectedGameState {
   turnNumber: number;
   players: PlayerPublic[];
   myPlayer: PlayerPrivate | null; // null if you're a spectator (won't happen post-game-start in practice)
-  market: (StockCard | ActionCard)[];
+  market: (StockCard | ActionCard | InsiderTipCard)[];
   mainDeckSize: number;
   discardPileSize: number;
   insiderTipDeckSize: number;

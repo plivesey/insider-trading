@@ -278,13 +278,47 @@ describe('Black Market trigger', () => {
   });
 });
 
-describe('Hot Tip', () => {
-  it('peek + ack discards the Hot Tip', () => {
+describe('Liquidation (sell_same_bonus) pricing', () => {
+  it('sells every stock in the batch at the same price, dropping price once per stock at the end', () => {
     const s = mkState();
-    expect(s.players[0].hotTipAvailable).toBe(true);
-    submitFreeAction(s, 'p1', { kind: 'use_hot_tip' });
+    const me = currentPlayer(s);
+    s.stockPrices.Blue = 8;
+    const b1 = structuredClone(catalog.stocks.find(c => c.color === 'Blue' && c.type === 'blank')!) as StockCard;
+    const b2 = structuredClone(catalog.stocks.find(c => c.color === 'Blue' && c.type === 'blank')!) as StockCard;
+    b1.uid = 'blue-1';
+    b2.uid = 'blue-2';
+    me.hand.push(b1 as HandCard, b2 as HandCard);
+    const cashBefore = me.cash;
+
+    const ac = giveActionCard(s, me.playerId, 'sell_same_bonus');
+    play(s, me.playerId, ac);
+
+    const pr = s.pendingPrompts[me.playerId]!;
+    expect(pr.type).toBe('pick_stock_from_hand');
+    // First Blue: price ticks down to 7, but the batch payout stays locked at 8.
+    respondToPrompt(s, me.playerId, pr.promptId, { stockUid: 'blue-1' });
+    expect(s.stockPrices.Blue).toBe(7);
+    // Second Blue + end the batch: still paid the opening price of $8.
+    respondToPrompt(s, me.playerId, pr.promptId, { stockUid: 'blue-2', done: true });
+
+    // Both sold at $8 + $1 bonus = $9 each (not $8 then $7).
+    expect(me.cash).toBe(cashBefore + 9 + 9);
+    // −1 per stock: 8 − 2 = 6.
+    expect(s.stockPrices.Blue).toBe(6);
+    expect(s.pendingPrompts[me.playerId]).toBeNull();
+  });
+});
+
+describe('Hot Tip', () => {
+  it('peek + ack removes the Hot Tip card from hand', () => {
+    const s = mkState();
+    const hotTip = s.players[0].hand.find(
+      c => c.category === 'action' && (c as any).effect.type === 'peek_top_tip'
+    )!;
+    expect(hotTip).toBeTruthy();
+    submitFreeAction(s, 'p1', { kind: 'play_action_card', cardUid: hotTip.uid });
     processNextFreeAction(s, []);
-    expect(s.players[0].hotTipAvailable).toBe(false);
+    expect(s.players[0].hand.find(c => c.uid === hotTip.uid)).toBeUndefined();
     const pr = s.pendingPrompts['p1']!;
     expect(pr.type).toBe('peek_ack');
     respondToPrompt(s, 'p1', pr.promptId, {});

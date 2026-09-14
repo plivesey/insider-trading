@@ -36,7 +36,7 @@ describe('emergency-sell picks the least goal-useful stock', () => {
     bot.hand = [blue('b1'), blue('b2'), orange('o1')];
     bot.cash = 5; // < emergencySellCash(10)
     bot.loans = 1; // ≥1 → emergency-sell triggers
-    bot.hotTipAvailable = false; // don't take the hot-tip free action first
+    // hand reassigned above has no Hot Tip card, so the hot-tip path won't fire.
     state.currentPlayerIndex = state.players.findIndex(p => p.playerId === 'p1');
     state.turnPhase = 'awaiting_turn_action';
 

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { subscribe } from '../lib/toast.js';
+import { relabelColors } from '../game/theme.js';
 
 interface Toast {
   id: number;
@@ -22,7 +23,7 @@ export function ToastRack() {
       {toasts.map(t => (
         <div key={t.id} className="toast" role="alert">
           <span className="toast__tag">Notice</span>
-          <span>{t.message}</span>
+          <span>{relabelColors(t.message)}</span>
         </div>
       ))}
     </div>

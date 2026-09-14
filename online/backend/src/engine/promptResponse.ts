@@ -52,6 +52,35 @@ export function respondToPrompt(
       events.push(event('peek_ack', `${player.name} acknowledges peek`, { actor: playerId }));
       return { ok: true, events };
 
+    case 'peek_bottom_choice': {
+      // Peeked the top N tips; may move ONE of them to the bottom of the deck.
+      // `{}` / no bottomUid = keep them in place. The deck size is unchanged, so
+      // this never ends the game.
+      const bottomUid = response.bottomUid as string | undefined;
+      if (bottomUid) {
+        const count = payload.count as number;
+        const idx = state.insiderTipDeck.findIndex(t => t.uid === bottomUid);
+        if (idx < 0 || idx >= count) {
+          return { ok: false, error: 'tip not among the peeked top cards', events };
+        }
+        const [tip] = state.insiderTipDeck.splice(idx, 1);
+        state.insiderTipDeck.push(tip);
+        clearPrompt(state, playerId);
+        events.push(
+          event('peek_tip_to_bottom', `${player.name} moves an Insider Tip to the bottom of the deck`, {
+            actor: playerId,
+            payload: { uid: tip.uid }
+          })
+        );
+      } else {
+        clearPrompt(state, playerId);
+        events.push(
+          event('peek_tip_kept', `${player.name} leaves the peeked Insider Tips in place`, { actor: playerId })
+        );
+      }
+      return { ok: true, events };
+    }
+
     case 'pick_color': {
       const exclude = payload.exclude as Color | undefined;
       const color = response.color as Color | undefined;
@@ -212,7 +241,15 @@ export function respondToPrompt(
           if (!locked) payload.lockedColor = card.color;
         }
         const bonus = payload.bonus as number;
-        const payout = price + bonus;
+        // Every stock in a batch sells at the batch's OPENING price for its
+        // color: record that price on the first sale, then keep paying it out
+        // even as the color falls −1 per stock. This stops earlier sales in the
+        // batch from cannibalizing the payout of later ones.
+        const batchPrices = (payload.batchPrices as Record<string, number> | undefined) ?? {};
+        if (batchPrices[card.color] === undefined) batchPrices[card.color] = price;
+        payload.batchPrices = batchPrices;
+        const salePrice = batchPrices[card.color];
+        const payout = salePrice + bonus;
         receiveBank(player, payout);
         adjust(state.stockPrices, card.color, -1);
         player.hand.splice(idx, 1);
@@ -220,8 +257,8 @@ export function respondToPrompt(
         events.push(
           event(
             'sell_bonus_sale',
-            `${player.name} sells ${card.color} for $${price} + bonus $${bonus} = $${payout}`,
-            { actor: playerId, payload: { color: card.color, payout } }
+            `${player.name} sells ${card.color} for $${salePrice} + bonus $${bonus} = $${payout} (color −1)`,
+            { actor: playerId, payload: { color: card.color, payout, newPrice: state.stockPrices[card.color] } }
           )
         );
         // Stay on the prompt — allow more sales OR allow done.
@@ -381,11 +418,9 @@ export function respondToPrompt(
       if (hIdx < 0 || mIdx < 0) return { ok: false, error: 'card not found', events };
       const handCard = player.hand[hIdx];
       const marketCard = state.market[mIdx];
-      // Any hand card may be swapped (need not be a stock), except an Insider
-      // Tip — the market only holds stock/action cards.
-      if (handCard.category === 'insider_tip') {
-        return { ok: false, error: 'cannot swap an Insider Tip into the market', events };
-      }
+      // Any hand card may be swapped into the market — stocks, action cards,
+      // starter cards, even Insider Tips. Once in the market it is auctioned
+      // like any other market card.
       // Swap.
       player.hand[hIdx] = marketCard;
       state.market[mIdx] = handCard;

@@ -65,6 +65,10 @@ export function shouldPlayActionCard(
       // Market Order is played via a dedicated strategy path (chooseBuyTarget),
       // not the generic value-ranked path.
       return false;
+    case 'peek_top_tip':
+      // Hot Tip is played via the dedicated hot-tip path in decide.ts, not the
+      // generic value-ranked path.
+      return false;
   }
 }
 

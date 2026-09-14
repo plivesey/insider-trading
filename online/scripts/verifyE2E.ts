@@ -343,17 +343,7 @@ async function main(): Promise<void> {
         });
         if (r.status === 200) {
           actionsPlayed[unplayedAction.name] = (actionsPlayed[unplayedAction.name] ?? 0) + 1;
-          didFreeAction = true;
-          break;
-        }
-      }
-
-      // Use Hot Tip once across whole game.
-      if (!hotTipUsed && my.hotTipAvailable && s.insiderTipDeckSize > 0) {
-        const post = makePost(base, p);
-        const r = await post('/api/free-action', { request: { kind: 'use_hot_tip' } });
-        if (r.status === 200) {
-          hotTipUsed = true;
+          if (unplayedAction.effect?.type === 'peek_top_tip') hotTipUsed = true;
           didFreeAction = true;
           break;
         }
@@ -439,8 +429,9 @@ async function main(): Promise<void> {
   );
 
   // No card uid leaks: every uid that was present at setup must still be
-  // present in the final state (somewhere). Hot Tips are tracked via the
-  // `hotTipAvailable` flag, not as card entities once distributed.
+  // present in the final state (somewhere). Hot Tip cards are single-use and
+  // removed from the game when played, so they're exempt from the "missing"
+  // check below.
   const catalog = loadCards(CARDS_DIR);
   const logFile = activeLogFile();
   assert(logFile && fs.existsSync(logFile), `log file exists: ${logFile}`);
@@ -451,6 +442,9 @@ async function main(): Promise<void> {
   for (const c of initialState.market) initialUids.add(c.uid);
   for (const c of initialState.insiderTipDeck) initialUids.add(c.uid);
   for (const g of initialState.activeGoals) initialUids.add(g.uid);
+  // Starting hands hold inline-generated cards (Hot Tip, Market Order) that
+  // aren't part of the deck/market/tip/goal pools.
+  for (const pl of initialState.players) for (const c of pl.hand) initialUids.add(c.uid);
 
   const present = new Set<string>();
   for (const p of liveState.players) {
@@ -466,7 +460,8 @@ async function main(): Promise<void> {
   for (const g of liveState.activeGoals) present.add(g.uid);
 
   const missing: string[] = [];
-  for (const uid of initialUids) if (!present.has(uid)) missing.push(uid);
+  // Hot Tip cards are consumed (removed from the game) when played.
+  for (const uid of initialUids) if (!present.has(uid) && !uid.startsWith('hottip-')) missing.push(uid);
   const extra: string[] = [];
   for (const uid of present) if (!initialUids.has(uid)) extra.push(uid);
   assert(missing.length === 0, `missing uids: ${missing.slice(0, 5).join(',')}${missing.length > 5 ? '…' : ''} (${missing.length})`);

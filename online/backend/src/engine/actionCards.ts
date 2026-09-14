@@ -274,5 +274,26 @@ export function startActionCard(
       );
       return;
     }
+    case 'peek_top_tip': {
+      // Hot Tip: peek at the top Insider Tip. Single-use — the card is removed
+      // from the game (not discarded) once played.
+      const top = state.insiderTipDeck[0];
+      events.push(
+        event('hot_tip_used', `${player.name} uses Hot Tip`, {
+          actor: player.playerId,
+          payload: top ? { tip: { text: top.text, type: top.type } } : { empty: true }
+        })
+      );
+      if (top) {
+        setPrompt(
+          state,
+          player.playerId,
+          'peek_ack',
+          `Hot Tip: top Insider Tip is "${top.text}". Acknowledge to continue.`,
+          { tip: { text: top.text, type: top.type } }
+        );
+      }
+      return;
+    }
   }
 }

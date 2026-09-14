@@ -38,16 +38,26 @@ describe('RulesConfig plumbing', () => {
     expect(s.rules).toEqual(DEFAULT_RULES);
     expect(s.insiderTipDeck).toHaveLength(5); // max(4, 2*3 - 1)
     expect(s.activeGoals).toHaveLength(6); // 3 + 2 + 1
-    expect(s.players.every(p => p.hand.length === 1)).toBe(true); // a Market Order each
-    const c = s.players[0].hand[0];
-    expect(c.category === 'action' && c.effect.type).toBe('buy_from_market');
+    // Each player starts with a Hot Tip and a Market Order.
+    expect(s.players.every(p => p.hand.length === 2)).toBe(true);
+    expect(
+      s.players.every(
+        p =>
+          p.hand.some(c => c.category === 'action' && c.effect.type === 'buy_from_market') &&
+          p.hand.some(c => c.category === 'action' && c.effect.type === 'peek_top_tip')
+      )
+    ).toBe(true);
   });
 
   it('CLASSIC_RULES restores the original game', () => {
     const s = mkState(CLASSIC_RULES);
     expect(s.insiderTipDeck).toHaveLength(2 * 3); // full deck
     expect(s.activeGoals).toHaveLength(3 + 2);
-    expect(s.players.every(p => p.hand.length === 0)).toBe(true);
+    // Only the Hot Tip (no Market Order) in the classic ruleset.
+    expect(s.players.every(p => p.hand.length === 1)).toBe(true);
+    expect(
+      s.players.every(p => !p.hand.some(c => c.category === 'action' && c.effect.type === 'buy_from_market'))
+    ).toBe(true);
   });
 
   it('insider tips floor at MIN_TIPS (2-player stays at 4)', () => {
@@ -75,8 +85,12 @@ describe('RulesConfig plumbing', () => {
     expect(mkState({ extraGoals: 2 }).activeGoals).toHaveLength(7); // 3+2+2
   });
 
-  it('startingBuyCard:false deals no card', () => {
-    expect(mkState({ startingBuyCard: false }).players.every(p => p.hand.length === 0)).toBe(true);
+  it('startingBuyCard:false deals no Market Order (Hot Tip only)', () => {
+    const s = mkState({ startingBuyCard: false });
+    expect(s.players.every(p => p.hand.length === 1)).toBe(true);
+    expect(
+      s.players.every(p => !p.hand.some(c => c.category === 'action' && c.effect.type === 'buy_from_market'))
+    ).toBe(true);
   });
 
   it('goalStopCount controls the end condition', () => {
@@ -106,7 +120,7 @@ describe('Market Order (buy_from_market) resolution', () => {
 
   it('buys the chosen colored stock at current price, color +1, market refilled', () => {
     const s = mkState({ startingBuyCard: true });
-    const buyCard = s.players[0].hand[0];
+    const buyCard = s.players[0].hand.find(c => c.category === 'action' && c.effect.type === 'buy_from_market')!;
     const target = setBlueInMarket(s, 'test-blue');
     const cashBefore = s.players[0].cash; // 30
     const bluePrice = s.stockPrices.Blue; // 4
@@ -130,7 +144,7 @@ describe('Market Order (buy_from_market) resolution', () => {
 
   it('auto-loans when the buyer cannot afford the price', () => {
     const s = mkState({ startingBuyCard: true });
-    const buyCard = s.players[0].hand[0];
+    const buyCard = s.players[0].hand.find(c => c.category === 'action' && c.effect.type === 'buy_from_market')!;
     const target = setBlueInMarket(s, 'test-blue');
     s.players[0].cash = 2; // Blue costs 4 → needs 1 loan ($10)
 

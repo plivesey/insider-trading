@@ -131,7 +131,6 @@ export function diffStates(a: GameState, b: GameState): string | null {
     if (pa.cash !== pb.cash) return `player[${i}] cash: ${pa.cash} vs ${pb.cash}`;
     if (pa.loans !== pb.loans) return `player[${i}] loans: ${pa.loans} vs ${pb.loans}`;
     if (pa.endGameCashBonus !== pb.endGameCashBonus) return `player[${i}] endGameCashBonus: ${pa.endGameCashBonus} vs ${pb.endGameCashBonus}`;
-    if (pa.hotTipAvailable !== pb.hotTipAvailable) return `player[${i}] hotTipAvailable`;
     const handA = pa.hand.map(c => c.uid).sort().join(',');
     const handB = pb.hand.map(c => c.uid).sort().join(',');
     if (handA !== handB) return `player[${i}] hand: ${handA} vs ${handB}`;

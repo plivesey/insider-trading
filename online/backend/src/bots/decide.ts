@@ -127,13 +127,19 @@ export function decideBotAction(
     return { kind: 'free_action', request: claim };
   }
 
-  // 3. Hot Tip (if threshold reached).
+  // 3. Hot Tip (if threshold reached). Now a single-use action card in hand.
+  const hotTipCard = bot.hand.find(
+    c => c.category === 'action' && (c as ActionCard).effect.type === 'peek_top_tip'
+  );
   if (
-    bot.hotTipAvailable &&
+    hotTipCard &&
     state.resolvedInsiderTips.length >= profile.hotTipThreshold &&
     state.insiderTipDeck.length > 0
   ) {
-    return { kind: 'free_action', request: { kind: 'use_hot_tip' } };
+    return {
+      kind: 'free_action',
+      request: { kind: 'play_action_card', cardUid: hotTipCard.uid }
+    };
   }
 
   // 3c. Market Order (experimental buy-from-market card): play it the moment the
@@ -312,7 +318,7 @@ function decideTurnAction(
   const target = state.market[chosenIdx];
   // Floor to whole dollars: tuned params make perceived values fractional, but
   // bids must be integers (a $X.7 valuation ⇒ max bid $X).
-  const perceived = Math.floor(perceivedCardValue(target, state, profile, bot.playerId));
+  const perceived = Math.floor(marketCardValue(target, state, profile, bot.playerId));
   // Open at minBid = maxBid − rand(0..3): below the ceiling so the bot can win
   // cheap, then it climbs by the minimum legal raise up to maxBid on re-bids.
   const maxBid = effectiveBidCeiling(perceived, bot.cash, bot.loans, profile.params);
@@ -359,7 +365,7 @@ function respondToPrompt(
           if (!card) {
             return { kind: 'auction_bid', action: { type: 'pass' } };
           }
-          perceived = Math.floor(perceivedCardValue(card, state, profile, botId));
+          perceived = Math.floor(marketCardValue(card, state, profile, botId));
         }
         profile.auctionCeilings[auction.cardUid] = perceived;
       }
@@ -397,6 +403,26 @@ function respondToPrompt(
         }
       }
       return { kind: 'prompt_response', promptId: prompt.promptId, response: {} };
+    }
+
+    case 'peek_bottom_choice': {
+      // Peek the top N tips; optionally send ONE to the bottom. Move the worst
+      // tip (most negative effect on our held stocks) iff it would drop our net
+      // worth by $3 or more (tipScore <= -3). Deferring the biggest hit is best,
+      // so pick the single most-negative qualifying tip.
+      const count = payload.count as number;
+      const top = state.insiderTipDeck.slice(0, count);
+      let worst: { uid: string; score: number } | null = null;
+      for (const card of top) {
+        const score = tipScoreForBot(state, card, botId);
+        if (!worst || score < worst.score) worst = { uid: card.uid, score };
+      }
+      const bottomUid = worst && worst.score <= -3 ? worst.uid : undefined;
+      return {
+        kind: 'prompt_response',
+        promptId: prompt.promptId,
+        response: bottomUid ? { bottomUid } : {}
+      };
     }
 
     case 'pick_color': {
@@ -439,21 +465,23 @@ function respondToPrompt(
     }
 
     case 'set_stock_choice': {
-      // Reward: set a stock to amount $X. Pick the bot's biggest holding that's
-      // currently BELOW that amount; otherwise pick the color with most stocks.
+      // Reward: set one stock to exactly $X. Pick the color that yields the most
+      // value. For a color the bot OWNS, value = (X − price) × count — raising a
+      // cheap holding is good, slashing an expensive one is bad. For a color it
+      // does NOT own, assume each opponent holds one, so lowering it hurts them
+      // (value = price − X) and raising it helps them (negative value).
       const amount = payload.amount as number;
       const owned = countByColor(bot.hand);
-      let pick: Color | null = null;
-      let best = -1;
+      let pick: Color = 'Blue';
+      let bestVal = -Infinity;
       for (const c of COLORS) {
-        if (owned[c] === 0) continue;
-        if (state.stockPrices[c] >= amount) continue;
-        if (owned[c] > best) {
-          best = owned[c];
+        const delta = amount - state.stockPrices[c]; // >0 raises, <0 lowers
+        const value = owned[c] > 0 ? delta * owned[c] : -delta;
+        if (value > bestVal) {
+          bestVal = value;
           pick = c;
         }
       }
-      pick = pick ?? bestOwnedColor(state, botId) ?? 'Blue';
       return {
         kind: 'prompt_response',
         promptId: prompt.promptId,
@@ -643,7 +671,7 @@ function respondToPrompt(
       const eligible = state.market.filter(c => c.uid !== auctionedUid);
       let best: { uid: string; value: number } | null = null;
       for (const c of eligible) {
-        const v = perceivedCardValue(c, state, profile, botId);
+        const v = marketCardValue(c, state, profile, botId);
         if (!best || v > best.value) best = { uid: c.uid, value: v };
       }
       const cardUid = best?.uid ?? eligible[0]?.uid;
@@ -655,15 +683,23 @@ function respondToPrompt(
     }
 
     case 'pick_hand_stock_for_swap': {
-      // Swap one of my stocks with a chosen market card. Pick the colored
-      // stock with the LOWEST perceived value (give up the worst).
+      // Swap one of my cards for a chosen market card. Any hand card is eligible
+      // now (stocks, Wild Shares, action cards, even Insider Tips), so give up
+      // the LOWEST-value one. A tip's value here is what it's worth to us if
+      // played (bad tips → 0, so we happily offload them).
       let worst: { uid: string; value: number } | null = null;
       for (const c of bot.hand) {
-        if (c.category !== 'stock') continue;
-        const v =
-          c.color === 'Wild'
-            ? perceivedWildShareValue(state, profile, botId)
-            : perceivedStockCardValue(state, profile, c as StockCard, botId);
+        let v: number;
+        if (c.category === 'stock') {
+          v =
+            c.color === 'Wild'
+              ? perceivedWildShareValue(state, profile, botId)
+              : perceivedStockCardValue(state, profile, c as StockCard, botId);
+        } else if (c.category === 'action') {
+          v = perceivedActionCardValue(c as ActionCard, state, profile, botId);
+        } else {
+          v = Math.max(0, tipScoreForBot(state, c as InsiderTipCard, botId));
+        }
         if (!worst || v < worst.value) worst = { uid: c.uid, value: v };
       }
       const stockUid = worst?.uid;
@@ -728,6 +764,22 @@ function blindTipPerceivedValue(state: GameState, botId: PlayerId): number {
 }
 
 // ---- small helpers -----------------------------------------------------------
+
+/**
+ * Perceived value of a face-up market card for bidding/picking. Stocks and
+ * action cards use the normal valuation; an Insider Tip swapped into the market
+ * is valued by what it's worth to us if played (bad tips floor at 0).
+ */
+function marketCardValue(
+  card: StockCard | ActionCard | InsiderTipCard,
+  state: GameState,
+  profile: BotProfile,
+  botId: PlayerId
+): number {
+  return card.category === 'insider_tip'
+    ? Math.max(0, tipScoreForBot(state, card, botId))
+    : perceivedCardValue(card, state, profile, botId);
+}
 
 function countByColor(hand: HandCard[]): Record<Color, number> {
   const out: Record<Color, number> = { Blue: 0, Orange: 0, Yellow: 0, Purple: 0 };
