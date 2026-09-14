@@ -1,7 +1,7 @@
-import type { ActionCard, InsiderTipCard, StockCard } from '@insider-trading/shared';
+import type { ActionCard, BonusCard, GoalCard, InsiderTipCard, StockCard } from '@insider-trading/shared';
 import { C, DecoCorner, INDUSTRY, IndustryIcon, industryClass, relabelColors } from './theme.js';
 
-type Card = StockCard | ActionCard | InsiderTipCard;
+type Card = StockCard | ActionCard | InsiderTipCard | GoalCard | BonusCard;
 
 interface Props {
   card: Card;
@@ -11,25 +11,44 @@ interface Props {
   className?: string;
   /** Inline style overrides — used by HandDock for fan transforms via wrapper. */
   showPlayPip?: boolean;
+  /** Text for the hover pip when `showPlayPip` is true. Defaults to "Click to Play". */
+  playPipLabel?: string;
+  /** For a goal card: whether it's being shown from the public row or a hand (private). Irrelevant for other categories. */
+  goalContext?: 'row' | 'hand';
 }
 
-export function CardTile({ card, onClick, ornate = false, className = '', showPlayPip = false }: Props) {
+export function CardTile({
+  card,
+  onClick,
+  ornate = false,
+  className = '',
+  showPlayPip = false,
+  playPipLabel = 'Click to Play',
+  goalContext = 'row'
+}: Props) {
   const indClass =
     card.category === 'stock'
       ? industryClass((card as StockCard).color)
       : card.category === 'insider_tip'
       ? 'ind-tip'
+      : card.category === 'goal'
+      ? 'ind-goal'
+      : card.category === 'bonus'
+      ? 'ind-bonus'
       : 'ind-action';
+  const isBonus = card.category === 'bonus';
   return (
     <div
-      className={`card-tile ${indClass} ${className}`.trim()}
-      onClick={onClick}
-      role={onClick ? 'button' : undefined}
-      tabIndex={onClick ? 0 : -1}
+      className={`card-tile ${indClass}${isBonus ? ' card-tile--bonus' : ''} ${className}`.trim()}
+      onClick={isBonus ? undefined : onClick}
+      role={onClick && !isBonus ? 'button' : undefined}
+      tabIndex={onClick && !isBonus ? 0 : -1}
     >
       {card.category === 'stock' && <StockBody card={card as StockCard} />}
       {card.category === 'action' && <ActionBody card={card as ActionCard} />}
       {card.category === 'insider_tip' && <TipBody card={card as InsiderTipCard} />}
+      {card.category === 'goal' && <GoalBody card={card as GoalCard} context={goalContext} />}
+      {card.category === 'bonus' && <BonusBody card={card as BonusCard} />}
       <div className="card-tile__deco card-tile__deco--tr">
         <DecoCorner size={14} color={C.brass} rotate={90} />
       </div>
@@ -47,7 +66,7 @@ export function CardTile({ card, onClick, ornate = false, className = '', showPl
         </>
       )}
       {showPlayPip && (
-        <div className="card-tile__play-pip">Click to Play</div>
+        <div className="card-tile__play-pip">{playPipLabel}</div>
       )}
     </div>
   );
@@ -90,12 +109,42 @@ function TipBody({ card }: { card: InsiderTipCard }) {
     card.type === 'crash' ? 'CRASH' : card.type === 'surge' ? 'SURGE' : 'SLUMP';
   return (
     <>
-      <div className="card-tile__action-tag">Insider Tip · {tagLabel}</div>
+      <div className="card-tile__action-tag">Market Movement · {tagLabel}</div>
       <div className="card-tile__art card-tile__art--action">
-        <span className="card-tile__art-label">tip</span>
+        <span className="card-tile__art-label">event</span>
       </div>
-      <div className="card-tile__name">Insider Tip</div>
+      <div className="card-tile__name">Market Movement</div>
       <div className="card-tile__desc">{relabelColors(card.text)}</div>
+    </>
+  );
+}
+
+function GoalBody({ card, context }: { card: GoalCard; context: 'row' | 'hand' }) {
+  const isPrivate = context === 'hand';
+  return (
+    <>
+      <div className={`card-tile__action-tag ${isPrivate ? 'card-tile__action-tag--private' : 'card-tile__action-tag--public'}`}>
+        {isPrivate ? 'Secret Goal' : 'Goal'}
+      </div>
+      <div className="card-tile__art card-tile__art--action">
+        <span className="card-tile__art-label">{isPrivate ? 'only you' : 'anyone'}</span>
+      </div>
+      <div className="card-tile__name">{relabelColors(card.goal.text)}</div>
+      <div className="card-tile__desc">{relabelColors(card.reward.text)}</div>
+    </>
+  );
+}
+
+function BonusBody({ card }: { card: BonusCard }) {
+  return (
+    <>
+      <div className="card-tile__action-tag">Sealed Bonus</div>
+      <div className="card-tile__art card-tile__art--action">
+        <span className="card-tile__art-label">game end only</span>
+      </div>
+      <div className="card-tile__name">{card.name}</div>
+      <div className="card-tile__desc">{relabelColors(card.description)}</div>
+      <div className="card-tile__seal">Never played · scores automatically</div>
     </>
   );
 }

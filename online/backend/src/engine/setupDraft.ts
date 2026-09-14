@@ -26,7 +26,17 @@ function issueDraftPrompts(state: GameState, events: GameLogEntry[]): void {
       p.playerId,
       'setup_draft_pick',
       `Draft round ${draft.round}: choose 1 card to keep from your ${candidates.length}.`,
-      { round: draft.round, candidateUids: candidates.map(c => c.uid) }
+      {
+        round: draft.round,
+        candidateUids: candidates.map(c => c.uid),
+        // Full card objects too (not just uids) -- during the draft a
+        // player's `hand` is empty (candidates live only in state.draft,
+        // which isn't part of the client projection), so the client has no
+        // other way to know what these cards actually are. Safe to include
+        // in full: this prompt is only ever delivered to the one player it
+        // belongs to.
+        candidates
+      }
     );
   }
   events.push(

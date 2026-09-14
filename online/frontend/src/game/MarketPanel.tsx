@@ -1,9 +1,9 @@
-import type { ActionCard, InsiderTipCard, StockCard } from '@insider-trading/shared';
+import type { ActionCard, GoalCard, InsiderTipCard, StockCard } from '@insider-trading/shared';
 import { Panel } from './theme.js';
 import { CardTile } from './CardTile.js';
 
 interface Props {
-  market: (StockCard | ActionCard | InsiderTipCard)[];
+  market: (StockCard | ActionCard | InsiderTipCard | GoalCard)[];
   onPick?: (uid: string) => void;
   selectedUid?: string | null;
 }

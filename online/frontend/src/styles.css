@@ -16,10 +16,10 @@
   --ivoryD: #9e8a5c;
   --ink:    #0a0805;
   --paper:  #f0e6cf;
-  --rail:   #bc3a3a;
+  --rail:   #52a173;
   --steel:  #5a8cc4;
   --oil:    #d59a3c;
-  --bank:   #52a173;
+  --bank:   #8a6243;
   --red:    #d65454;
   --green:  #6fbb88;
   --wild:   #c8b78b;
@@ -48,9 +48,11 @@ html, body {
 /* --- Industry CSS variables (data-color → design accent) -------- */
 .ind-blue   { --ind: var(--steel); }
 .ind-orange { --ind: var(--oil);   }
-.ind-yellow { --ind: var(--rail);  }
+.ind-green  { --ind: var(--rail);  }
 .ind-purple { --ind: var(--bank);  }
 .ind-wild   { --ind: var(--wild);  }
+.ind-goal   { --ind: var(--brass); }
+.ind-bonus  { --ind: var(--ivoryD); }
 
 /* ============================================================
    App shell + connection indicator
@@ -268,6 +270,20 @@ html, body {
   letter-spacing: 0.32em; text-transform: uppercase;
   margin-bottom: 4px;
 }
+.card-tile__action-tag--private { color: var(--wild); }
+.card-tile__action-tag--public { color: var(--ind, var(--brass)); }
+
+/* Hidden end-game bonus cards: never played -- a sealed, no-click look. */
+.card-tile--bonus {
+  cursor: default;
+  background: repeating-linear-gradient(45deg, var(--felt2) 0 8px, var(--felt) 8px 16px);
+}
+.card-tile--bonus:hover { transform: none; box-shadow: 0 2px 8px rgba(10, 8, 5, 0.5); }
+.card-tile__seal {
+  font-family: var(--font-deco); font-size: 9px;
+  color: var(--ivoryD); letter-spacing: 0.24em; text-transform: uppercase;
+  text-align: center; margin-top: 4px;
+}
 
 /* "Click to play" pip surfaces above the hovered hand action card. */
 .card-tile__play-pip {
@@ -340,6 +356,24 @@ html, body {
 
 .gb-divider {
   width: 1px; height: 36px; background: var(--brass3);
+}
+
+/* ---- Progress tracker (step-dots, counts down to the bubble bursting) ---- */
+.progress-steps {
+  display: flex; flex-wrap: wrap; gap: 3px; max-width: 220px;
+  justify-content: flex-end;
+}
+.progress-steps__dot {
+  width: 9px; height: 9px; border-radius: 50%;
+  border: 1px solid var(--brass3);
+  background: transparent;
+}
+.progress-steps__dot--filled {
+  background: var(--brass);
+  border-color: var(--brass);
+}
+.progress-steps__fallback {
+  font-family: var(--font-num); font-size: 28px; color: var(--ivory);
 }
 
 /* ---- Ticker ---- */
@@ -524,6 +558,15 @@ html, body {
   border-top: 1px dashed var(--brass3);
   font-family: var(--font-body); font-size: 11px;
   color: var(--brass); font-style: italic;
+}
+.goal-tile--private {
+  border-color: var(--wild);
+  background: linear-gradient(180deg, var(--felt3), var(--ink));
+}
+.goals-strip__private-label {
+  font-family: var(--font-deco); font-size: 10px;
+  letter-spacing: 0.28em; text-transform: uppercase;
+  color: var(--wild); margin: 10px 0 6px;
 }
 .goal-tile--clickable {
   cursor: pointer;
@@ -882,6 +925,9 @@ html, body {
   text-shadow: 0 0 26px rgba(201, 163, 90, 0.55), 0 4px 16px rgba(0, 0, 0, 0.7);
   animation: die-roll 0.7s ease-out;
 }
+.die-face--bull { color: var(--green); text-shadow: 0 0 26px rgba(111, 187, 136, 0.55), 0 4px 16px rgba(0, 0, 0, 0.7); }
+.die-face--bear { color: var(--red); text-shadow: 0 0 26px rgba(214, 84, 84, 0.55), 0 4px 16px rgba(0, 0, 0, 0.7); }
+.die-face--nothing { color: var(--ivoryD); }
 .die-label {
   font-family: var(--font-deco); font-size: 12px;
   color: var(--ivory); letter-spacing: 0.32em;

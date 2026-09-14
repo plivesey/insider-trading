@@ -77,13 +77,13 @@ export function GameBoard({ state, log, mode }: Props) {
           />
           <GoalsPanel
             state={state}
-            goals={state.activeGoals}
+            goals={state.goalRow}
             canClaim={
               !state.gameOver &&
               (!state.myPrompt || state.myPrompt.type === 'auction_bid')
             }
           />
-          <RecentTip tips={state.resolvedInsiderTips} deckSize={state.insiderTipDeckSize} />
+          <RecentTip tips={state.resolvedEventCards} eventDeckSize={state.eventDeckSize} />
         </div>
         <div className="gb-col">
           {state.auction ? (

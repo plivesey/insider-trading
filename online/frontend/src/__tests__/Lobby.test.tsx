@@ -7,7 +7,10 @@ vi.mock('../lib/api.js', () => ({
   api: {
     join: vi.fn(),
     start: vi.fn()
-  }
+  },
+  getBackendOverride: vi.fn(() => null),
+  setBackendOverride: vi.fn(),
+  clearBackendOverride: vi.fn()
 }));
 
 const mockedApi = api as unknown as {

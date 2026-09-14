@@ -207,37 +207,38 @@ Files: `online/backend/src/bots/decide.ts`, `valuation.ts`, `actionHeuristics.ts
 
 ## Phase 9 — Frontend Rewrite
 
-**Status:** not started
+**Status:** DONE (with deviations noted below)
 **Rationale:** last major surface; depends on all backend types/shapes being final. Two sub-phases for committability.
 
 ### 9a — Progress tracker, dice bag, colors
 
 Files: `frontend/src/game/theme.tsx`, `Header.tsx`, `RecentTip.tsx`, `DieRollOverlay.tsx`.
 
-- [ ] `theme.tsx`: rename the `Yellow`→`Green` color key (display label "Rail" stays, since that was already the industry label pre-migration); update the accent color to an actual green.
-- [ ] `Header.tsx`: replace the "TIPS LEFT" chip with a **visual step/progress element** (not just a bare number — the user specifically asked for a "step progress tracker") showing `progressThreshold - progressTracker` counting down as play proceeds, while the underlying field stays an up-counter. A simple segmented bar or step-dots row that fills/empties as the count changes is enough — doesn't need to be fancy.
-- [ ] `RecentTip.tsx`: same countdown value swap; keep a secondary "event deck: N left" stat since that's genuinely different information (deck size vs. progress toward game end).
-- [ ] `DieRollOverlay.tsx`: rewrite from the single `1..6` pip animation to a named-outcome model (`dieId`, `face`, optional list of drawn cards for `draw1/2/3` faces) with a short sequential reveal for multi-card draws, generalizing the existing multi-step timeout pattern already in this file.
-- [ ] Commit.
+- [x] `theme.tsx`: `Yellow`→`Green` rename done; also fixed a pre-existing CSS bug found along the way — `styles.css`'s `--rail`/`--bank` variables were swapped relative to `theme.tsx`'s `C.rail`/`C.bank` (CSS had rail=red/bank=green, JS had the opposite). Aligned CSS to JS: `--rail: #52a173` (green), `--bank: #8a6243` (brown).
+- [x] `Header.tsx`: "TIPS LEFT" chip replaced with a new `ProgressSteps({remaining, total})` component in `theme.tsx` (step-dots, falls back to a plain number above 24 total) showing `progressThreshold - progressTracker`, labeled "Until the Bubble Bursts".
+- [x] `RecentTip.tsx`: renamed to reflect Market Movement terminology (`deckSize`→`eventDeckSize` prop), label updated; still shows deck-remaining count as a distinct stat from the progress tracker, as specced.
+- [x] `DieRollOverlay.tsx`: full rewrite — `Face` type (`bull|bear|nothing|draw1|draw2|draw3`), glyph/label maps, reads `die`/`face` off the `die_roll` log entry, and for draw faces sequentially reveals each resolved card by scanning forward for `market_movement_resolved`/`goal_revealed` log entries, one at a time.
+- [x] Commit.
 
 ### 9b — Cards, hand, goals, prompts
 
-Files: `frontend/src/game/CardTile.tsx`, `cardLabel.tsx`, `HandDock.tsx`, `GoalsPanel.tsx`, `ClaimGoalModal.tsx`, `PromptModal.tsx`.
+Files: `frontend/src/game/CardTile.tsx`, `cardLabel.tsx`, `HandDock.tsx`, `GoalsPanel.tsx`, `ClaimGoalModal.tsx`, `PromptModal.tsx`, plus `MarketPanel.tsx`/`AuctionPanel.tsx`/`GameBoard.tsx`/`GameOverPanel.tsx`/`usePriceHistory.ts` (pulled in by the field renames and widened `HandCard`/market-slot types).
+**Design gap found and fixed in the backend while building this**: the `setup_draft_pick` prompt payload only carried `candidateUids: string[]`, with no way for the frontend to resolve those into displayable card details (a player's `hand` is empty during the draft; candidates live only in server-side `state.draft`, which isn't part of the client projection). Fixed by adding a `candidates: HandCard[]` field to the payload in `backend/src/engine/setupDraft.ts::issueDraftPrompts`; re-verified backend still compiles and all 125 tests still pass after the change.
 
-- [ ] `CardTile.tsx`/`cardLabel.tsx`: add a `goal` branch (goal text + requirement + reward; visually flagged "PRIVATE" when shown from `myPlayer.hand` vs "PUBLIC" from `goalRow`, via a `context` prop) and a `bonus` branch (name + effect text, a sealed/locked visual with no click affordance, since it's never played).
-- [ ] `HandDock.tsx`: extend the click dispatch from 2 branches to 4 — action card → `play_action_card` (covers the 7 playable starter actions too, same category); market-movement card → renamed free-action kind; goal card → a "claim from hand" flow (not a "play") that opens the stock-assignment UI then submits `claim_private_goal`; bonus card → no-op/tooltip only.
-- [ ] `GoalsPanel.tsx`: keep rendering `goalRow` for public goals; add a small "My Private Goals" section reading from the player's own hand.
-- [ ] `ClaimGoalModal.tsx`: parameterize by `source: 'row' | 'hand'`, dispatching `claim_goal` or `claim_private_goal` accordingly; stock-assignment UI itself unchanged.
-- [ ] `PromptModal.tsx`: remove `final_tip_play_choice`; add cases for `setup_draft_pick`, `foresight_reorder`, and the two Backroom Deal picker prompts (reuse existing list-picker UI patterns already used for similar prompts).
-- [ ] Audit every place a color swatch renders (`CardTile`, `MarketPanel`, `Ticker`) to confirm the per-color icon (`icon-oil.png` etc.) always renders alongside the color, never color-alone — this is the mitigation for the Orange/Green colorblindness note in `v5_tuning_notes.md`.
-- [ ] **Tests**: rewrite `AuctionPanel.test.tsx`/`useGameState.test.tsx`/`Lobby.test.tsx` for the renamed `ProjectedGameState` fields. New tests for the `goal`/`bonus` `CardTile` branches and `HandDock`'s 4-way dispatch.
-- [ ] Commit.
+- [x] `CardTile.tsx`/`cardLabel.tsx`: added `GoalBody` (shows "Secret Goal" vs "Goal" via a `goalContext: 'row'|'hand'` prop) and `BonusBody` (sealed, `card-tile__seal` "Never played · scores automatically", no click affordance — `onClick`/`role`/`tabIndex` are all disabled for bonus cards regardless of what's passed in).
+- [x] `HandDock.tsx`: 4-way dispatch — action→`play_action_card`, market-movement→`play_market_movement` (renamed free-action kind, done), goal→opens `ClaimGoalModal` with `source="hand"` (not a raw `claim_private_goal` call — the modal owns the stock-assignment step, matching the existing `claim_goal` UX), bonus→no-op (hover-only pip "Auto-scores at game end").
+- [x] `GoalsPanel.tsx`: added a "My Private Goals" section from `myPlayer.hand` filtered to `category === 'goal'`, alongside the existing public `goalRow` section.
+- [x] `ClaimGoalModal.tsx`: takes `source: 'row'|'hand'`; candidates come from `goalRow` or `myPlayer.hand` accordingly; dispatches `claim_goal`/`claim_private_goal`. Stock-assignment UI unchanged.
+- [x] `PromptModal.tsx`: `final_tip_play_choice` removed; added `setup_draft_pick` (CardTile grid from `prompt.payload.candidates`), `foresight_reorder` (reorder + bury), `backroom_deal_pick_own_card`, `double_down_pick_card`. **Deviation**: no separate `backroom_deal_pick_market_card` prompt type was implemented — Backroom Deal's market-side pick reuses the existing `pick_market_card` prompt with a new `mode`, since the picker UI was already generic enough; the mode-filter logic there was updated (`fire_sale` now filters to stock-only, other modes fall through unfiltered) to accommodate it. `pick_hand_stock_for_swap` also excludes bonus cards now.
+- [x] Colorblind-icon audit: confirmed every stock rendering (`CardTile`, `Ticker`) pairs the shape icon (`IndustryIcon`) with the text label — never color alone. No code changes needed; this was already true pre-migration.
+- [x] **Tests**: `AuctionPanel.test.tsx`/`useGameState.test.tsx` needed no field-name updates (neither references the renamed `ProjectedGameState` fields). `Lobby.test.tsx` was failing on an unrelated pre-existing bug (its `vi.mock('../lib/api.js', ...)` never stubbed `getBackendOverride`/`setBackendOverride`/`clearBackendOverride`, added to `api.ts` in a prior, unrelated commit) — fixed by extending the mock; confirmed the same failure reproduces against the pre-Phase-9 stash, so this wasn't caused by this phase's changes. Added new `CardTile.test.tsx` (goal public/private branch, bonus sealed/non-interactive branch) and `HandDock.test.tsx` (all 4 dispatch branches + the `canPlayActions=false` gate). Full suite: 27/27 passing, `tsc --noEmit` clean.
+- [x] Commit.
 
 ---
 
 ## Phase 10 — Integration Tests & Full Regression Pass
 
-**Status:** BACKEND PORTION DONE; frontend-dependent parts blocked on Phase 9
+**Status:** BACKEND PORTION DONE; frontend now unblocked (Phase 9 complete) — resuming remaining items below
 **Rationale:** the real end-to-end confidence gate. Prior phases prove components in isolation; this proves a complete V5 game plays out correctly, repeatedly, across player counts and seeds.
 
 Files: `backend/tests/integration/full_game.test.ts`, `bot_full_game.test.ts`, `_invariants.ts`, `http.test.ts`.

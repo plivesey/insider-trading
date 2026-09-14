@@ -3,6 +3,7 @@ import type { ProjectedGameState } from '@insider-trading/shared';
 import { api } from '../lib/api.js';
 import { showError } from '../lib/toast.js';
 import { CardTile } from './CardTile.js';
+import { ClaimGoalModal } from './ClaimGoalModal.js';
 
 interface Props {
   state: ProjectedGameState;
@@ -12,6 +13,7 @@ interface Props {
 export function HandDock({ state, canPlayActions }: Props) {
   const me = state.myPlayer;
   const [hovered, setHovered] = useState<string | null>(null);
+  const [claimingGoalUid, setClaimingGoalUid] = useState<string | null>(null);
 
   if (!me) return null;
 
@@ -25,9 +27,9 @@ export function HandDock({ state, canPlayActions }: Props) {
     }
   }
 
-  async function playInsiderTip(uid: string) {
+  async function playMarketMovement(uid: string) {
     try {
-      await api.freeAction({ request: { kind: 'play_insider_tip', cardUid: uid } });
+      await api.freeAction({ request: { kind: 'play_market_movement', cardUid: uid } });
     } catch (e) {
       showError((e as Error).message);
     }
@@ -47,11 +49,18 @@ export function HandDock({ state, canPlayActions }: Props) {
             ? `translate(${tx}px, -30px) rotate(0deg) scale(1.06)`
             : `translate(${tx}px, ${ty}px) rotate(${rot}deg)`;
           const isAction = c.category === 'action';
-          const isTip = c.category === 'insider_tip';
-          const playable = canPlayActions && (isAction || isTip);
-          const onClick = playable
-            ? () => (isTip ? playInsiderTip(c.uid) : playAction(c.uid))
-            : undefined;
+          const isMarketMovement = c.category === 'insider_tip';
+          const isGoal = c.category === 'goal';
+          const isBonus = c.category === 'bonus';
+          const playable = canPlayActions && (isAction || isMarketMovement || isGoal);
+          const onClick = !playable
+            ? undefined
+            : isGoal
+              ? () => setClaimingGoalUid(c.uid)
+              : isMarketMovement
+                ? () => playMarketMovement(c.uid)
+                : () => playAction(c.uid);
+          const pipLabel = isGoal ? 'Click to Claim' : isBonus ? 'Auto-scores at game end' : 'Click to Play';
           return (
             <div
               key={c.uid}
@@ -69,7 +78,9 @@ export function HandDock({ state, canPlayActions }: Props) {
                 ornate
                 className="hand-card"
                 onClick={onClick}
-                showPlayPip={playable && isHover}
+                showPlayPip={(playable || isBonus) && isHover}
+                playPipLabel={pipLabel}
+                goalContext="hand"
               />
             </div>
           );
@@ -79,6 +90,15 @@ export function HandDock({ state, canPlayActions }: Props) {
       <div className="gb-hand__cluster">
         <CashChip cash={me.cash} />
       </div>
+
+      {claimingGoalUid && (
+        <ClaimGoalModal
+          state={state}
+          source="hand"
+          initialGoalUid={claimingGoalUid}
+          onClose={() => setClaimingGoalUid(null)}
+        />
+      )}
     </div>
   );
 }
@@ -91,4 +111,3 @@ function CashChip({ cash }: { cash: number }) {
     </div>
   );
 }
-

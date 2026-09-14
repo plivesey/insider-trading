@@ -5,7 +5,7 @@ import { BrassButton } from './theme.js';
 import { CardTile } from './CardTile.js';
 import { Ticker } from './Ticker.js';
 
-const ZERO_DELTA: Record<Color, number> = { Blue: 0, Orange: 0, Yellow: 0, Purple: 0 };
+const ZERO_DELTA: Record<Color, number> = { Blue: 0, Orange: 0, Green: 0, Purple: 0 };
 
 interface Props {
   gameOver: GameOver;

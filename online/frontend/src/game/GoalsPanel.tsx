@@ -10,7 +10,9 @@ interface Props {
 }
 
 export function GoalsPanel({ state, goals, canClaim }: Props) {
-  const [claimUid, setClaimUid] = useState<string | null>(null);
+  const [claim, setClaim] = useState<{ source: 'row' | 'hand'; goalUid: string } | null>(null);
+  const privateGoals = (state.myPlayer?.hand.filter((c): c is GoalCard => c.category === 'goal')) ?? [];
+
   return (
     <Panel title="Active Goals">
       <div className="goals-strip">
@@ -18,26 +20,42 @@ export function GoalsPanel({ state, goals, canClaim }: Props) {
           <GoalTile
             key={g.uid}
             goal={g}
-            onClick={canClaim ? () => setClaimUid(g.uid) : undefined}
+            onClick={canClaim ? () => setClaim({ source: 'row', goalUid: g.uid }) : undefined}
           />
         ))}
       </div>
-      {claimUid && (
+      {privateGoals.length > 0 && (
+        <>
+          <div className="goals-strip__private-label">My Private Goals</div>
+          <div className="goals-strip goals-strip--private">
+            {privateGoals.map(g => (
+              <GoalTile
+                key={g.uid}
+                goal={g}
+                isPrivate
+                onClick={canClaim ? () => setClaim({ source: 'hand', goalUid: g.uid }) : undefined}
+              />
+            ))}
+          </div>
+        </>
+      )}
+      {claim && (
         <ClaimGoalModal
           state={state}
-          initialGoalUid={claimUid}
-          onClose={() => setClaimUid(null)}
+          source={claim.source}
+          initialGoalUid={claim.goalUid}
+          onClose={() => setClaim(null)}
         />
       )}
     </Panel>
   );
 }
 
-function GoalTile({ goal, onClick }: { goal: GoalCard; onClick?: () => void }) {
+function GoalTile({ goal, onClick, isPrivate = false }: { goal: GoalCard; onClick?: () => void; isPrivate?: boolean }) {
   const interactive = !!onClick;
   return (
     <div
-      className={`goal-tile${interactive ? ' goal-tile--clickable' : ''}`}
+      className={`goal-tile${interactive ? ' goal-tile--clickable' : ''}${isPrivate ? ' goal-tile--private' : ''}`}
       onClick={onClick}
       role={interactive ? 'button' : undefined}
       tabIndex={interactive ? 0 : -1}

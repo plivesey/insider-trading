@@ -1,5 +1,5 @@
 import type { ProjectedGameState } from '@insider-trading/shared';
-import { DecoBadge } from './theme.js';
+import { DecoBadge, ProgressSteps } from './theme.js';
 
 interface Props {
   state: ProjectedGameState;
@@ -15,6 +15,9 @@ function Meta({ label, value, warn = false }: { label: string; value: string; wa
 }
 
 export function Header({ state }: Props) {
+  // The wire field counts UP (0 -> progressThreshold); the display counts
+  // DOWN, reading like "moves left until the bubble bursts."
+  const remaining = Math.max(0, state.progressThreshold - state.progressTracker);
   return (
     <div className="gb-header">
       <div className="gb-header__brand">
@@ -29,7 +32,10 @@ export function Header({ state }: Props) {
       <div className="gb-divider" />
       <Meta label="DISCARD" value={String(state.discardPileSize)} />
       <div className="gb-divider" />
-      <Meta label="TIPS LEFT" value={String(state.insiderTipDeckSize)} warn={state.insiderTipDeckSize <= 3} />
+      <div className="gb-meta">
+        <div className="gb-meta__label">Until the Bubble Bursts</div>
+        <ProgressSteps remaining={remaining} total={state.progressThreshold} />
+      </div>
     </div>
   );
 }

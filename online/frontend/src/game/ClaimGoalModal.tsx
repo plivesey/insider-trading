@@ -8,14 +8,18 @@ import { BrassButton, C, DecoCorner, INDUSTRY, INDUSTRY_ORDER, relabelColors } f
 interface Props {
   state: ProjectedGameState;
   onClose: () => void;
+  /** 'row' = claim a public goal from the goal row; 'hand' = reveal-and-claim a private goal from your own hand. */
+  source: 'row' | 'hand';
   initialGoalUid?: string | null;
 }
 
-export function ClaimGoalModal({ state, onClose, initialGoalUid = null }: Props) {
+export function ClaimGoalModal({ state, onClose, source, initialGoalUid = null }: Props) {
   const my = state.myPlayer;
-  const initial = initialGoalUid
-    ? state.activeGoals.find(g => g.uid === initialGoalUid) ?? null
-    : null;
+  const candidates: GoalCard[] =
+    source === 'row'
+      ? state.goalRow
+      : (my?.hand.filter((c): c is GoalCard => c.category === 'goal') ?? []);
+  const initial = initialGoalUid ? candidates.find(g => g.uid === initialGoalUid) ?? null : null;
   const [selected, setSelected] = useState<GoalCard | null>(initial);
   const [assignment, setAssignment] = useState<Record<string, Color>>({});
 
@@ -29,7 +33,7 @@ export function ClaimGoalModal({ state, onClose, initialGoalUid = null }: Props)
     try {
       await api.freeAction({
         request: {
-          kind: 'claim_goal',
+          kind: source === 'row' ? 'claim_goal' : 'claim_private_goal',
           goalUid: selected.uid,
           stockAssignment: { cards: payload ?? assignment }
         }
@@ -61,6 +65,7 @@ export function ClaimGoalModal({ state, onClose, initialGoalUid = null }: Props)
   }
 
   const handStocks = my.hand.filter((c): c is StockCard => c.category === 'stock');
+  const title = source === 'row' ? 'Claim a Goal' : 'Reveal & Claim a Private Goal';
 
   return (
     <>
@@ -70,10 +75,15 @@ export function ClaimGoalModal({ state, onClose, initialGoalUid = null }: Props)
         <div className="deco-modal__deco deco-modal__deco--tr"><DecoCorner size={18} color={C.brass} rotate={90} /></div>
         <div className="deco-modal__deco deco-modal__deco--bl"><DecoCorner size={18} color={C.brass} rotate={270} /></div>
         <div className="deco-modal__deco deco-modal__deco--br"><DecoCorner size={18} color={C.brass} rotate={180} /></div>
-        <h3 className="deco-modal__title">Claim a Goal</h3>
+        <h3 className="deco-modal__title">{title}</h3>
         <div className="deco-modal__body">
+          {source === 'hand' && (
+            <div className="deco-modal__notice">
+              This goal is secret — only you know about it. Claiming it reveals it to the table.
+            </div>
+          )}
           <div className="claim-goal-list">
-            {state.activeGoals.map(g => (
+            {candidates.map(g => (
               <div
                 key={g.uid}
                 className={`goal-tile${selected?.uid === g.uid ? ' is-selected' : ''}`}

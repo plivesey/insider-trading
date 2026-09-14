@@ -16,7 +16,7 @@ export function usePriceHistory(
   turnNumber: number,
   prices: StockPrices
 ): Record<Color, number> {
-  const [delta, setDelta] = useState<Record<Color, number>>(() => ({ Blue: 0, Orange: 0, Yellow: 0, Purple: 0 }));
+  const [delta, setDelta] = useState<Record<Color, number>>(() => ({ Blue: 0, Orange: 0, Green: 0, Purple: 0 }));
   const lastTurnRef = useRef<number>(-1);
   const lastGameRef = useRef<string | undefined>(undefined);
   // history[i] = { turn, prices } — oldest first.
@@ -50,16 +50,16 @@ export function usePriceHistory(
     const hist = historyRef.current;
     const oldest = hist[0]?.prices;
     if (!oldest) {
-      setDelta({ Blue: 0, Orange: 0, Yellow: 0, Purple: 0 });
+      setDelta({ Blue: 0, Orange: 0, Green: 0, Purple: 0 });
       return;
     }
     setDelta({
       Blue:   prices.Blue   - oldest.Blue,
       Orange: prices.Orange - oldest.Orange,
-      Yellow: prices.Yellow - oldest.Yellow,
+      Green: prices.Green - oldest.Green,
       Purple: prices.Purple - oldest.Purple
     });
-  }, [gameId, turnNumber, prices.Blue, prices.Orange, prices.Yellow, prices.Purple]);
+  }, [gameId, turnNumber, prices.Blue, prices.Orange, prices.Green, prices.Purple]);
 
   return delta;
 }

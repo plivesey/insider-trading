@@ -1,7 +1,7 @@
 // Art-deco theme system for the 1920s "Trading Floor" reskin.
 // Single source of truth for the palette, fonts, and the data-color → industry mapping.
 //
-// The backend data model uses Color = 'Blue' | 'Orange' | 'Yellow' | 'Purple'. The
+// The backend data model uses Color = 'Blue' | 'Orange' | 'Green' | 'Purple'. The
 // UI displays them as Steel / Oil / Rail / Bank. Mapping happens here so backend
 // types never need to change.
 
@@ -40,13 +40,13 @@ export interface IndustryMeta {
 export const INDUSTRY: Record<StockColor, IndustryMeta> = {
   Blue:   { key: 'Steel', label: 'Steel',      long: 'Bethlehem Steel Co.', icon: 'steel', accent: C.steel, mono: 'S' },
   Orange: { key: 'Oil',   label: 'Oil',        long: 'Standard Oil & Co.',  icon: 'oil',   accent: C.oil,   mono: 'O' },
-  Yellow: { key: 'Rail',  label: 'Rail',       long: 'Continental Rail',    icon: 'rail',  accent: C.rail,  mono: 'R' },
+  Green:  { key: 'Rail',  label: 'Rail',       long: 'Continental Rail',    icon: 'rail',  accent: C.rail,  mono: 'R' },
   Purple: { key: 'Bank',  label: 'Bank',       long: 'Consolidated Trust Co.', icon: 'bank', accent: C.bank,  mono: 'B' },
   Wild:   { key: 'Wild',  label: 'Wild',       long: 'Wild Share',          icon: 'rail',  accent: C.wild,  mono: '★' }
 };
 
 // Ordered list for the ticker / dropdowns. Steel · Oil · Rail · Bank.
-export const INDUSTRY_ORDER: Color[] = ['Blue', 'Orange', 'Yellow', 'Purple'];
+export const INDUSTRY_ORDER: Color[] = ['Blue', 'Orange', 'Green', 'Purple'];
 
 export const FONT_DISPLAY = "'Limelight', 'Cinzel', serif";
 export const FONT_DECO    = "'Cinzel', 'Limelight', serif";
@@ -62,7 +62,7 @@ export function relabelColors(text: string): string {
   return text
     .replace(/\bBlue\b/g, INDUSTRY.Blue.label)
     .replace(/\bOrange\b/g, INDUSTRY.Orange.label)
-    .replace(/\bYellow\b/g, INDUSTRY.Yellow.label)
+    .replace(/\bGreen\b/g, INDUSTRY.Green.label)
     .replace(/\bPurple\b/g, INDUSTRY.Purple.label);
 }
 
@@ -249,4 +249,28 @@ export function Monogram({ name, accent = C.ivory2 }: { name: string; accent?: s
 
 export function Sep() {
   return <span className="deco-sep">·</span>;
+}
+
+/**
+ * A row of filled/empty step-dots counting DOWN from `total` to 0 as `remaining`
+ * shrinks -- the V5 progress tracker, displayed as "moves left until the
+ * bubble bursts" even though the underlying wire value counts up. Caps the
+ * dot count at 24 (the largest default threshold, 6 players x 4) and falls
+ * back to a plain number above that so it never overflows the header.
+ */
+export function ProgressSteps({ remaining, total }: { remaining: number; total: number }) {
+  if (total <= 0 || total > 24) {
+    return <span className="progress-steps__fallback">{remaining}</span>;
+  }
+  const filled = Math.max(0, Math.min(total, remaining));
+  return (
+    <div className="progress-steps" title={`${remaining} of ${total} remaining`}>
+      {Array.from({ length: total }, (_, i) => (
+        <span
+          key={i}
+          className={`progress-steps__dot${i < filled ? ' progress-steps__dot--filled' : ''}`}
+        />
+      ))}
+    </div>
+  );
 }

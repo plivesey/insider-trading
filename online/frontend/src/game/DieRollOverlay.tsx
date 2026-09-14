@@ -6,17 +6,42 @@ interface Props {
   log: GameLogEntry[];
 }
 
-const DIE_FACES = ['', '⚀', '⚁', '⚂', '⚃', '⚄', '⚅'];
+type Face = 'bull' | 'bear' | 'nothing' | 'draw1' | 'draw2' | 'draw3';
+
+const FACE_GLYPH: Record<Face, string> = {
+  bull: '▲',
+  bear: '▼',
+  nothing: '—',
+  draw1: '1',
+  draw2: '2',
+  draw3: '3'
+};
+
+const FACE_LABEL: Record<Face, string> = {
+  bull: 'Bull Market',
+  bear: 'Bear Market',
+  nothing: 'Nothing',
+  draw1: 'Draw 1 Event',
+  draw2: 'Draw 2 Events',
+  draw3: 'Draw 3 Events'
+};
+
+interface DrawnCardInfo {
+  kind: 'market_movement' | 'goal';
+  text: string;
+}
 
 type Animation =
-  | { phase: 'die'; die: number; tipText: string | null; resultText: string | null; key: number }
-  | { phase: 'tip'; die: number; tipText: string; key: number }
+  | { phase: 'die'; dieId: string; face: Face; resultText: string | null; drawnCards: DrawnCardInfo[]; key: number }
+  | { phase: 'card'; index: number; drawnCards: DrawnCardInfo[]; key: number }
   | null;
 
+const DRAW_COUNTS: Partial<Record<Face, number>> = { draw1: 1, draw2: 2, draw3: 3 };
+
 /**
- * Watches the game log for `die_roll` events and shows a brief overlay with
- * the die face. If die=1 also reveals the resolved Insider Tip text after the
- * die fades.
+ * Watches the game log for `die_roll` events (the dice-bag draw) and shows a
+ * brief overlay naming the die and its face. For a Draw N face, follows up
+ * with a short sequential reveal of each card resolved from the event deck.
  */
 export function DieRollOverlay({ log }: Props) {
   const [anim, setAnim] = useState<Animation>(null);
@@ -40,7 +65,8 @@ export function DieRollOverlay({ log }: Props) {
       lastSeqRef.current = Math.max(lastSeqRef.current, log[log.length - 1].seq);
       return;
     }
-    const die = (dieEntry.payload?.die as number) ?? 0;
+    const dieId = (dieEntry.payload?.die as string) ?? '?';
+    const face = ((dieEntry.payload?.face as Face) ?? 'nothing') as Face;
     const dieIdx = log.indexOf(dieEntry);
     let resultText: string | null = null;
     for (let i = dieIdx - 1; i >= 0; i--) {
@@ -51,54 +77,69 @@ export function DieRollOverlay({ log }: Props) {
         break;
       }
     }
-    let tipText: string | null = null;
-    if (die === 1) {
-      for (let i = dieIdx + 1; i < log.length; i++) {
-        if (log[i].type === 'insider_tip_resolved') {
-          const raw =
-            (log[i].payload?.text as string) ??
-            log[i].message.replace(/^Insider Tip flipped:\s*/, '');
-          tipText = relabelColors(raw);
-          break;
+    const wantCards = DRAW_COUNTS[face] ?? 0;
+    const drawnCards: DrawnCardInfo[] = [];
+    if (wantCards > 0) {
+      for (let i = dieIdx + 1; i < log.length && drawnCards.length < wantCards; i++) {
+        const e = log[i];
+        if (e.type === 'die_roll') break;
+        if (e.type === 'market_movement_resolved') {
+          const text = (e.payload?.text as string) ?? e.message;
+          drawnCards.push({ kind: 'market_movement', text: relabelColors(text) });
+        } else if (e.type === 'goal_revealed') {
+          const goalText = (e.payload?.goalText as string) ?? '';
+          const rewardText = (e.payload?.rewardText as string) ?? '';
+          drawnCards.push({ kind: 'goal', text: relabelColors(`${goalText} → ${rewardText}`) });
         }
-        if (log[i].type === 'die_roll') break;
       }
     }
     lastSeqRef.current = dieEntry.seq;
-    setAnim({ phase: 'die', die, tipText, resultText, key: dieEntry.seq });
+    setAnim({ phase: 'die', dieId, face, resultText, drawnCards, key: dieEntry.seq });
   }, [log]);
 
   useEffect(() => {
     if (!anim) return;
     if (anim.phase === 'die') {
       const t = setTimeout(() => {
-        if (anim.tipText) {
-          setAnim({ phase: 'tip', die: anim.die, tipText: anim.tipText, key: anim.key });
+        if (anim.drawnCards.length > 0) {
+          setAnim({ phase: 'card', index: 0, drawnCards: anim.drawnCards, key: anim.key });
         } else {
           setAnim(null);
         }
-      }, 3100);
+      }, 2600);
       return () => clearTimeout(t);
     }
-    if (anim.phase === 'tip') {
-      const t = setTimeout(() => setAnim(null), 3400);
+    if (anim.phase === 'card') {
+      const t = setTimeout(() => {
+        if (anim.index + 1 < anim.drawnCards.length) {
+          setAnim({ phase: 'card', index: anim.index + 1, drawnCards: anim.drawnCards, key: anim.key });
+        } else {
+          setAnim(null);
+        }
+      }, 2800);
       return () => clearTimeout(t);
     }
   }, [anim]);
 
   if (!anim) return null;
+
   if (anim.phase === 'die') {
     return (
       <div className="die-overlay" key={anim.key}>
         {anim.resultText && <div className="die-result">{anim.resultText}</div>}
-        <div className="die-face">{DIE_FACES[anim.die] ?? '?'}</div>
-        <div className="die-label">Die rolled · {anim.die}</div>
+        <div className={`die-face die-face--${anim.face}`}>{FACE_GLYPH[anim.face]}</div>
+        <div className="die-label">Die {anim.dieId} · {FACE_LABEL[anim.face]}</div>
       </div>
     );
   }
+
+  const card = anim.drawnCards[anim.index];
   return (
-    <div className="die-overlay" key={`${anim.key}-tip`}>
-      <div className="tip-banner">Insider Tip</div>
+    <div className="die-overlay" key={`${anim.key}-card-${anim.index}`}>
+      <div className="tip-banner">
+        {card.kind === 'goal' ? 'Goal Revealed' : 'Market Movement'}
+        {anim.drawnCards.length > 1 ? ` (${anim.index + 1}/${anim.drawnCards.length})` : ''}
+      </div>
       <div className="tip-text">
         <div style={{ position: 'absolute', top: 6, left: 8, opacity: 0.6 }}>
           <DecoCorner size={16} color={C.brass} />
@@ -112,7 +153,7 @@ export function DieRollOverlay({ log }: Props) {
         <div style={{ position: 'absolute', bottom: 6, right: 8, opacity: 0.6 }}>
           <DecoCorner size={16} color={C.brass} rotate={180} />
         </div>
-        {anim.tipText}
+        {card.text}
       </div>
     </div>
   );

@@ -1,8 +1,9 @@
 import { useState } from 'react';
-import type { Color, ProjectedGameState, PromptEnvelope } from '@insider-trading/shared';
+import type { Color, HandCard, ProjectedGameState, PromptEnvelope, StockCard } from '@insider-trading/shared';
 import { api } from '../lib/api.js';
 import { showError } from '../lib/toast.js';
 import { describeCard } from './cardLabel.js';
+import { CardTile } from './CardTile.js';
 import { BrassButton, C, DecoCorner, INDUSTRY, INDUSTRY_ORDER, relabelColors } from './theme.js';
 
 const COLORS: Color[] = INDUSTRY_ORDER;
@@ -40,18 +41,120 @@ export function PromptModal({ prompt, state }: Props) {
 
   function renderBody() {
     switch (prompt.type) {
-      case 'peek_ack':
+      case 'setup_draft_pick': {
+        const candidates = (prompt.payload?.candidates as HandCard[]) ?? [];
+        const round = (prompt.payload?.round as number) ?? 1;
         return (
           <>
-            {(prompt.payload?.tip as any) && (
-              <div className="deco-modal__success">
-                Top tip: <strong>{relabelColors((prompt.payload.tip as any).text)}</strong>
-              </div>
+            <div className="deco-modal__notice">
+              Round {round} of 3 — keep one card, the rest pass to the player on your left.
+            </div>
+            <div className="card-row">
+              {candidates.map(c => (
+                <CardTile
+                  key={c.uid}
+                  card={c as any}
+                  onClick={() => send({ keepUid: c.uid })}
+                  goalContext="hand"
+                />
+              ))}
+            </div>
+          </>
+        );
+      }
+      case 'foresight_reorder': {
+        const candidateUids = (prompt.payload?.candidateUids as string[]) ?? [];
+        const order = (draft.order as string[]) ?? candidateUids;
+        const buriedUid = draft.buriedUid as string | undefined;
+        const kept = order.filter(u => u !== buriedUid);
+        function move(uid: string, dir: -1 | 1) {
+          const idx = kept.indexOf(uid);
+          const next = idx + dir;
+          if (next < 0 || next >= kept.length) return;
+          const copy = kept.slice();
+          [copy[idx], copy[next]] = [copy[next], copy[idx]];
+          setDraft({ ...draft, order: buriedUid ? [...copy, buriedUid] : copy });
+        }
+        function toggleBury(uid: string) {
+          if (buriedUid === uid) {
+            setDraft({ ...draft, buriedUid: undefined, order: candidateUids });
+            return;
+          }
+          setDraft({ ...draft, buriedUid: uid, order: [...kept.filter(u => u !== uid), uid] });
+        }
+        return (
+          <>
+            <div className="deco-modal__notice">
+              Reorder the top {candidateUids.length} event cards (top first). Optionally bury one at the bottom.
+            </div>
+            <ul>
+              {kept.map((uid, i) => (
+                <li key={uid} style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                  <BrassButton label="↑" onClick={() => move(uid, -1)} />
+                  <BrassButton label="↓" onClick={() => move(uid, 1)} />
+                  <span>{uid}</span>
+                  <BrassButton label="Bury" onClick={() => toggleBury(uid)} />
+                </li>
+              ))}
+            </ul>
+            {buriedUid && (
+              <div className="deco-modal__notice">Buried at the bottom: {buriedUid}</div>
             )}
-            {(prompt.payload?.tips as any) && (
+            <div className="deco-modal__footer">
+              <BrassButton
+                label="Submit"
+                primary
+                onClick={() => send(buriedUid ? { keepOrder: kept, buriedUid } : { keepOrder: kept })}
+              />
+            </div>
+          </>
+        );
+      }
+      case 'backroom_deal_pick_own_card': {
+        const my = state.myPlayer;
+        if (!my) return null;
+        const eligible = my.hand.filter(c => c.category !== 'bonus');
+        return (
+          <div className="deco-modal__row">
+            {eligible.map(c => (
+              <BrassButton
+                key={c.uid}
+                label={describeCard(c).title}
+                onClick={() => send({ cardUid: c.uid })}
+              />
+            ))}
+          </div>
+        );
+      }
+      case 'double_down_pick_card': {
+        const eligibleUids = (prompt.payload?.eligibleUids as string[]) ?? [];
+        const my = state.myPlayer;
+        return (
+          <div className="deco-modal__row">
+            {eligibleUids.map(uid => {
+              const card = my?.hand.find(c => c.uid === uid);
+              return (
+                <BrassButton
+                  key={uid}
+                  label={card ? describeCard(card).title : uid}
+                  onClick={() => send({ cardUid: uid })}
+                />
+              );
+            })}
+          </div>
+        );
+      }
+      case 'peek_ack': {
+        const cards = (prompt.payload?.cards as Array<{ uid: string; kind: string; text: string }>) ?? [];
+        return (
+          <>
+            {cards.length > 0 && (
               <ul>
-                {(prompt.payload.tips as any[]).map((t, i) => (
-                  <li key={i}>{relabelColors(t.text)}</li>
+                {cards.map(c => (
+                  <li key={c.uid}>
+                    {c.kind === 'goal' ? 'Goal: ' : ''}
+                    {relabelColors(c.text)}
+                  </li>
                 ))}
               </ul>
             )}
@@ -60,25 +163,26 @@ export function PromptModal({ prompt, state }: Props) {
             </div>
           </>
         );
+      }
       case 'peek_bottom_choice': {
-        const tips = (prompt.payload?.tips as Array<{ uid: string; text: string; type: string }>) ?? [];
+        const cards = (prompt.payload?.cards as Array<{ uid: string; kind: string; text: string }>) ?? [];
         return (
           <>
             <div className="deco-modal__notice">
-              Top {tips.length} Insider Tip{tips.length > 1 ? 's' : ''} (top first). You may send one to the
+              Top {cards.length} event card{cards.length > 1 ? 's' : ''} (top first). You may send one to the
               bottom of the deck.
             </div>
             <div className="deco-modal__row">
-              {tips.map((t, i) => (
+              {cards.map((c, i) => (
                 <BrassButton
-                  key={t.uid}
-                  label={`↓ Bottom: ${relabelColors(t.text)}${i === 0 ? ' (next)' : ''}`}
-                  onClick={() => send({ bottomUid: t.uid })}
+                  key={c.uid}
+                  label={`↓ Bottom: ${relabelColors(c.text)}${i === 0 ? ' (next)' : ''}`}
+                  onClick={() => send({ bottomUid: c.uid })}
                 />
               ))}
             </div>
             <div className="deco-modal__footer">
-              <BrassButton label="Keep both" primary onClick={() => send({})} />
+              <BrassButton label="Keep in place" primary onClick={() => send({})} />
             </div>
           </>
         );
@@ -234,21 +338,6 @@ export function PromptModal({ prompt, state }: Props) {
           </>
         );
       }
-      case 'final_tip_play_choice': {
-        const tipText = (prompt.payload?.tipText as string) ?? '';
-        return (
-          <>
-            <p>{relabelColors(tipText)}</p>
-            <p className="deco-modal__note">
-              The Insider Tip deck is now empty. Playing this tip resolves it before the game ends; declining leaves it in your hand. Either way, the game ends after you choose.
-            </p>
-            <div className="deco-modal__footer">
-              <BrassButton label="Decline" onClick={() => send({ play: false })} />
-              <BrassButton label="Play" primary onClick={() => send({ play: true })} />
-            </div>
-          </>
-        );
-      }
       case 'pick_target_player':
         return (
           <div className="deco-modal__row">
@@ -279,9 +368,8 @@ export function PromptModal({ prompt, state }: Props) {
         const pickable = state.market.filter(c => {
           // The card being auctioned is never a valid target.
           if (c.uid === auctionUid) return false;
-          // Market Order is a real purchase: only colored stocks (no actions,
-          // no Wild Shares). Other modes may target any market card.
-          if (mode === 'buy_from_market') {
+          // Fire Sale is a real (discounted) purchase: only colored stocks.
+          if (mode === 'fire_sale') {
             return c.category === 'stock' && c.color !== 'Wild';
           }
           return true;
@@ -291,7 +379,7 @@ export function PromptModal({ prompt, state }: Props) {
             {pickable.map(c => (
               <BrassButton
                 key={c.uid}
-                label={describeCard(c).title}
+                label={describeCard(c as any).title}
                 onClick={() => send({ cardUid: c.uid })}
               />
             ))}
@@ -301,12 +389,12 @@ export function PromptModal({ prompt, state }: Props) {
       case 'pick_hand_stock_for_swap': {
         const my = state.myPlayer;
         if (!my) return null;
-        // Swap allows ANY card in hand — stocks, Wild Shares, action/starter
-        // cards, even Insider Tips. The chosen card goes into the market to be
-        // auctioned normally.
+        // Swap allows any non-bonus card in hand -- stocks, action/starter
+        // cards, market-movement cards, even a private goal. The chosen
+        // card goes into the market to be auctioned normally.
         return (
           <div className="deco-modal__row">
-            {my.hand.map(c => (
+            {my.hand.filter(c => c.category !== 'bonus').map(c => (
               <BrassButton
                 key={c.uid}
                 label={describeCard(c).title}
