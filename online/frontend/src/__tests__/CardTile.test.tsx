@@ -1,7 +1,16 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { CardTile } from '../game/CardTile.js';
-import type { BonusCard, GoalCard } from '@insider-trading/shared';
+import type { BonusCard, GoalCard, StockCard } from '@insider-trading/shared';
+
+const scout: StockCard = {
+  category: 'stock',
+  uid: 'stock-scout-1',
+  color: 'Blue',
+  type: 'peek_buy',
+  name: 'Scout',
+  ability: 'When bought, look at the top 1 card of the event deck.'
+};
 
 const goal: GoalCard = {
   category: 'goal',
@@ -48,6 +57,33 @@ describe('CardTile — goal branch', () => {
     const el = screen.getByRole('button');
     fireEvent.click(el);
     expect(onClick).toHaveBeenCalled();
+  });
+});
+
+describe('CardTile — stock branch, Scout ability text', () => {
+  it('shows the peek text by default (Classic)', () => {
+    render(<CardTile card={scout} />);
+    expect(screen.getByText('When bought, look at the top 1 card of the event deck.')).toBeInTheDocument();
+  });
+
+  it('shows the gain text in the Alternate variant', () => {
+    render(<CardTile card={scout} variant="alternate" />);
+    expect(screen.getByText('When bought, gain the top card of the event deck into your hand.')).toBeInTheDocument();
+    expect(screen.queryByText('When bought, look at the top 1 card of the event deck.')).not.toBeInTheDocument();
+  });
+
+  it('other special stocks are unaffected by variant', () => {
+    const boom: StockCard = {
+      category: 'stock',
+      uid: 'stock-boom-1',
+      color: 'Blue',
+      type: 'extra_up',
+      name: 'Boom',
+      ability: 'When bought, Blue rises an extra +1 (Blue rises +2 total).'
+    };
+    render(<CardTile card={boom} variant="alternate" />);
+    // Blue is relabeled to its industry name ("Steel") by relabelColors.
+    expect(screen.getByText('When bought, Steel rises an extra +1 (Steel rises +2 total).')).toBeInTheDocument();
   });
 });
 

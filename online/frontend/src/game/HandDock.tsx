@@ -81,6 +81,7 @@ export function HandDock({ state, canPlayActions }: Props) {
                 showPlayPip={(playable || isBonus) && isHover}
                 playPipLabel={pipLabel}
                 goalContext="hand"
+                variant={state.variant}
               />
             </div>
           );

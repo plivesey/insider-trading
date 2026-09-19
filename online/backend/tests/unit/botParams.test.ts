@@ -64,6 +64,10 @@ describe('default params reproduce the original hard-coded constants', () => {
     expect(perceivedStockSpecialBump('peek_sell')).toBe(1);
     expect(perceivedStockSpecialBump('blank')).toBe(0);
     expect(perceivedStockSpecialBump('wild')).toBe(0);
+    // Alternate: Scout gains the card outright, valued like a 1-card Insider
+    // Source draw instead of the flat Classic peek bump.
+    const params = defaultBotParams();
+    expect(perceivedStockSpecialBump('peek_buy', params, 'alternate')).toBe(params.drawTipValue);
   });
 
   test('goal-reward cash equivalents', () => {

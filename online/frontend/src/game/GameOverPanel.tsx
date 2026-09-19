@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { Color, GameOver, HandCard, PlayerId, PlayerPublic, ProjectedGameState } from '@insider-trading/shared';
+import type { Color, GameOver, GameVariant, HandCard, PlayerId, PlayerPublic, ProjectedGameState } from '@insider-trading/shared';
 import { api } from '../lib/api.js';
 import { BrassButton } from './theme.js';
 import { CardTile } from './CardTile.js';
@@ -75,6 +75,7 @@ export function GameOverPanel({ gameOver, state }: Props) {
           <PlayerHandView
             player={playerById[openId]}
             hand={revealed[openId] ?? []}
+            variant={state.variant}
           />
         )}
         <div style={{ marginTop: 22 }}>
@@ -89,7 +90,15 @@ export function GameOverPanel({ gameOver, state }: Props) {
   );
 }
 
-function PlayerHandView({ player, hand }: { player: PlayerPublic | undefined; hand: HandCard[] }) {
+function PlayerHandView({
+  player,
+  hand,
+  variant
+}: {
+  player: PlayerPublic | undefined;
+  hand: HandCard[];
+  variant: GameVariant;
+}) {
   if (!player) return null;
   return (
     <div className="game-over__hand">
@@ -102,7 +111,7 @@ function PlayerHandView({ player, hand }: { player: PlayerPublic | undefined; ha
       {hand.length > 0 && (
         <div className="card-row">
           {hand.map(c => (
-            <CardTile key={c.uid} card={c} />
+            <CardTile key={c.uid} card={c} variant={variant} />
           ))}
         </div>
       )}

@@ -67,7 +67,7 @@ Each color has one of each of these four special stocks (16 specials total). The
 |---------|---------|
 | **Boom** | When **bought**, this stock's color rises an extra **+1** (so its color rises **+2** total this purchase). |
 | **Tip-Off** | When **bought**, raise **a different color** of your choice by **+1**. |
-| **Scout** | When **bought**, look at the **top 1** card of the event deck. |
+| **Scout** | Classic: when **bought**, look at the **top 1** card of the event deck. Alternate: when bought, **gain** the top card of the event deck into your hand instead of just looking at it. |
 | **Informant** | When **bought**, look at the **top 2** cards of the event deck. |
 
 > **Changed in V5:** Informant used to trigger on sell and peek 1 card; it now triggers on **buy**, same as Scout, and peeks **2** cards instead of 1.
@@ -162,6 +162,7 @@ A selectable alternate configuration, chosen when the game is started, alongside
 - **Initial hand / draft:** each player is dealt **4 cards** straight from the (already-shuffled) Event Deck — no starter cards mixed in at all. Your guaranteed starter stock (above) is already in your hand and visible from the start; it is never part of the draft. Draft the 4 event cards down to a final hand of 3 using the same pass-one-keep-one procedure as Classic (Setup step 6), so you start play with **4 cards** total (1 stock + 3 drafted), one more than Classic's 3.
 - **Market Deck:** 36 stock cards + **14 action cards** — the same 11 as Classic's Action Cards list, plus **Foresight**, **Backroom Deal**, and **Double Down** (Starter Action Cards in Classic) promoted into the Market Deck here instead. **First Look**, **Fire Sale**, **Windfall**, **Market Panic**, and all 5 hidden end-game bonus cards do not exist in this variant at all.
 - **Progress tracker threshold:** a flat **4 × players** (vs. Classic's 3 × players + 2).
+- **Scout special stock:** gains the top event-deck card into your hand when bought, instead of just peeking at it (see The Special Stocks above).
 
 | Players | Alternate threshold (4 × players) |
 |---------|------------------------------------|

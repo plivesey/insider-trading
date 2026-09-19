@@ -1,8 +1,8 @@
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { loadCards, type GameState } from '@insider-trading/shared';
+import { loadCards, type GameState, type GameVariant, type StockCard } from '@insider-trading/shared';
 import { createGameState } from '../../src/domain/setup.js';
-import { sellStock, payBank, currentPlayer } from '../../src/engine/turn.js';
+import { sellStock, payBank, currentPlayer, resolveStockSpecialOnBuy } from '../../src/engine/turn.js';
 import { startAuction, bid, pass } from '../../src/engine/auction.js';
 import { advance } from '../../src/engine/advance.js';
 import { loanPenaltyFor } from '../../src/engine/scoring.js';
@@ -17,7 +17,7 @@ const catalog = loadCards(CARDS_DIR);
  * tests exercise turn/auction/sell mechanics, not the draft itself -- that
  * has its own dedicated test file, setupDraft.test.ts).
  */
-function mkState(seed = 1): GameState {
+function mkState(seed = 1, variant: GameVariant = 'classic'): GameState {
   const state = createGameState({
     catalog,
     players: [
@@ -27,7 +27,8 @@ function mkState(seed = 1): GameState {
     ],
     seed,
     gameId: 'g',
-    startedAt: '2026-01-01T00:00:00.000Z'
+    startedAt: '2026-01-01T00:00:00.000Z',
+    variant
   });
   state.turnPhase = 'awaiting_turn_action';
   return state;
@@ -288,5 +289,45 @@ describe('preferred bidder tie-break', () => {
     startAuction(state, me.playerId, card.uid, 5);
     const r = bid(state, next.playerId, 5);
     expect(r.ok).toBe(false);
+  });
+});
+
+describe('Scout special stock (peek_buy)', () => {
+  function scoutStock(): StockCard {
+    return catalog.stocks.find(s => s.type === 'peek_buy')! as StockCard;
+  }
+
+  it('Classic: peeks the top event card via a prompt, does not touch the event deck or hand', () => {
+    const state = mkState(1, 'classic');
+    const buyer = currentPlayer(state);
+    const eventDeckBefore = state.eventDeck.length;
+    const handBefore = buyer.hand.length;
+    resolveStockSpecialOnBuy(state, buyer, scoutStock(), []);
+    const prompt = state.pendingPrompts[buyer.playerId];
+    expect(prompt?.type).toBe('peek_ack');
+    expect(state.eventDeck.length).toBe(eventDeckBefore);
+    expect(buyer.hand.length).toBe(handBefore);
+  });
+
+  it('Alternate: gains the top event card into hand instead of peeking', () => {
+    const state = mkState(1, 'alternate');
+    const buyer = currentPlayer(state);
+    const topBefore = state.eventDeck[0];
+    const eventDeckBefore = state.eventDeck.length;
+    const events: any[] = [];
+    resolveStockSpecialOnBuy(state, buyer, scoutStock(), events);
+    expect(state.pendingPrompts[buyer.playerId]).toBeNull();
+    expect(state.eventDeck.length).toBe(eventDeckBefore - 1);
+    expect(buyer.hand.find(c => c.uid === topBefore.uid)).toBeTruthy();
+    expect(events.some(e => e.type === 'special_scout_gain')).toBe(true);
+  });
+
+  it('Alternate: fizzles gracefully if the event deck is empty', () => {
+    const state = mkState(1, 'alternate');
+    const buyer = currentPlayer(state);
+    state.eventDeck = [];
+    const events: any[] = [];
+    resolveStockSpecialOnBuy(state, buyer, scoutStock(), events);
+    expect(events.some(e => e.type === 'special_scout_empty')).toBe(true);
   });
 });

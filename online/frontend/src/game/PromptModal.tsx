@@ -63,6 +63,7 @@ export function PromptModal({ prompt, state }: Props) {
                   card={c as any}
                   onClick={() => send({ keepUid: c.uid })}
                   goalContext="hand"
+                  variant={state.variant}
                 />
               ))}
             </div>
@@ -335,6 +336,7 @@ export function PromptModal({ prompt, state }: Props) {
                   onClick={() => toggle(d.uid)}
                   className={kept.includes(d.uid) ? 'card-tile--selected' : ''}
                   goalContext="hand"
+                  variant={state.variant}
                 />
               ))}
             </div>
