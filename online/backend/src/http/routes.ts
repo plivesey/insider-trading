@@ -3,8 +3,10 @@ import type {
   AuctionBidRequest,
   FreeActionApiRequest,
   GameLogEntry,
+  GameVariant,
   JoinRequest,
   PromptResponseRequest,
+  StartRequest,
   StateResponse,
   TurnActionRequest
 } from '@insider-trading/shared';
@@ -49,8 +51,10 @@ export function createRouter(hub: ServerHub): Router {
     return res.json({ playerId: result.playerId, name: result.name });
   });
 
-  r.post('/start', async (_req, res) => {
-    const r2 = await hub.startGame(undefined);
+  r.post('/start', async (req, res) => {
+    const body = req.body as StartRequest | undefined;
+    const variant: GameVariant = body?.variant === 'alternate' ? 'alternate' : 'classic';
+    const r2 = await hub.startGame(undefined, variant);
     if (!r2.ok) return fail(res, 400, r2.error ?? 'cannot start');
     // Game just started; if any bot got the first turn, give it a kick.
     kickBots(hub);

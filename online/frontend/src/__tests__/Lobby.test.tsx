@@ -68,7 +68,7 @@ describe('Lobby', () => {
     await waitFor(() => expect(screen.getByText('name taken')).toBeInTheDocument());
   });
 
-  it('calls api.start when Start Game clicked', async () => {
+  it('calls api.start with "classic" by default when Start Game clicked', async () => {
     mockedApi.start.mockResolvedValue({ ok: true });
     const state = {
       mode: 'lobby' as const,
@@ -80,6 +80,22 @@ describe('Lobby', () => {
     };
     render(<Lobby state={state} myName="Alice" />);
     fireEvent.click(screen.getByRole('button', { name: /Start Game/ }));
-    await waitFor(() => expect(mockedApi.start).toHaveBeenCalled());
+    await waitFor(() => expect(mockedApi.start).toHaveBeenCalledWith('classic'));
+  });
+
+  it('calls api.start with "alternate" once that ruleset is selected', async () => {
+    mockedApi.start.mockResolvedValue({ ok: true });
+    const state = {
+      mode: 'lobby' as const,
+      lobby: [
+        { playerId: 'p1', name: 'Alice', connected: true },
+        { playerId: 'p2', name: 'Bob', connected: true }
+      ],
+      canStart: true
+    };
+    render(<Lobby state={state} myName="Alice" />);
+    fireEvent.change(screen.getByRole('combobox'), { target: { value: 'alternate' } });
+    fireEvent.click(screen.getByRole('button', { name: /Start Game/ }));
+    await waitFor(() => expect(mockedApi.start).toHaveBeenCalledWith('alternate'));
   });
 });

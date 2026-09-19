@@ -37,12 +37,13 @@ export function CardTile({
       ? 'ind-bonus'
       : 'ind-action';
   const isBonus = card.category === 'bonus';
+  const inert = !onClick;
   return (
     <div
-      className={`card-tile ${indClass}${isBonus ? ' card-tile--bonus' : ''} ${className}`.trim()}
-      onClick={isBonus ? undefined : onClick}
-      role={onClick && !isBonus ? 'button' : undefined}
-      tabIndex={onClick && !isBonus ? 0 : -1}
+      className={`card-tile ${indClass}${isBonus ? ' card-tile--bonus' : ''}${inert ? ' card-tile--inert' : ''} ${className}`.trim()}
+      onClick={onClick}
+      role={onClick ? 'button' : undefined}
+      tabIndex={onClick ? 0 : -1}
     >
       {card.category === 'stock' && <StockBody card={card as StockCard} />}
       {card.category === 'action' && <ActionBody card={card as ActionCard} />}
@@ -110,9 +111,6 @@ function TipBody({ card }: { card: InsiderTipCard }) {
   return (
     <>
       <div className="card-tile__action-tag">Market Movement · {tagLabel}</div>
-      <div className="card-tile__art card-tile__art--action">
-        <span className="card-tile__art-label">event</span>
-      </div>
       <div className="card-tile__name">Market Movement</div>
       <div className="card-tile__desc">{relabelColors(card.text)}</div>
     </>
@@ -126,9 +124,6 @@ function GoalBody({ card, context }: { card: GoalCard; context: 'row' | 'hand' }
       <div className={`card-tile__action-tag ${isPrivate ? 'card-tile__action-tag--private' : 'card-tile__action-tag--public'}`}>
         {isPrivate ? 'Secret Goal' : 'Goal'}
       </div>
-      <div className="card-tile__art card-tile__art--action">
-        <span className="card-tile__art-label">{isPrivate ? 'only you' : 'anyone'}</span>
-      </div>
       <div className="card-tile__name">{relabelColors(card.goal.text)}</div>
       <div className="card-tile__desc">{relabelColors(card.reward.text)}</div>
     </>
@@ -138,10 +133,7 @@ function GoalBody({ card, context }: { card: GoalCard; context: 'row' | 'hand' }
 function BonusBody({ card }: { card: BonusCard }) {
   return (
     <>
-      <div className="card-tile__action-tag">Sealed Bonus</div>
-      <div className="card-tile__art card-tile__art--action">
-        <span className="card-tile__art-label">game end only</span>
-      </div>
+      <div className="card-tile__action-tag">Sealed Bonus · Game End Only</div>
       <div className="card-tile__name">{card.name}</div>
       <div className="card-tile__desc">{relabelColors(card.description)}</div>
       <div className="card-tile__seal">Never played · scores automatically</div>

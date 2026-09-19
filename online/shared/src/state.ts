@@ -66,7 +66,8 @@ export type PromptType =
   | 'setup_draft_pick' // pass-and-draft setup: keep 1 of N, pass the rest left
   | 'foresight_reorder' // look at top 4 event cards, reorder / optionally bury 1
   | 'backroom_deal_pick_own_card' // Backroom Deal step 1: pick a card from your own hand
-  | 'double_down_pick_card'; // Double Down: pick a different single-use action card in hand to resolve twice
+  | 'double_down_pick_card' // Double Down: pick a different single-use action card in hand to resolve twice
+  | 'final_goal_offer'; // game-ending final call: claim a currently-completable goal before scoring, or skip
 
 export interface PromptEnvelope {
   promptId: string;
@@ -140,7 +141,9 @@ export type TurnPhase =
   | 'awaiting_turn_action'
   | 'in_auction'
   | 'awaiting_dice_bag_draw'
-  | 'turn_complete';
+  | 'turn_complete'
+  /** Progress threshold reached; waiting on final-goal-offer prompts before the game actually ends. */
+  | 'game_ending';
 
 export interface GameState {
   gameId: string;
@@ -193,7 +196,20 @@ export interface GameState {
    * the default ruleset (see DEFAULT_RULES / createGameState).
    */
   rules?: RulesConfig;
+  /** Which setup variant this game was created under. See GameVariant. */
+  variant: GameVariant;
 }
+
+/**
+ * Selectable game-setup ruleset, chosen when a game is started.
+ * - `classic`: the shipped V5 setup (24-card starter deck, combined
+ *   event+starter draft pile, full 15-card action pool minus the global cuts
+ *   below).
+ * - `alternate`: leaner setup (8-card basic-stock-only starter deck dealt 1
+ *   per player, event-deck-only draft, 3 starter actions promoted into the
+ *   Market Deck, no hidden bonus cards, flat 4x-players progress threshold).
+ */
+export type GameVariant = 'classic' | 'alternate';
 
 /**
  * Game-balance rule knobs for V5's still-being-playtested numbers (see
@@ -203,19 +219,35 @@ export interface GameState {
 export interface RulesConfig {
   /** How many goal cards to reveal face-up at setup, before the rest of the event deck is reshuffled. */
   initialGoalRevealCount: number;
-  /** Progress-tracker threshold = numPlayers * this value. A placeholder linear formula -- see v5_tuning_notes.md item 2. */
+  /** Progress-tracker threshold = numPlayers * progressThresholdPerPlayer + progressThresholdBase. A placeholder linear formula -- see v5_tuning_notes.md item 2. */
   progressThresholdPerPlayer: number;
+  /** Flat offset added to the per-player scaling above. */
+  progressThresholdBase: number;
 }
 
-/** The live, shipped ruleset. */
+/** The live, shipped Classic ruleset. 2p:8, 3p:11, 4p:14, 5p:17, 6p:20. */
 export const DEFAULT_RULES: RulesConfig = {
   initialGoalRevealCount: 4,
-  progressThresholdPerPlayer: 4
+  progressThresholdPerPlayer: 3,
+  progressThresholdBase: 2
+};
+
+/** Alternate: same goal-reveal count as Classic, but a flat 4x-players threshold (no base offset). 2p:8, 3p:12, 4p:16, 5p:20, 6p:24. */
+export const ALTERNATE_DEFAULT_RULES: RulesConfig = {
+  ...DEFAULT_RULES,
+  progressThresholdPerPlayer: 4,
+  progressThresholdBase: 0
+};
+
+/** Default rules for each selectable variant -- `createGameState` starts from this, then applies any `input.rules` override on top. */
+export const VARIANT_DEFAULT_RULES: Record<GameVariant, RulesConfig> = {
+  classic: DEFAULT_RULES,
+  alternate: ALTERNATE_DEFAULT_RULES
 };
 
 /** Computes the progress-tracker threshold for a given player count under the given rules. */
 export function computeProgressThreshold(numPlayers: number, rules: RulesConfig): number {
-  return numPlayers * rules.progressThresholdPerPlayer;
+  return numPlayers * rules.progressThresholdPerPlayer + rules.progressThresholdBase;
 }
 
 /**
@@ -254,6 +286,7 @@ export interface ProjectedGameState {
   gameId: string;
   startedAt: string;
   version: 5;
+  variant: GameVariant;
   status: 'in_progress' | 'finished';
   stockPrices: StockPrices;
   currentPlayerIndex: number;

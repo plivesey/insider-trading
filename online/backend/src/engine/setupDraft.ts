@@ -10,7 +10,16 @@ import { event } from './events.js';
 export function beginDraft(state: GameState, events: GameLogEntry[]): void {
   const hands: Record<PlayerId, HandCard[]> = {};
   for (const p of state.players) {
-    hands[p.playerId] = p.hand.splice(0, p.hand.length);
+    // Alternate's guaranteed starter stock is dealt directly into `hand` at
+    // setup (so it's visible to the player immediately) but is never part of
+    // the draft pool -- leave it in place and only sweep the rest.
+    const keep: HandCard[] = [];
+    const draftable: HandCard[] = [];
+    for (const c of p.hand) {
+      (c.uid.startsWith('alt-starter-stock-') ? keep : draftable).push(c);
+    }
+    p.hand = keep;
+    hands[p.playerId] = draftable;
   }
   state.draft = { round: 1, hands };
   issueDraftPrompts(state, events);
@@ -29,9 +38,10 @@ function issueDraftPrompts(state: GameState, events: GameLogEntry[]): void {
       {
         round: draft.round,
         candidateUids: candidates.map(c => c.uid),
-        // Full card objects too (not just uids) -- during the draft a
-        // player's `hand` is empty (candidates live only in state.draft,
-        // which isn't part of the client projection), so the client has no
+        // Full card objects too (not just uids) -- during the draft, a
+        // player's `hand` holds at most their Alternate starter stock (if
+        // any); the draft candidates themselves live only in state.draft,
+        // which isn't part of the client projection, so the client has no
         // other way to know what these cards actually are. Safe to include
         // in full: this prompt is only ever delivered to the one player it
         // belongs to.
@@ -113,5 +123,5 @@ function rotateAndAdvanceRound(state: GameState, events: GameLogEntry[]): void {
 function finishDraft(state: GameState, events: GameLogEntry[]): void {
   state.draft = null;
   state.turnPhase = 'awaiting_turn_action';
-  events.push(event('draft_complete', 'Setup draft complete -- every player holds a hand of 3', {}));
+  events.push(event('draft_complete', 'Setup draft complete', {}));
 }

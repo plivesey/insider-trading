@@ -25,7 +25,7 @@ export type ActionEffect =
   | { type: 'tie_breaker' }
   | { type: 'steal_stock' }
   | { type: 'adjust_all_stocks'; amount: number }
-  | { type: 'draw_tip' }
+  | { type: 'draw_tip'; count?: number }
   | { type: 'broker_discount'; color: Color }
   | { type: 'fire_sale' }
   | { type: 'first_look' }
@@ -53,12 +53,13 @@ export interface InsiderTipCard {
   category: 'insider_tip';
   uid: string;
   id: number;
-  type: 'crash' | 'surge' | 'slump';
+  /** 'shift' is the same `adjust` effect shape as 'slump', just one color up and one down instead of both down. */
+  type: 'crash' | 'surge' | 'slump' | 'shift';
   text: string;
   effect: InsiderTipEffect;
 }
 
-export type GoalRequirementType = 'pair' | 'three_of_a_kind' | 'two_pair';
+export type GoalRequirementType = 'pair' | 'three_of_a_kind' | 'two_pair' | 'four_of_a_kind' | 'full_spread';
 
 export type GoalReward =
   | { type: 'gain_cash'; amount: number }
@@ -80,7 +81,7 @@ export interface GoalCard {
   category: 'goal';
   uid: string;
   id: number;
-  difficulty: 'easy' | 'hard';
+  difficulty: 'easy' | 'medium' | 'hard' | 'very_hard';
   goal: {
     text: string;
     parsed: {

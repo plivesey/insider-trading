@@ -1,16 +1,5 @@
 [
   {
-    "id": 1,
-    "name": "Tipster's Choice",
-    "description": "Draw 2 cards, keep 1, return the other to the bottom.",
-    "persistent": false,
-    "effect": {
-      "type": "draw_and_choose",
-      "drawCount": 2,
-      "keepCount": 1
-    }
-  },
-  {
     "id": 7,
     "name": "Liquidation",
     "description": "Sell any number of stocks of a single color; gain +$1 per stock sold.",
@@ -37,26 +26,6 @@
     "effect": {
       "type": "sell_double",
       "count": 1
-    }
-  },
-  {
-    "id": 4,
-    "name": "The Squeeze",
-    "description": "Raise one stock +2, or lower one stock -2.",
-    "persistent": false,
-    "effect": {
-      "type": "adjust_stock",
-      "amount": 2
-    }
-  },
-  {
-    "id": 5,
-    "name": "Wild Speculation",
-    "description": "Reveal the top deck card to the bottom. If colored, raise or lower that color by 3; if not, reveal again.",
-    "persistent": false,
-    "effect": {
-      "type": "flip_and_adjust",
-      "amount": 3
     }
   },
   {
@@ -90,19 +59,11 @@
   {
     "id": 10,
     "name": "Insider Source",
-    "description": "Draw the top Insider Tip into your hand; play it as a free action anytime.",
+    "description": "Draw the top 2 cards of the event deck into your hand; play each as a free action anytime.",
     "persistent": false,
     "effect": {
-      "type": "draw_tip"
-    }
-  },
-  {
-    "id": 11,
-    "name": "Insider Source",
-    "description": "Draw the top Insider Tip into your hand; play it as a free action anytime.",
-    "persistent": false,
-    "effect": {
-      "type": "draw_tip"
+      "type": "draw_tip",
+      "count": 2
     }
   },
   {

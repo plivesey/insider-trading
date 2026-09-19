@@ -1,14 +1,14 @@
 const data = require('../cards/goal_cards.json');
 
 const VALID_COLORS = ['Blue', 'Orange', 'Green', 'Purple'];
-const VALID_DIFFICULTIES = ['easy', 'hard'];
-const VALID_GOAL_TYPES = ['pair', 'three_of_a_kind', 'two_pair'];
+const VALID_DIFFICULTIES = ['easy', 'medium', 'hard', 'very_hard'];
+const VALID_GOAL_TYPES = ['pair', 'three_of_a_kind', 'two_pair', 'four_of_a_kind', 'full_spread'];
 
 describe('Goal Cards', () => {
   const cards = data.cards;
 
-  test('should have exactly 14 cards', () => {
-    expect(cards).toHaveLength(14);
+  test('should have exactly 19 cards', () => {
+    expect(cards).toHaveLength(19);
   });
 
   test('should have unique ids', () => {
@@ -84,9 +84,9 @@ describe('Goal Cards', () => {
     }
   });
 
-  test('should have 14 unique rewards', () => {
+  test('should have 16 unique rewards (the 4 Four of a Kind goals share one reward text by design)', () => {
     const rewardTexts = cards.map(c => c.reward.text);
-    expect(new Set(rewardTexts).size).toBe(14);
+    expect(new Set(rewardTexts).size).toBe(16);
   });
 
   test('pair goals should have difficulty easy', () => {
@@ -105,7 +105,21 @@ describe('Goal Cards', () => {
     }
   });
 
-  test('should have 4 pairs, 4 three-of-a-kind, and 6 two-pair goals', () => {
+  test('full_spread goals should have difficulty medium', () => {
+    const fullSpreads = cards.filter(c => c.goal.parsed.type === 'full_spread');
+    for (const card of fullSpreads) {
+      expect(card.difficulty).toBe('medium');
+    }
+  });
+
+  test('four_of_a_kind goals should have difficulty very_hard', () => {
+    const fours = cards.filter(c => c.goal.parsed.type === 'four_of_a_kind');
+    for (const card of fours) {
+      expect(card.difficulty).toBe('very_hard');
+    }
+  });
+
+  test('should have 4 pairs, 4 three-of-a-kind, 6 two-pair, 4 four-of-a-kind, and 1 full-spread goal', () => {
     const typeCounts = {};
     for (const card of cards) {
       const type = card.goal.parsed.type;
@@ -114,6 +128,8 @@ describe('Goal Cards', () => {
     expect(typeCounts['pair']).toBe(4);
     expect(typeCounts['three_of_a_kind']).toBe(4);
     expect(typeCounts['two_pair']).toBe(6);
+    expect(typeCounts['four_of_a_kind']).toBe(4);
+    expect(typeCounts['full_spread']).toBe(1);
   });
 
   test('should have one pair per color', () => {
@@ -126,6 +142,23 @@ describe('Goal Cards', () => {
     const threes = cards.filter(c => c.goal.parsed.type === 'three_of_a_kind');
     const threeColors = threes.map(c => Object.keys(c.goal.parsed.requirements)[0]);
     expect(threeColors.sort()).toEqual([...VALID_COLORS].sort());
+  });
+
+  test('should have one four-of-a-kind per color, requiring 4', () => {
+    const fours = cards.filter(c => c.goal.parsed.type === 'four_of_a_kind');
+    const fourColors = fours.map(c => Object.keys(c.goal.parsed.requirements)[0]);
+    expect(fourColors.sort()).toEqual([...VALID_COLORS].sort());
+    for (const card of fours) {
+      expect(Object.values(card.goal.parsed.requirements)).toEqual([4]);
+    }
+  });
+
+  test('full_spread should require exactly 1 of each of the 4 colors', () => {
+    const fullSpreads = cards.filter(c => c.goal.parsed.type === 'full_spread');
+    expect(fullSpreads).toHaveLength(1);
+    const reqs = fullSpreads[0].goal.parsed.requirements;
+    expect(Object.keys(reqs).sort()).toEqual([...VALID_COLORS].sort());
+    for (const qty of Object.values(reqs)) expect(qty).toBe(1);
   });
 
   test('should have all 6 possible two-pair color combinations', () => {

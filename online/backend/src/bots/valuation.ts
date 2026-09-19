@@ -429,9 +429,10 @@ function actionCardBaseValue(
       // Rumor Mill: max(floor, count of bot's colored stocks).
       return Math.max(p.adjustAllFloor, ownedColoredStockCount(state, botId));
     case 'draw_tip':
-      // Insider Source: knowing/holding the next event card lets the bot react
-      // (or gains a private goal); valuable but not dramatically so.
-      return state.eventDeck.length > 0 ? p.drawTipValue : 0;
+      // Insider Source: knowing/holding the next event card(s) lets the bot
+      // react (or gains a private goal); valuable but not dramatically so.
+      // Scales with the card's draw count (2 in the shipped pool).
+      return state.eventDeck.length > 0 ? p.drawTipValue * (card.effect.count ?? 1) : 0;
     case 'fire_sale': {
       let best = 0;
       for (const c of state.market) {
@@ -451,7 +452,7 @@ function actionCardBaseValue(
       return 5;
     case 'market_panic':
       // Mostly hurts others rather than directly helping self; discount it.
-      return Math.max(0, Math.floor(3 * Math.max(0, state.players.length - 1) * 0.5));
+      return Math.max(0, Math.floor(4 * Math.max(0, state.players.length - 1) * 0.5));
     case 'backroom_deal': {
       let bestMarket = 0;
       for (const c of state.market) {
@@ -501,7 +502,7 @@ function actionCardBaseValue(
           }
         }
       }
-      return Math.max(0, bestOther - 2);
+      return bestOther;
     }
   }
 }

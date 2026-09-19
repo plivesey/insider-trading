@@ -1,8 +1,8 @@
 const cards = require('../cards/action_cards.json');
 
 describe('Action Cards', () => {
-  test('should have exactly 15 cards', () => {
-    expect(cards).toHaveLength(15);
+  test('should have exactly 11 cards', () => {
+    expect(cards).toHaveLength(11);
   });
 
   test('should have unique ids', () => {
@@ -10,11 +10,10 @@ describe('Action Cards', () => {
     expect(new Set(ids).size).toBe(ids.length);
   });
 
-  test('names are unique except for duplicates explicitly allowed in the deck', () => {
-    // Insider Source has two copies by design.
+  test('names are unique', () => {
     const names = cards.map(c => c.name);
-    const duplicates = names.filter((n, i) => names.indexOf(n) !== i).sort();
-    expect(duplicates).toEqual(['Insider Source']);
+    const duplicates = names.filter((n, i) => names.indexOf(n) !== i);
+    expect(duplicates).toEqual([]);
   });
 
   test('should have required fields on every card', () => {
@@ -35,9 +34,9 @@ describe('Action Cards', () => {
     expect(persistent).toHaveLength(5);
   });
 
-  test('should have exactly 10 single-use cards', () => {
+  test('should have exactly 6 single-use cards', () => {
     const singleUse = cards.filter(c => c.persistent === false);
-    expect(singleUse).toHaveLength(10);
+    expect(singleUse).toHaveLength(6);
   });
 
   test('the persistent cards should be Preferred Bidder and the 4 Brokers', () => {
@@ -56,10 +55,17 @@ describe('Action Cards', () => {
     expect(cards.find(c => c.effect.type === 'auction_unused_tip')).toBeUndefined();
   });
 
-  test('should include two Insider Source cards (draw_tip)', () => {
+  test('should include exactly one Insider Source card that draws 2 (draw_tip)', () => {
     const draw = cards.filter(c => c.effect.type === 'draw_tip');
-    expect(draw).toHaveLength(2);
-    expect(draw.every(c => c.name === 'Insider Source')).toBe(true);
+    expect(draw).toHaveLength(1);
+    expect(draw[0].name).toBe('Insider Source');
+    expect(draw[0].effect.count).toBe(2);
+  });
+
+  test('Tipster\'s Choice, The Squeeze, and Wild Speculation should no longer exist', () => {
+    for (const name of ["Tipster's Choice", 'The Squeeze', 'Wild Speculation']) {
+      expect(cards.find(c => c.name === name)).toBeUndefined();
+    }
   });
 
   test('should include exactly one Broker card per color', () => {

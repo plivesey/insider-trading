@@ -164,3 +164,62 @@ describe('bot full-game integration', () => {
     30_000 // longer timeout for full-game simulation
   );
 });
+
+describe('bot full-game integration -- Alternate variant', () => {
+  // Note: seed 1234 at 6 players hits total card exhaustion (market, main
+  // deck, AND discard all simultaneously empty -- a true deadlock, not just
+  // slowness) -- a separate, pre-existing engine gap unrelated to this
+  // variant; see v5_tuning_notes.md item 14. Avoided here rather than fixed,
+  // since it needs an actual rules decision.
+  const ALT_SEEDS = [1, 2, 24601];
+
+  it.each(PLAYER_COUNTS.flatMap(n => ALT_SEEDS.map(seed => [n, seed] as const)))(
+    'completes a %i-bot Alternate game with seed %i',
+    (n, seed) => {
+      const players = botPlayers(n);
+      const state = createGameState({
+        catalog,
+        players,
+        seed,
+        gameId: `alt-g-${n}p-${seed}`,
+        startedAt: '2026-01-01T00:00:00.000Z',
+        variant: 'alternate'
+      });
+      expect(state.variant).toBe('alternate');
+      const botRng = makeRng((seed * 2 + 1) | 0);
+      const profiles = new Map<PlayerId, BotProfile>();
+      for (const p of players) profiles.set(p.playerId, createBotProfile(botRng));
+      const tickRng = makeRng((seed * 4 + 7) | 0);
+      // Alternate's progress threshold (4x players) runs ~20% higher than
+      // Classic's (3x players + 2) at 6 players, and Classic 6p games were
+      // already observed needing up to ~19,000 ticks (see the comment on
+      // driveBotGame) -- give Alternate proportionally more headroom.
+      const { ticks } = driveBotGame(state, profiles, tickRng, 45_000);
+      expect(state.gameOver).not.toBeNull();
+      expect(ticks).toBeGreaterThan(0);
+      assertGameOverInvariants(state);
+      // No Classic-only starter actions/bonus cards should ever have entered play.
+      const forbiddenNames = new Set([
+        'First Look',
+        'Fire Sale',
+        'Windfall',
+        'Market Panic',
+        'Nest Egg',
+        'Portfolio',
+        'Trophy Case',
+        'Clean Ledger',
+        'Easy Credit'
+      ]);
+      const everywhere = [
+        ...state.market,
+        ...state.mainDeck,
+        ...state.discardPile,
+        ...state.players.flatMap(p => [...p.hand, ...p.persistentEffects])
+      ];
+      for (const c of everywhere) {
+        if ('name' in c && c.name) expect(forbiddenNames.has(c.name)).toBe(false);
+      }
+    },
+    60_000
+  );
+});

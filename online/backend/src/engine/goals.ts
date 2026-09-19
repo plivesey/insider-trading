@@ -145,7 +145,7 @@ export function claimPrivateGoal(
 }
 
 /** Find a valid stock assignment for `requirements` from `player`'s hand, or null if unsatisfiable. */
-function autoSatisfyAssignment(
+export function autoSatisfyAssignment(
   player: PlayerPrivate,
   requirements: Partial<Record<Color, number>>
 ): StockAssignment | null {
@@ -457,4 +457,54 @@ export function describeEventCardForPrompt(card: { category: string }): Record<s
   }
   const g = card as GoalCard;
   return { uid: g.uid, kind: 'goal', text: `${g.goal.text} → ${g.reward.text}` };
+}
+
+export interface FinalGoalOffer {
+  playerId: string;
+  goalUid: string;
+  isPrivate: boolean;
+  goalText: string;
+  rewardText: string;
+}
+
+/**
+ * Scan every player for a goal (public or private) they can complete right
+ * now, for the end-of-game "claim before scoring" offer (rules.md: the game
+ * shouldn't end mid-turn and cut a player off from a goal their own auction
+ * just made claimable). At most one offer per player -- public goals checked
+ * first, then private -- to keep the final round bounded and simple.
+ */
+export function collectFinalGoalOffers(state: GameState): FinalGoalOffer[] {
+  const offers: FinalGoalOffer[] = [];
+  for (const player of state.players) {
+    for (const goal of state.goalRow) {
+      if (autoSatisfyAssignment(player, goal.goal.parsed.requirements)) {
+        offers.push({
+          playerId: player.playerId,
+          goalUid: goal.uid,
+          isPrivate: false,
+          goalText: goal.goal.text,
+          rewardText: goal.reward.text
+        });
+        break;
+      }
+    }
+  }
+  for (const player of state.players) {
+    if (offers.some(o => o.playerId === player.playerId)) continue;
+    for (const card of player.hand) {
+      if (card.category !== 'goal') continue;
+      if (autoSatisfyAssignment(player, card.goal.parsed.requirements)) {
+        offers.push({
+          playerId: player.playerId,
+          goalUid: card.uid,
+          isPrivate: true,
+          goalText: card.goal.text,
+          rewardText: card.reward.text
+        });
+        break;
+      }
+    }
+  }
+  return offers;
 }

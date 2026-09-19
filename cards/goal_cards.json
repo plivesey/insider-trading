@@ -223,6 +223,86 @@
         "text": "At the end of the game, gain $11",
         "parsed": { "type": "end_game_cash", "amount": 11 }
       }
+    },
+    {
+      "id": 15,
+      "difficulty": "very_hard",
+      "title": "Steel Empire",
+      "goal": {
+        "text": "4 Blue",
+        "parsed": {
+          "type": "four_of_a_kind",
+          "requirements": { "Blue": 4 }
+        }
+      },
+      "reward": {
+        "text": "Gain $12",
+        "parsed": { "type": "gain_cash", "amount": 12 }
+      }
+    },
+    {
+      "id": 16,
+      "difficulty": "very_hard",
+      "title": "Oil Empire",
+      "goal": {
+        "text": "4 Orange",
+        "parsed": {
+          "type": "four_of_a_kind",
+          "requirements": { "Orange": 4 }
+        }
+      },
+      "reward": {
+        "text": "Gain $12",
+        "parsed": { "type": "gain_cash", "amount": 12 }
+      }
+    },
+    {
+      "id": 17,
+      "difficulty": "very_hard",
+      "title": "Rail Empire",
+      "goal": {
+        "text": "4 Green",
+        "parsed": {
+          "type": "four_of_a_kind",
+          "requirements": { "Green": 4 }
+        }
+      },
+      "reward": {
+        "text": "Gain $12",
+        "parsed": { "type": "gain_cash", "amount": 12 }
+      }
+    },
+    {
+      "id": 18,
+      "difficulty": "very_hard",
+      "title": "Banking Empire",
+      "goal": {
+        "text": "4 Purple",
+        "parsed": {
+          "type": "four_of_a_kind",
+          "requirements": { "Purple": 4 }
+        }
+      },
+      "reward": {
+        "text": "Gain $12",
+        "parsed": { "type": "gain_cash", "amount": 12 }
+      }
+    },
+    {
+      "id": 19,
+      "difficulty": "medium",
+      "title": "Diversified Holdings",
+      "goal": {
+        "text": "1 Blue + 1 Orange + 1 Green + 1 Purple",
+        "parsed": {
+          "type": "full_spread",
+          "requirements": { "Blue": 1, "Orange": 1, "Green": 1, "Purple": 1 }
+        }
+      },
+      "reward": {
+        "text": "Gain $6",
+        "parsed": { "type": "gain_cash", "amount": 6 }
+      }
     }
   ]
 }

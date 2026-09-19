@@ -13,26 +13,33 @@ A strategic trading and market-manipulation game for 2-6 players set in the 1920
 
 ---
 
-## Components (111 cards + 6 dice)
+## Components (124 cards + 6 dice)
 
-### Market Deck (51 cards)
+> Everything below describes the **Classic** setup variant. A second selectable
+> **Alternate** variant exists with a different starter deck, initial-hand
+> draft, and action-card pool — see **Alternate Setup Variant** below for the
+> deltas from Classic.
+
+### Market Deck (47 cards, Classic)
 - **36 stock cards:** 32 colored (8 each of **Blue** [Steel], **Orange** [Oil], **Green** [Rail], **Purple** [Bank] — 4 blank + 4 special per color) + **4 Wild Share** cards (colorless).
-- **15 action cards:** one-shot and persistent powers (11 carried over from V4 + 4 new persistent Broker cards, see Action Cards).
+- **11 action cards:** one-shot and persistent powers, see Action Cards. (The Alternate variant uses a 50-card Market Deck with 14 action cards instead — see Alternate Setup Variant.)
 - Shuffled together into one face-down deck; auctioned during play exactly as in V4.
 
 > **Changed in V5:** the fourth stock color is now **Green** (Rail-themed), replacing V4's Yellow.
 
-### Event Deck (30 cards)
+### Event Deck (47 cards)
 The old Insider Tip deck and Goal deck are now **one shuffled deck**:
-- **16 market-movement cards** — 8 crash, 4 surge, 4 slump (same as V4's Insider Tips).
-- **14 goal cards** — 4 pair, 4 three-of-a-kind, 6 two-pair (same as V4's goals).
+- **28 market-movement cards** — 12 crash, 4 surge, 6 slump, 6 shift (see Event Deck below for the Shift type).
+- **19 goal cards** — 4 pair, 4 three-of-a-kind, 6 two-pair, 4 four-of-a-kind, 1 full spread (see Goals below).
 
 Cards from this deck can end up **public** (face-up in the goal row, or resolved immediately if a market-movement card) or **private** (held secretly in a player's hand) depending on how they enter play — see Setup and Goals below.
 
-### Starter Deck (24 cards — setup only)
+### Starter Deck (24 cards — setup only, Classic)
 Used only to build starting hands, then **set aside for the rest of the game**:
 - **12 basic stock cards:** 3 each of Blue, Orange, Green, Purple (blank, no special ability — newly printed cards, separate from the Market Deck's stocks).
 - **12 starter action cards**, of two kinds — see Starter Action Cards below.
+
+The Alternate variant uses a different, much smaller 8-card starter deck instead of this one — see Alternate Setup Variant.
 
 ### Loan Cards (6 cards)
 Face-up on the table. Auto-issued when a player can't cover a payment. **Max 2 loans per player**: 1st loan costs **−$12** at game end, 2nd (and final) loan costs **−$14**.
@@ -75,9 +82,11 @@ Each color has one of each of these four special stocks (16 specials total). The
 
 ---
 
-## Starter Action Cards (12)
+## Starter Action Cards (12, Classic)
 
-These 12 cards only exist in the Starter Deck (see Components/Setup) — once drafted into a hand, they behave like any other action card, except for the 5 "hidden" ones noted below. Names are new for V5 and open to change.
+These 12 cards only exist in the Classic Starter Deck (see Components/Setup) — once drafted into a hand, they behave like any other action card, except for the 5 "hidden" ones noted below. Names are new for V5 and open to change.
+
+> In the **Alternate** variant, three of these — **Foresight**, **Backroom Deal**, and **Double Down** — are instead printed as ordinary Market Deck action cards (functionally identical, just reachable by auction instead of the starter draft). The other four playable cards (Fire Sale, First Look, Windfall, Market Panic) and all 5 hidden bonus cards below don't exist in Alternate at all.
 
 **Played normally** — free action, any time, discarded after use:
 
@@ -87,16 +96,16 @@ These 12 cards only exist in the Starter Deck (see Components/Setup) — once dr
 | **First Look** | Draw the top card of the market deck into your hand. |
 | **Foresight** | Look at the top 4 cards of the event deck. Put them back on top in any order; optionally, move one of the 4 to the bottom of the deck instead of keeping all 4 on top. No card leaves the game either way. |
 | **Windfall** | Gain $5 from the bank. |
-| **Market Panic** | Every other player loses $3. A player with less than $3 just drops to $0 — this does **not** trigger a loan. |
+| **Market Panic** | Every other player loses $4. A player with less than $4 just drops to $0 — this does **not** trigger a loan. |
 | **Backroom Deal** | Trade any one card from your hand — a stock, action card, market-movement card, or even a private goal — for any one face-up market card. Your card goes face-up into that market slot and is auctioned normally later like any other market card (the winner takes it into their hand — a private goal or a playable market-movement card, as applicable). Taking the market card this way is a plain swap: no price move, no special ability triggers. Note this exposes the traded card's identity to the whole table, even if it was a private goal. |
-| **Double Down** | Pay $2 to the bank (this can trigger a loan if you can't cover it) — then choose a *different* single-use action card in your hand, resolve its effect **twice**, and discard it. Cannot target a persistent card (Preferred Bidder, a Broker card, etc.) or any of the 5 hidden end-game bonus cards below — none of those are ever "played" in the normal sense. |
+| **Double Down** | Choose a *different* single-use action card in your hand, resolve its effect **twice**, and discard it. Cannot target a persistent card (Preferred Bidder, a Broker card, etc.) or any of the 5 hidden end-game bonus cards below — none of those are ever "played" in the normal sense. |
 
 **Hidden end-game bonus cards** — never played. Keep them secret in your hand for the whole game; each one scores automatically at final wealth calculation (see Determining the Winner) whether or not you ever reveal it beforehand:
 
 | Card | Effect at game end |
 |---|---|
 | **Nest Egg** | Worth a flat **+$7**. |
-| **Portfolio** | **+$2** for every stock card you hold (Wild Shares count). |
+| **Portfolio** | **+$1** for every stock card you hold (Wild Shares count). |
 | **Trophy Case** | **+$3** for every goal you've completed — public or private claims both count; an unclaimed private goal does not. |
 | **Clean Ledger** | **+$10** if you took zero loans the entire game. |
 | **Easy Credit** | Every loan you took costs a flat **−$10** at game end instead of the normal −$12 / −$14. |
@@ -114,12 +123,14 @@ These moves happen on **every** purchase and **every** sale, including sales mad
 
 ---
 
-## Setup
+## Setup (Classic)
 
-1. **Build the market deck:** Shuffle all 36 stock cards and 15 action cards into one **51-card** face-down market deck.
+> See **Alternate Setup Variant** below for the alternate procedure.
+
+1. **Build the market deck:** Shuffle all 36 stock cards and 11 action cards into one **47-card** face-down market deck.
 2. **Reveal the market:** Turn up **5 cards** from the market deck side by side.
 3. **Build the event deck & reveal starting goals:**
-   a. Shuffle all **30 event deck cards** (16 market-movement + 14 goal) together.
+   a. Shuffle all **47 event deck cards** (28 market-movement + 19 goal) together.
    b. Flip cards face-up, one at a time, until **4 goal cards** have come up *(placeholder — may scale with player count later, see `v5_tuning_notes.md`)*. Place those 4 goal cards face-up in the **goal row** — these are the starting public goals.
    c. Gather every other card — the market-movement cards you just flipped through, plus anything still face-down — into a single pile and reshuffle it. This reshuffled pile is **the event deck** for the rest of the game.
 4. **Build the starter deck:** Shuffle the 24 starter deck cards (12 basic stocks + 12 starter actions).
@@ -136,10 +147,29 @@ These moves happen on **every** purchase and **every** sale, including sales mad
 7. **Bank:** Give each player **$25**.
 8. **Prices:** Set all four stock prices to **$4**.
 9. **Loans:** Place the loan cards face-up within reach of all players (max **2 loans per player**).
-10. **Progress tracker:** Set to **0**. The game-end threshold is currently **4 × players** *(placeholder — see Progress Tracker & Game End)*.
+10. **Progress tracker:** Set to **0**. The game-end threshold is currently **3 × players + 2** *(placeholder — see Progress Tracker & Game End)*.
 11. **First player:** Choose randomly. Play proceeds clockwise.
 
 **Players start with $25, a drafted 3-card hand (contents vary by luck of the draft), and zero additional stocks beyond whatever ended up in that hand.**
+
+---
+
+## Alternate Setup Variant
+
+A selectable alternate configuration, chosen when the game is started, alongside Classic. Everything not called out here (turn structure, buying/selling, goals, dice, loans, scoring) is identical to Classic.
+
+- **Starter deck:** just **8 basic stock cards** (2 per color), no starter action cards or hidden bonus cards at all. Shuffle and deal exactly **1** to each player (2-6 players → up to 2 cards go unused; unused cards are permanently removed from the game, same as Classic's leftover starter cards).
+- **Initial hand / draft:** each player is dealt **4 cards** straight from the (already-shuffled) Event Deck — no starter cards mixed in at all. Your guaranteed starter stock (above) is already in your hand and visible from the start; it is never part of the draft. Draft the 4 event cards down to a final hand of 3 using the same pass-one-keep-one procedure as Classic (Setup step 6), so you start play with **4 cards** total (1 stock + 3 drafted), one more than Classic's 3.
+- **Market Deck:** 36 stock cards + **14 action cards** — the same 11 as Classic's Action Cards list, plus **Foresight**, **Backroom Deal**, and **Double Down** (Starter Action Cards in Classic) promoted into the Market Deck here instead. **First Look**, **Fire Sale**, **Windfall**, **Market Panic**, and all 5 hidden end-game bonus cards do not exist in this variant at all.
+- **Progress tracker threshold:** a flat **4 × players** (vs. Classic's 3 × players + 2).
+
+| Players | Alternate threshold (4 × players) |
+|---------|------------------------------------|
+| 2 | 8 |
+| 3 | 12 |
+| 4 | 16 |
+| 5 | 20 |
+| 6 | 24 |
 
 ---
 
@@ -213,44 +243,43 @@ Goal cards can enter play two different ways, and behave differently depending o
 - **Your stocks stay in your hand** after claiming — except any Wild Share used, which is discarded.
 - Each goal card can be claimed once (aside from the simultaneous-public-claim exception above).
 
-**Goal tiers** (unchanged from V4):
-- **Pair** (4 cards): own 2 of one color.
-- **Three of a Kind** (4 cards): own 3 of one color.
-- **Two Pair** (6 cards): own 2 each of two colors.
+**Goal tiers:**
+- **Pair** (4 cards, easy): own 2 of one color.
+- **Full Spread** (1 card, medium): own 1 of each of the 4 colors.
+- **Three of a Kind** (4 cards, hard): own 3 of one color.
+- **Two Pair** (6 cards, hard): own 2 each of two colors.
+- **Four of a Kind** (4 cards, very hard): own 4 of one color.
 
 ---
 
-## Action Cards (15)
+## Action Cards (11, Classic — 14 in Alternate)
 
-These are shuffled into the **market deck** (unlike the Starter Action Cards above, which only live in the Starter Deck).
+These are shuffled into the **market deck** (unlike the Starter Action Cards above, which only live in the Starter Deck). Tipster's Choice, The Squeeze, and Wild Speculation have been removed from the pool entirely, and the two Insider Source copies have been merged into one card that draws 2.
 
 | Card | Effect |
 |------|--------|
-| **Tipster's Choice** | Draw 2 cards from the market deck, keep 1, return the other to the bottom. |
 | **Liquidation** | Sell any number of stocks of a single color; gain **+$1 per stock sold** (each sale still moves that color's price −1 as usual). |
 | **Corner the Market** | Take any one face-up market stock for free (not "bought" — no price move, no ability). |
 | **Pump and Dump** | Sell 1 stock at **double** its current price. (Still a sale: that color falls −1.) |
-| **The Squeeze** | Raise one stock +2, OR lower one stock −2. |
-| **Wild Speculation** | Reveal the top market-deck card and put it on the bottom; if it is a colored stock, raise or lower that color by 3 (your choice). If it has no color, reveal again. |
 | **Preferred Bidder** | **Persistent:** for the rest of the game, when you tie the high bid in an auction, you win the tie. |
 | **Hostile Takeover** | Look at another player's hand and take 1 stock of your choice. They draw the top card of the market deck. |
 | **Rumor Mill** | Adjust every stock by +1 or −1 (choose one direction for each stock). |
-| **Insider Source** ×2 | Draw the top card of the **event deck** into your hand. If it's a market-movement card, play it later at any time as a free action (bumps the progress tracker when played). If it's a goal card, it's now a **private goal** only you can complete, exactly like one drafted at setup. *(Updated for V5's merged deck — the old "if only one tip remains" end-game clause is gone, since deck exhaustion no longer ends the game.)* |
+| **Insider Source** | Draw the **top 2 cards** of the **event deck** into your hand. Each is playable later at any time as a free action if it's a market-movement card, or is now a **private goal** only you can complete if it's a goal card, exactly like one drafted at setup. |
 | **Oil Broker** | New in V5. **Persistent:** once played, pay **$2 less** whenever you win an auction for an Oil (Orange) stock (minimum payment $0). Price still moves +1 and any special ability still triggers as normal — only the amount you pay changes. |
 | **Rail Broker** | New in V5. **Persistent:** once played, pay **$2 less** whenever you win an auction for a Rail (Green) stock (minimum payment $0). |
 | **Steel Broker** | New in V5. **Persistent:** once played, pay **$2 less** whenever you win an auction for a Steel (Blue) stock (minimum payment $0). |
 | **Bank Broker** | New in V5. **Persistent:** once played, pay **$2 less** whenever you win an auction for a Bank (Purple) stock (minimum payment $0). |
 
-Names for the 4 new Broker cards are drafts — open to change.
+Names for the 4 new Broker cards are drafts — open to change. In the Alternate variant, Foresight, Backroom Deal, and Double Down (see Starter Action Cards) are also shuffled into this pool, for 14 total.
 
 ---
 
 ## Event Deck
 
-The 30-card merged deck of market-movement and goal cards. It sits face-down; cards leave it only when drawn — by a dice "draw" face, or by **Insider Source**. It is **never reshuffled**.
+The 47-card merged deck of market-movement and goal cards. It sits face-down; cards leave it only when drawn — by a dice "draw" face, or by **Insider Source**. It is **never reshuffled**.
 
-- **Market-movement cards** (16): 8 Crash ("[Color] halved, round down," 2 per color), 4 Surge ("[Color] +4," 1 per color), 4 Slump ("[Color] −2 / [Color] −2" to two colors — currently only 4 of the 6 possible color pairs are represented, see `v5_tuning_notes.md`).
-- **Goal cards** (14): see Goals above.
+- **Market-movement cards** (28): 12 Crash ("[Color] halved, round down," 3 per color), 4 Surge ("[Color] +4," 1 per color), 6 Slump ("[Color] −2 / [Color] −2" to two colors, all 6 color pairs represented), 6 Shift ("[Color] +2 / [Color] −2" to two colors, all 6 color pairs represented).
+- **Goal cards** (19): see Goals above.
 
 When a card is drawn from this deck (by dice or Insider Source):
 - **Market-movement card:** resolve its effect immediately, then remove it from the game. Bumps the progress tracker by 1.
@@ -268,8 +297,10 @@ V5 replaces the single d6 with a **bag of 6 dice**. At the end of your turn, dra
 |---|---|
 | Bull-heavy A ×2 | Bull, Bull, Bear, Nothing, Nothing, Nothing |
 | Bull-heavy B ×2 | Bull, Bull, Nothing, Nothing, Nothing, Nothing |
-| Mixed-draw C ×1 | Nothing, Nothing, Nothing, Draw 1, Draw 2, Draw 3 |
+| Mixed-draw C ×1 | Nothing, Nothing, Bull, Draw 1, Draw 2, Draw 3 |
 | Draw-heavy D ×1 | Draw 1, Draw 1, Draw 1, Draw 2, Draw 2, Draw 2 |
+
+> **Changed:** Mixed-draw C's third "Nothing" was swapped for a "Bull" to offset the more bearish-leaning expanded Event Deck (more Crash cards, no added Surge — see Event Deck below).
 
 **Face effects:**
 - **Nothing:** no effect.
@@ -289,15 +320,15 @@ A shared tracker starts at **0** and increases by:
 
 **The game ends the instant the tracker reaches its threshold** — the only end condition in V5. Deck exhaustion and "only 2 goals remain" (V4's end conditions) no longer apply.
 
-Threshold is currently a flat **4 × players** *(placeholder — likely to change after playtesting; see `v5_tuning_notes.md`)*:
+Threshold is currently **3 × players + 2** *(placeholder — likely to change after playtesting; see `v5_tuning_notes.md`)*:
 
-| Players | Threshold (4 × players) |
-|---------|--------------------------|
+| Players | Threshold (3 × players + 2) |
+|---------|------------------------------|
 | 2 | 8 |
-| 3 | 12 |
-| 4 | 16 |
-| 5 | 20 |
-| 6 | 24 |
+| 3 | 11 |
+| 4 | 14 |
+| 5 | 17 |
+| 6 | 20 |
 
 The current action/turn finishes resolving fully before the game is declared over — there are no partial resolutions and no final turns beyond that.
 
@@ -333,7 +364,7 @@ When the game ends, each player totals their wealth:
 
 ## Deck Reshuffle
 
-If the **market deck** runs out, shuffle its discard pile to form a new market deck and continue. The **event deck is never reshuffled** — but since the whole 30-card deck is in circulation from the start (rather than a small curated subset like V4's Insider Tip deck), running it dry is expected to be essentially unreachable in a normal game. If it somehow happens, see Dice above.
+If the **market deck** runs out, shuffle its discard pile to form a new market deck and continue. The **event deck is never reshuffled** — but since the whole 47-card deck is in circulation from the start (rather than a small curated subset like V4's Insider Tip deck), running it dry is expected to be essentially unreachable in a normal game. If it somehow happens, see Dice above.
 
 ---
 
@@ -349,7 +380,7 @@ If the **market deck** runs out, shuffle its discard pile to form a new market d
 
 **Prices move:** buy a stock → its color +1; sell a stock → its color −1. (Wild Shares move nothing.)
 
-**Progress tracker:** +1 per market-movement card resolved, +1 per goal completed. **Game ends immediately** when it hits the threshold (placeholder: 4 × players).
+**Progress tracker:** +1 per market-movement card resolved, +1 per goal completed. **Game ends immediately** when it hits the threshold (placeholder: 3 × players + 2).
 
 **Starting conditions:** $25 cash, a drafted 3-card hand (mixed contents), 0 additional stocks; all prices $4; 5 market cards; 4 public goals to start; progress tracker at 0.
 

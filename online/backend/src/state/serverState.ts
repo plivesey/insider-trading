@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { v4 as uuidv4 } from 'uuid';
-import { loadCards, type CardCatalog, type GameLogEntry, type GameState, type LobbyMember, type PlayerId } from '@insider-trading/shared';
+import { loadCards, type CardCatalog, type GameLogEntry, type GameState, type GameVariant, type LobbyMember, type PlayerId } from '@insider-trading/shared';
 import { MutateQueue } from '../domain/mutate.js';
 import { createGameState } from '../domain/setup.js';
 import { advance } from '../engine/advance.js';
@@ -152,7 +152,7 @@ export class ServerHub {
     return entry;
   }
 
-  async startGame(seed?: number): Promise<{ ok: boolean; error?: string }> {
+  async startGame(seed?: number, variant: GameVariant = 'classic'): Promise<{ ok: boolean; error?: string }> {
     if (this.getGame() && !this.getGame()!.gameOver) {
       return { ok: false, error: 'game already in progress' };
     }
@@ -165,7 +165,8 @@ export class ServerHub {
       players: this.lobby.map(p => ({ playerId: p.playerId, name: p.name, isBot: p.isBot })),
       seed: realSeed,
       gameId,
-      startedAt
+      startedAt,
+      variant
     });
     openLog(this.logsDir, gameId, startedAt);
     // Persist the initial game_start log entry so replay starts from a

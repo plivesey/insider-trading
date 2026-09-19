@@ -15,7 +15,7 @@ import type { MutationResult } from '../domain/mutate.js';
 import { event } from './events.js';
 import { setPrompt, hasAnyPendingPrompt } from './prompts.js';
 import { adjustAllStocks, drawFromEventDeck } from './eventDeck.js';
-import { describeEventCardForPrompt } from './goals.js';
+import { collectFinalGoalOffers, describeEventCardForPrompt } from './goals.js';
 import { drawDieFromBag, rollDieFace, nextRng } from './rng.js';
 import { computeBreakdown, selectWinners } from './scoring.js';
 
@@ -203,6 +203,11 @@ export function drawTopOfDeck(
   if (state.mainDeck.length === 0) return null;
   const card = state.mainDeck.shift()!;
   player.hand.push(card);
+  // The reshuffle above (if it ran) can hand the market a lifeline it has no
+  // other way to notice: once market hits 0, no auction/Fire Sale/Corner the
+  // Market is possible to trigger a refill, so a starved market can only
+  // recover via cards freshly entering mainDeck like this.
+  refillMarketIfNeeded(state, events);
   return card;
 }
 
@@ -264,10 +269,61 @@ export function resolveEndOfTurnDiceBag(state: GameState, events: GameLogEntry[]
  * V5's sole end condition: the progress tracker has reached its threshold.
  * Deck exhaustion and "only 2 goals remain" (V4's end conditions) no longer
  * apply.
+ *
+ * Only called from the 'turn_complete' phase (i.e. after the triggering
+ * player's whole turn -- including any auction -- has played out normally),
+ * never mid-turn, so hitting the threshold never cuts a turn short.
  */
 export function checkProgressThreshold(state: GameState, events: GameLogEntry[]): void {
   if (state.gameOver) return;
   if (state.progressTracker < state.progressThreshold) return;
+  beginGameEnding(state, events);
+}
+
+/**
+ * The threshold has been reached. Rather than end instantly -- which could
+ * deny a player a goal their own turn's auction just made claimable -- offer
+ * a final claim to everyone who can complete one right now, then finalize
+ * once every offer has been answered (see advance.ts's 'game_ending' phase
+ * handling and promptResponse.ts's 'final_goal_offer' case).
+ */
+function beginGameEnding(state: GameState, events: GameLogEntry[]): void {
+  const offers = collectFinalGoalOffers(state);
+  if (offers.length === 0) {
+    finalizeGameOver(state, events);
+    return;
+  }
+  state.turnPhase = 'game_ending';
+  for (const offer of offers) {
+    setPrompt(
+      state,
+      offer.playerId,
+      'final_goal_offer',
+      `The game is ending (progress tracker ${state.progressTracker}/${state.progressThreshold}). You can complete "${offer.goalText}" (${offer.rewardText}) -- claim it before final scoring?`,
+      {
+        goalUid: offer.goalUid,
+        isPrivate: offer.isPrivate,
+        goalText: offer.goalText,
+        rewardText: offer.rewardText
+      }
+    );
+  }
+  events.push(
+    event(
+      'game_ending_final_offers',
+      `Progress tracker reached ${state.progressTracker}/${state.progressThreshold} -- offering a final goal claim to ${offers.length} player${offers.length > 1 ? 's' : ''} before scoring`,
+      { payload: { offers: offers.map(o => ({ playerId: o.playerId, goalUid: o.goalUid, isPrivate: o.isPrivate })) } }
+    )
+  );
+}
+
+/** Called once every final-goal-offer prompt (and any reward sub-prompt it triggered) has resolved. */
+export function finalizeGameEnding(state: GameState, events: GameLogEntry[]): void {
+  if (state.gameOver) return;
+  finalizeGameOver(state, events);
+}
+
+function finalizeGameOver(state: GameState, events: GameLogEntry[]): void {
   const breakdown = computeBreakdown(state);
   const winners = selectWinners(breakdown);
   state.gameOver = {

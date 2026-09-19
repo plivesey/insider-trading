@@ -236,10 +236,6 @@ html, body {
   display: flex; align-items: center; justify-content: center;
   position: relative;
 }
-.card-tile__art--action {
-  border-style: dashed;
-  background: repeating-linear-gradient(135deg, var(--felt) 0 6px, var(--felt2) 6px 12px);
-}
 .card-tile__art-mono {
   position: absolute;
   font-family: var(--font-display);
@@ -249,10 +245,6 @@ html, body {
 }
 .card-tile__art-mono--tl { top: 4px; left: 6px; }
 .card-tile__art-mono--br { bottom: 4px; right: 6px; transform: rotate(180deg); }
-.card-tile__art-label {
-  font-family: var(--font-body); font-size: 9px;
-  color: var(--ivoryD); letter-spacing: 0.16em; text-transform: uppercase;
-}
 .card-tile__name {
   font-family: var(--font-deco); font-size: 10px;
   color: var(--ivory);
@@ -275,10 +267,10 @@ html, body {
 
 /* Hidden end-game bonus cards: never played -- a sealed, no-click look. */
 .card-tile--bonus {
-  cursor: default;
   background: repeating-linear-gradient(45deg, var(--felt2) 0 8px, var(--felt) 8px 16px);
 }
-.card-tile--bonus:hover { transform: none; box-shadow: 0 2px 8px rgba(10, 8, 5, 0.5); }
+.card-tile--inert { cursor: default; }
+.card-tile--inert:hover { transform: none; box-shadow: 0 2px 8px rgba(10, 8, 5, 0.5); }
 .card-tile__seal {
   font-family: var(--font-deco); font-size: 9px;
   color: var(--ivoryD); letter-spacing: 0.24em; text-transform: uppercase;
@@ -353,6 +345,7 @@ html, body {
   font-weight: 500;
 }
 .gb-meta__value--warn { color: var(--oil); }
+.gb-meta__label--warn { color: var(--oil); }
 
 .gb-divider {
   width: 1px; height: 36px; background: var(--brass3);
@@ -808,6 +801,53 @@ html, body {
   margin: 0 0 10px;
   border-bottom: 1px solid var(--brass3);
   padding-bottom: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.deco-modal__minimize {
+  font-family: var(--font-body);
+  font-size: 11px;
+  letter-spacing: 0.05em;
+  text-transform: none;
+  color: var(--ivory);
+  background: transparent;
+  border: 1px solid var(--brass3);
+  border-radius: 2px;
+  padding: 4px 8px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.deco-modal__minimize:hover {
+  border-color: var(--brass);
+  color: var(--brass);
+}
+.deco-modal-tab {
+  position: fixed;
+  right: 24px; bottom: 24px;
+  z-index: 100;
+  display: flex; align-items: center; gap: 10px;
+  background: linear-gradient(180deg, var(--felt2), var(--felt));
+  border: 1.5px solid var(--brass);
+  border-radius: 3px;
+  padding: 10px 14px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+  font-family: var(--font-body);
+  font-size: 13px;
+  color: var(--ivory);
+  cursor: pointer;
+  max-width: 320px;
+}
+.deco-modal-tab:hover {
+  border-color: var(--brass);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.75);
+}
+.deco-modal-tab__expand {
+  font-size: 11px;
+  color: var(--brass);
+  letter-spacing: 0.05em;
+  white-space: nowrap;
 }
 .deco-modal__body {
   font-family: var(--font-body); font-size: 13px; color: var(--ivory);
@@ -1149,7 +1189,14 @@ html, body {
 
 .lobby-join { display: flex; gap: 8px; margin-bottom: 14px; }
 .lobby-join .deco-input { flex: 1; }
-.lobby-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+.lobby-actions { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.lobby-variant { display: flex; align-items: center; gap: 8px; }
+.lobby-variant__label {
+  font-family: var(--font-body); font-size: 11px;
+  text-transform: uppercase; letter-spacing: 0.06em;
+  color: var(--ivoryD);
+}
+.lobby-variant .deco-input { padding: 6px 10px; }
 .lobby-hint {
   margin-top: 18px;
   font-family: var(--font-body); font-size: 11px;

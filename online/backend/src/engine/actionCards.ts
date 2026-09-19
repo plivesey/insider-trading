@@ -11,9 +11,10 @@ import { COLORS } from '@insider-trading/shared';
 import { reshuffleDiscardIfNeeded } from '../domain/deck.js';
 import { drawEventCardsIntoHand } from './eventDeck.js';
 import { event } from './events.js';
+import { describeEventCardForPrompt } from './goals.js';
 import { setPrompt } from './prompts.js';
 import { nextRng } from './rng.js';
-import { describeCard, drawTopOfDeck, payBank, receiveBank } from './turn.js';
+import { describeCard, drawTopOfDeck, receiveBank } from './turn.js';
 
 /**
  * Begin processing a played action card. Persistent cards (Preferred Bidder,
@@ -216,11 +217,12 @@ export function resolveActionEffect(
     }
 
     case 'draw_tip': {
-      // Insider Source: draw the top event-deck card into hand. If it's a
-      // market-movement card, it's playable later as a free action; if it's
-      // a goal card, it's now simply a private goal (privacy is positional).
-      const [drawn] = drawEventCardsIntoHand(state, 1);
-      if (!drawn) {
+      // Insider Source: draw the top N (default 1) event-deck cards into
+      // hand. A market-movement card is playable later as a free action; a
+      // goal card is now simply a private goal (privacy is positional).
+      const count = card.effect.count ?? 1;
+      const drawn = drawEventCardsIntoHand(state, count);
+      if (drawn.length === 0) {
         events.push(
           event('insider_source_empty', `${player.name} plays Insider Source but the event deck is empty`, {
             actor: player.playerId
@@ -228,12 +230,12 @@ export function resolveActionEffect(
         );
         return;
       }
-      player.hand.push(drawn);
-      const kind = drawn.category === 'insider_tip' ? 'a market-movement card' : 'a private goal';
+      for (const d of drawn) player.hand.push(d);
+      const kinds = drawn.map(d => (d.category === 'insider_tip' ? 'a market-movement card' : 'a private goal'));
       events.push(
-        event('insider_source_drawn', `${player.name} draws ${kind} into hand via Insider Source`, {
+        event('insider_source_drawn', `${player.name} draws ${kinds.join(' and ')} into hand via Insider Source`, {
           actor: player.playerId,
-          payload: { uid: drawn.uid, category: drawn.category }
+          payload: { uids: drawn.map(d => d.uid), categories: drawn.map(d => d.category) }
         })
       );
       return;
@@ -284,7 +286,7 @@ export function resolveActionEffect(
         player.playerId,
         'foresight_reorder',
         `Foresight: reorder the top ${top.length} event cards, optionally burying one at the bottom.`,
-        { candidateUids: top.map(c => c.uid) }
+        { candidateUids: top.map(c => c.uid), cards: top.map(describeEventCardForPrompt) }
       );
       return;
     }
@@ -304,7 +306,7 @@ export function resolveActionEffect(
       for (const other of state.players) {
         if (other.playerId === player.playerId) continue;
         const before = other.cash;
-        other.cash = Math.max(0, other.cash - 3);
+        other.cash = Math.max(0, other.cash - 4);
         events.push(
           event('market_panic_hit', `${other.name} loses $${before - other.cash} to Market Panic`, {
             payload: { playerId: other.playerId, newCash: other.cash }
@@ -315,9 +317,14 @@ export function resolveActionEffect(
     }
 
     case 'backroom_deal': {
-      if (player.hand.length === 0) {
+      // A hidden end-game bonus card can't be traded away (promptResponse.ts
+      // rejects it) -- if that's all the player is holding (or hand is
+      // literally empty), there's nothing to trade at all, so fizzle rather
+      // than issue a prompt no response can ever satisfy.
+      const hasTradeable = player.hand.some(c => c.category !== 'bonus');
+      if (!hasTradeable) {
         events.push(
-          event('backroom_deal_no_card', `${player.name} plays Backroom Deal but has no card to trade — fizzles`, {
+          event('backroom_deal_no_card', `${player.name} plays Backroom Deal but has no tradeable card in hand — fizzles`, {
             actor: player.playerId
           })
         );
@@ -334,7 +341,6 @@ export function resolveActionEffect(
     }
 
     case 'double_down': {
-      payBank(player, 2, events);
       const eligible = player.hand.filter(
         c => c.category === 'action' && !(c as ActionCard).persistent
       );
@@ -342,7 +348,7 @@ export function resolveActionEffect(
         events.push(
           event(
             'double_down_no_target',
-            `${player.name} plays Double Down but has no eligible action card to double — fizzles ($2 still spent)`,
+            `${player.name} plays Double Down but has no eligible action card to double — fizzles`,
             { actor: player.playerId }
           )
         );

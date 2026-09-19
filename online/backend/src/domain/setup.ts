@@ -2,6 +2,7 @@ import type {
   ActionCard,
   CardCatalog,
   GameState,
+  GameVariant,
   GoalCard,
   HandCard,
   InsiderTipCard,
@@ -10,7 +11,7 @@ import type {
   RulesConfig,
   StockCard
 } from '@insider-trading/shared';
-import { ALL_DICE, DEFAULT_RULES, computeProgressThreshold } from '@insider-trading/shared';
+import { ALL_DICE, VARIANT_DEFAULT_RULES, computeProgressThreshold } from '@insider-trading/shared';
 import { shuffle } from './deck.js';
 import { makeRng, type Rng } from './rng.js';
 
@@ -20,16 +21,18 @@ export interface SetupInput {
   seed: number;
   gameId: string;
   startedAt: string;
-  /** Experimental rule overrides (still-being-playtested V5 numbers). Defaults = shipped V5. */
+  /** Which setup variant to build. Defaults to 'classic'. */
+  variant?: GameVariant;
+  /** Experimental rule overrides (still-being-playtested V5 numbers). Defaults = the chosen variant's shipped ruleset. */
   rules?: Partial<RulesConfig>;
 }
 
 /**
- * Build a fresh V5 game. Setup itself only builds decks and deals the initial
- * 4-card hands (rules.md Setup steps 1-5) -- the pass-and-draft procedure
- * (step 6) that reduces those to a final hand of 3 needs live per-player
- * choices, so it's driven by `engine/setupDraft.ts` once the game enters
- * `turnPhase: 'setup_draft'`.
+ * Build a fresh game (Classic or Alternate variant). Setup itself only builds
+ * decks and deals the initial hands (rules.md Setup steps 1-5) -- the
+ * pass-and-draft procedure (step 6) that reduces those to a final hand of 3
+ * needs live per-player choices, so it's driven by `engine/setupDraft.ts` once
+ * the game enters `turnPhase: 'setup_draft'`.
  */
 export function createGameState(input: SetupInput): GameState {
   const { catalog, players, seed, gameId, startedAt } = input;
@@ -37,12 +40,16 @@ export function createGameState(input: SetupInput): GameState {
     throw new Error(`Player count must be 2..6, got ${players.length}`);
   }
   const rng: Rng = makeRng(seed);
-  const rules: RulesConfig = { ...DEFAULT_RULES, ...input.rules };
+  const variant: GameVariant = input.variant ?? 'classic';
+  const rules: RulesConfig = { ...VARIANT_DEFAULT_RULES[variant], ...input.rules };
   const numPlayers = players.length;
 
-  // 1. Market deck: 36 stock + 15 action = 51 cards. Reveal 5.
+  // 1. Market deck: 36 stock + N action cards. N = 11 (Classic) or 14
+  //    (Alternate: the 11 shared cards + Backroom Deal/Double Down/Foresight
+  //    promoted from the Starter Deck). Reveal 5.
+  const actionPool: ActionCard[] = variant === 'alternate' ? [...catalog.actions, ...catalog.promotedActions] : catalog.actions;
   const mainDeck: (StockCard | ActionCard)[] = shuffle<StockCard | ActionCard>(
-    [...catalog.stocks, ...catalog.actions],
+    [...catalog.stocks, ...actionPool],
     rng
   );
   const market = mainDeck.splice(0, 5);
@@ -73,21 +80,47 @@ export function createGameState(input: SetupInput): GameState {
     rng
   );
 
-  // 3. Starter deck: shuffle all 24 (12 basic stocks + 12 starter actions).
-  const shuffledStarter = shuffle(catalog.starterDeck, rng);
+  let initialHands: HandCard[][];
 
-  // 4. Deal 2 x players from the event deck + 2 x players from the starter
-  //    deck (face-down), combine into ONE pile, and reshuffle it TOGETHER --
-  //    deliberately not a guaranteed 2-and-2 split per player. Leftover
-  //    undealt starter cards are permanently removed from the game.
-  const eventDraw = eventDeck.splice(0, 2 * numPlayers);
-  const starterDraw = shuffledStarter.slice(0, 2 * numPlayers);
-  const combinedPile = shuffle<HandCard>([...eventDraw, ...starterDraw], rng);
+  if (variant === 'classic') {
+    // 3. Starter deck: shuffle all 24 (12 basic stocks + 12 starter actions).
+    const shuffledStarter = shuffle(catalog.starterDeck, rng);
 
-  // 5. Deal that combined pile out completely: every player gets 4 cards.
-  const initialHands: HandCard[][] = players.map(() => []);
-  for (let i = 0; i < combinedPile.length; i++) {
-    initialHands[i % numPlayers].push(combinedPile[i]);
+    // 4. Deal 2 x players from the event deck + 2 x players from the starter
+    //    deck (face-down), combine into ONE pile, and reshuffle it TOGETHER --
+    //    deliberately not a guaranteed 2-and-2 split per player. Leftover
+    //    undealt starter cards are permanently removed from the game.
+    const eventDraw = eventDeck.splice(0, 2 * numPlayers);
+    const starterDraw = shuffledStarter.slice(0, 2 * numPlayers);
+    const combinedPile = shuffle<HandCard>([...eventDraw, ...starterDraw], rng);
+
+    // 5. Deal that combined pile out completely: every player gets 4 cards.
+    initialHands = players.map(() => []);
+    for (let i = 0; i < combinedPile.length; i++) {
+      initialHands[i % numPlayers].push(combinedPile[i]);
+    }
+  } else {
+    // Alternate: no starter-action cards at all. Each player's draftable
+    // 4-card hand comes straight off the (already-shuffled) event deck --
+    // skip the combinedPile/starter-mixing step entirely.
+    const eventDraw = eventDeck.splice(0, 4 * numPlayers);
+    initialHands = players.map(() => []);
+    for (let i = 0; i < eventDraw.length; i++) {
+      initialHands[i % numPlayers].push(eventDraw[i]);
+    }
+
+    // Separately: shuffle the 8-card mini starter deck (2 basic stocks per
+    // color) and deal exactly 1 per player, straight into their hand -- so
+    // it's visible immediately, before the draft even starts. Its uid
+    // (alt-starter-stock-N) is what tells setupDraft.ts's beginDraft() to
+    // leave it in hand rather than sweep it into the draft pool. Leftovers
+    // (8 - numPlayers) are permanently removed from the game, same precedent
+    // as Classic's undealt starter cards.
+    const shuffledAltStock = shuffle(catalog.alternateStarterStocks, rng);
+    const dealtStock = shuffledAltStock.slice(0, numPlayers);
+    dealtStock.forEach((stock, i) => {
+      initialHands[i].push(stock);
+    });
   }
 
   const firstPlayerIndex = rng.int(numPlayers);
@@ -145,10 +178,11 @@ export function createGameState(input: SetupInput): GameState {
         ts: startedAt,
         turnNumber: 1,
         type: 'game_start',
-        message: `Game ${gameId} started with ${numPlayers} players: ${players.map(p => p.name).join(', ')}. First player: ${playerStates[firstPlayerIndex].name}. Market deck ${mainDeck.length}, market ${market.length}, event deck ${eventDeck.length}, goals revealed ${goalRow.length}, progress threshold ${progressThreshold}.`,
+        message: `Game ${gameId} (${variant}) started with ${numPlayers} players: ${players.map(p => p.name).join(', ')}. First player: ${playerStates[firstPlayerIndex].name}. Market deck ${mainDeck.length}, market ${market.length}, event deck ${eventDeck.length}, goals revealed ${goalRow.length}, progress threshold ${progressThreshold}.`,
         payload: {
           gameId,
           seed,
+          variant,
           players: players.map(p => ({ playerId: p.playerId, name: p.name })),
           firstPlayerIndex,
           numGoalsRevealed: goalRow.length,
@@ -158,6 +192,7 @@ export function createGameState(input: SetupInput): GameState {
     ],
     eventCounter: 1,
     connected,
-    rules
+    rules,
+    variant
   };
 }

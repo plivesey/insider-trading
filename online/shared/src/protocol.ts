@@ -1,4 +1,4 @@
-import type { LobbyMember, ProjectedGameState, GameLogEntry, FreeActionRequest } from './state.js';
+import type { GameVariant, LobbyMember, ProjectedGameState, GameLogEntry, FreeActionRequest } from './state.js';
 
 // ---------- REST request/response shapes ----------
 
@@ -18,7 +18,7 @@ export type StateResponse =
   | { mode: 'in_game'; state: ProjectedGameState }
   | { mode: 'game_over'; state: ProjectedGameState };
 
-export interface StartRequest {}
+export interface StartRequest { variant?: GameVariant; }
 export interface ResetRequest {}
 export interface AddBotRequest {}
 export interface AddBotResponse { playerId: string; name: string; }

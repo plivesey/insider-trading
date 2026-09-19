@@ -24,6 +24,12 @@ function mkState(seed = 1): GameState {
     startedAt: '2026-01-01T00:00:00.000Z'
   });
   state.turnPhase = 'awaiting_turn_action';
+  // Tests push their own specific goal(s) onto goalRow and assert on exactly
+  // those uids -- clear the setup-time public goal reveal so a coincidental
+  // uid collision with a manually-pushed goal (dependent on seed + deck
+  // composition, and therefore not stable across unrelated card changes)
+  // can't make a push/splice look like a no-op.
+  state.goalRow = [];
   return state;
 }
 
@@ -37,15 +43,37 @@ function giveActionCard(state: GameState, playerId: string, effectType: string):
   return ac;
 }
 
+let syntheticId = 0;
+/**
+ * Tipster's Choice / The Squeeze / Wild Speculation no longer exist as real
+ * cards (removed from action_cards.json), but their dispatch logic in
+ * `resolveActionEffect` is still valid, reachable code -- construct a
+ * synthetic card directly instead of sourcing it from the catalog.
+ */
+function syntheticActionCard(state: GameState, playerId: string, effect: ActionCard['effect']): ActionCard {
+  syntheticId += 1;
+  const ac: ActionCard = {
+    category: 'action',
+    uid: `synthetic-action-${syntheticId}`,
+    id: -syntheticId,
+    name: `Synthetic ${effect.type}`,
+    description: '',
+    persistent: false,
+    effect
+  };
+  state.players.find(p => p.playerId === playerId)!.hand.push(ac);
+  return ac;
+}
+
 function play(state: GameState, playerId: string, ac: ActionCard) {
   submitFreeAction(state, playerId, { kind: 'play_action_card', cardUid: ac.uid });
   processNextFreeAction(state, []);
 }
 
 describe('Action cards (carried over from V4, unchanged mechanics)', () => {
-  it('Tipster\'s Choice draws 2, prompts to keep 1', () => {
+  it('Tipster\'s Choice draws 2, prompts to keep 1 (removed from the pool, dispatch logic still covered)', () => {
     const s = mkState();
-    const ac = giveActionCard(s, 'p1', 'draw_and_choose');
+    const ac = syntheticActionCard(s, 'p1', { type: 'draw_and_choose', drawCount: 2, keepCount: 1 });
     play(s, 'p1', ac);
     const pr = s.pendingPrompts['p1']!;
     expect(pr.type).toBe('draw_and_keep');
@@ -86,9 +114,9 @@ describe('Action cards (carried over from V4, unchanged mechanics)', () => {
     expect(s.stockPrices.Blue).toBe(beforePrice - 1);
   });
 
-  it('The Squeeze: ±2 on chosen color', () => {
+  it('The Squeeze: ±2 on chosen color (removed from the pool, dispatch logic still covered)', () => {
     const s = mkState();
-    const ac = giveActionCard(s, 'p1', 'adjust_stock');
+    const ac = syntheticActionCard(s, 'p1', { type: 'adjust_stock', amount: 2 });
     play(s, 'p1', ac);
     const pr = s.pendingPrompts['p1']!;
     expect(pr.payload.amount).toBe(2);
@@ -96,9 +124,9 @@ describe('Action cards (carried over from V4, unchanged mechanics)', () => {
     expect(s.stockPrices.Green).toBe(2);
   });
 
-  it('Wild Speculation: prompts for ±3 on revealed color', () => {
+  it('Wild Speculation: prompts for ±3 on revealed color (removed from the pool, dispatch logic still covered)', () => {
     const s = mkState();
-    const ac = giveActionCard(s, 'p1', 'flip_and_adjust');
+    const ac = syntheticActionCard(s, 'p1', { type: 'flip_and_adjust', amount: 3 });
     play(s, 'p1', ac);
     const pr = s.pendingPrompts['p1']!;
     expect(pr.type).toBe('wild_speculation_choice');
@@ -161,15 +189,18 @@ describe('Action cards (carried over from V4, unchanged mechanics)', () => {
     expect(s.stockPrices).toEqual({ Blue: 5, Orange: 3, Green: 5, Purple: 3 });
   });
 
-  it('Insider Source: draws top event-deck card into hand, deck shrinks by 1', () => {
+  it('Insider Source: draws top 2 event-deck cards into hand, deck shrinks by 2', () => {
     const s = mkState();
-    const topBefore = s.eventDeck[0];
+    const top2Before = s.eventDeck.slice(0, 2);
     const sizeBefore = s.eventDeck.length;
     const ac = giveActionCard(s, 'p1', 'draw_tip');
+    expect(ac.effect).toEqual({ type: 'draw_tip', count: 2 });
     play(s, 'p1', ac);
-    expect(s.eventDeck.length).toBe(sizeBefore - 1);
-    expect(s.eventDeck.find(t => t.uid === topBefore.uid)).toBeUndefined();
-    expect(s.players[0].hand.find(c => c.uid === topBefore.uid)).toBeTruthy();
+    expect(s.eventDeck.length).toBe(sizeBefore - 2);
+    for (const card of top2Before) {
+      expect(s.eventDeck.find(t => t.uid === card.uid)).toBeUndefined();
+      expect(s.players[0].hand.find(c => c.uid === card.uid)).toBeTruthy();
+    }
   });
 
   it('Insider Source: if the drawn card is a market-movement card, playing it from hand resolves its effect and bumps the progress tracker', () => {
@@ -433,6 +464,12 @@ describe('end conditions via progress tracker', () => {
       stockAssignment: { cards: assignment }
     });
     advance(s, []);
+    // Threshold reached mid-turn (still awaiting_turn_action) must not end the
+    // game yet -- the claiming player's turn plays out normally first.
+    expect(s.gameOver).toBeNull();
+    // Once the turn actually completes, the game ends.
+    s.turnPhase = 'turn_complete';
+    advance(s, []);
     expect(s.gameOver).not.toBeNull();
     expect(s.gameOver!.reason).toBe('progress_threshold_reached');
   });
@@ -470,10 +507,76 @@ describe('end conditions via progress tracker', () => {
     expect(pr.type).toBe('pick_color_amount');
     expect(s.gameOver).toBeNull();
     expect(s.progressTracker).toBe(s.progressThreshold);
-    // Resolve the prompt — only now should the game end.
+    // Resolve the prompt — the game still shouldn't end here: the claiming
+    // player's turn (still awaiting_turn_action) hasn't completed yet.
     respondToPrompt(s, 'p1', pr.promptId, { color: 'Blue', sign: 'up' });
+    advance(s, []);
+    expect(s.gameOver).toBeNull();
+    // Once the turn actually completes, the game ends.
+    s.turnPhase = 'turn_complete';
     advance(s, []);
     expect(s.gameOver).not.toBeNull();
     expect(s.gameOver!.reason).toBe('progress_threshold_reached');
+  });
+});
+
+describe('final goal offer at game end', () => {
+  function giveGoalStock(s: GameState, playerIdx: number, goal: GoalCard, tag: string) {
+    for (const [color, count] of Object.entries(goal.goal.parsed.requirements)) {
+      for (let i = 0; i < (count as number); i++) {
+        const c = { ...catalog.stocks.find(x => x.color === color && x.type === 'blank')! };
+        c.uid = `${tag}-${color}-${i}-${Math.random()}`;
+        s.players[playerIdx].hand.push(c);
+      }
+    }
+  }
+
+  it('offers a claimable goal instead of ending immediately, then finalizes once accepted', () => {
+    const s = mkState();
+    s.progressTracker = s.progressThreshold;
+    const goal: GoalCard = { ...catalog.goals.find(g => g.reward.parsed.type === 'gain_cash')! };
+    s.goalRow.push(goal);
+    giveGoalStock(s, 1, goal, 'offer'); // p2, not the current player
+
+    s.turnPhase = 'turn_complete';
+    advance(s, []);
+
+    // Not over yet -- p2 gets offered the goal their (implicit) auction just made claimable.
+    expect(s.gameOver).toBeNull();
+    expect(s.turnPhase).toBe('game_ending');
+    const pr = s.pendingPrompts['p2'];
+    expect(pr?.type).toBe('final_goal_offer');
+    expect(pr?.payload.goalUid).toBe(goal.uid);
+
+    respondToPrompt(s, 'p2', pr!.promptId, { claim: true });
+    advance(s, []);
+
+    expect(s.players[1].goalsClaimed.some(g => g.uid === goal.uid)).toBe(true);
+    expect(s.gameOver).not.toBeNull();
+  });
+
+  it('finalizes immediately when nobody can currently claim a goal', () => {
+    const s = mkState();
+    s.progressTracker = s.progressThreshold;
+    s.turnPhase = 'turn_complete';
+    advance(s, []);
+    expect(s.gameOver).not.toBeNull();
+  });
+
+  it('finalizes once the offer is declined, without claiming it', () => {
+    const s = mkState();
+    s.progressTracker = s.progressThreshold;
+    const goal: GoalCard = { ...catalog.goals.find(g => g.reward.parsed.type === 'gain_cash')! };
+    s.goalRow.push(goal);
+    giveGoalStock(s, 1, goal, 'decline');
+
+    s.turnPhase = 'turn_complete';
+    advance(s, []);
+    const pr = s.pendingPrompts['p2']!;
+    respondToPrompt(s, 'p2', pr.promptId, { claim: false });
+    advance(s, []);
+
+    expect(s.players[1].goalsClaimed.length).toBe(0);
+    expect(s.gameOver).not.toBeNull();
   });
 });

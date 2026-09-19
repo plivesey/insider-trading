@@ -10,11 +10,25 @@ describe('cardLoader', () => {
 
   it('loads the correct number of cards in each category', () => {
     expect(catalog.stocks).toHaveLength(36);
-    expect(catalog.actions).toHaveLength(15);
-    expect(catalog.insiderTips).toHaveLength(16);
-    expect(catalog.goals).toHaveLength(14);
+    expect(catalog.actions).toHaveLength(11);
+    expect(catalog.insiderTips).toHaveLength(28);
+    expect(catalog.goals).toHaveLength(19);
     expect(catalog.loans).toHaveLength(6);
     expect(catalog.starterDeck).toHaveLength(24);
+  });
+
+  it('derives the Alternate-variant promoted actions and mini starter stocks', () => {
+    expect(catalog.promotedActions).toHaveLength(3);
+    expect(catalog.promotedActions.map(c => c.name).sort()).toEqual(
+      ['Backroom Deal', 'Double Down', 'Foresight'].sort()
+    );
+    expect(catalog.promotedActions.every(c => c.category === 'action' && c.persistent === false)).toBe(true);
+
+    expect(catalog.alternateStarterStocks).toHaveLength(8);
+    expect(catalog.alternateStarterStocks.every(c => c.category === 'stock')).toBe(true);
+    for (const color of ['Blue', 'Orange', 'Green', 'Purple'] as const) {
+      expect(catalog.alternateStarterStocks.filter(c => c.category === 'stock' && c.color === color)).toHaveLength(2);
+    }
   });
 
   it('assigns globally-unique uids across all categories', () => {
@@ -24,7 +38,9 @@ describe('cardLoader', () => {
       ...catalog.insiderTips.map(c => c.uid),
       ...catalog.goals.map(c => c.uid),
       ...catalog.loans.map(c => c.uid),
-      ...catalog.starterDeck.map(c => c.uid)
+      ...catalog.starterDeck.map(c => c.uid),
+      ...catalog.promotedActions.map(c => c.uid),
+      ...catalog.alternateStarterStocks.map(c => c.uid)
     ];
     expect(new Set(all).size).toBe(all.length);
   });

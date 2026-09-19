@@ -10,24 +10,24 @@ describe('Deck Composition (V5)', () => {
     expect(stockCards.length).toBe(36);
   });
 
-  test('action cards should be 15 (11 carried over from V4 + 4 new Broker cards)', () => {
-    expect(actionCards.length).toBe(15);
+  test('action cards should be 11 (15 minus Tipster\'s Choice/The Squeeze/Wild Speculation, with the two Insider Source copies merged into one)', () => {
+    expect(actionCards.length).toBe(11);
   });
 
-  test('market deck should be 51 cards (36 stock + 15 action)', () => {
-    expect(stockCards.length + actionCards.length).toBe(51);
+  test('market deck should be 47 cards (36 stock + 11 action)', () => {
+    expect(stockCards.length + actionCards.length).toBe(47);
   });
 
-  test('insider tip pool should be 16', () => {
-    expect(insiderTipData.cards.length).toBe(16);
+  test('insider tip pool should be 28 (12 crash, 4 surge, 6 slump, 6 shift)', () => {
+    expect(insiderTipData.cards.length).toBe(28);
   });
 
-  test('goal cards should be 14', () => {
-    expect(goalData.cards.length).toBe(14);
+  test('goal cards should be 19 (4 pair, 4 three-of-a-kind, 6 two-pair, 4 four-of-a-kind, 1 full-spread)', () => {
+    expect(goalData.cards.length).toBe(19);
   });
 
-  test('event deck should be 30 cards (16 insider tips + 14 goals)', () => {
-    expect(insiderTipData.cards.length + goalData.cards.length).toBe(30);
+  test('event deck should be 47 cards (28 insider tips + 19 goals)', () => {
+    expect(insiderTipData.cards.length + goalData.cards.length).toBe(47);
   });
 
   test('loan cards should be 6', () => {
@@ -63,11 +63,11 @@ describe('Deck Composition (V5)', () => {
     expect(actionCards.find(c => c.effect.type === 'auction_unused_tip')).toBeUndefined();
   });
 
-  test('total component cards should be 111 (51 market + 30 event + 6 loan + 24 starter)', () => {
+  test('total component cards should be 124 (47 market + 47 event + 6 loan + 24 starter)', () => {
     const total = stockCards.length + actionCards.length
       + insiderTipData.cards.length + goalData.cards.length
       + loanData.cards.length + starterDeck.length;
-    expect(total).toBe(111);
+    expect(total).toBe(124);
   });
 
   test('loan card data: $10 cash on take (the -12/-14 tiered end-game penalty is computed by the engine, not stored per-card)', () => {

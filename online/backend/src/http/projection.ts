@@ -29,6 +29,7 @@ export function projectState(game: GameState, viewerId: PlayerId | null): Projec
     gameId: game.gameId,
     startedAt: game.startedAt,
     version: game.version,
+    variant: game.variant,
     status: game.status,
     stockPrices: game.stockPrices,
     currentPlayerIndex: game.currentPlayerIndex,

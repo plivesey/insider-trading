@@ -17,11 +17,11 @@ import type { Rng } from '../domain/rng.js';
 import type { BotProfile } from './profile.js';
 import type { BotParams } from './botParams.js';
 import { chooseActionCardToPlay } from './actionHeuristics.js';
+import { staticDraftCardValue } from './draftCardRanking.js';
 import {
   bestOwnedColor,
   effectivePrices,
   perceivedActionCardValue,
-  perceivedBonusCardValue,
   perceivedCardValue,
   perceivedGoalCardValue,
   perceivedStockCardValue,
@@ -774,13 +774,15 @@ function respondToPrompt(
     }
 
     case 'setup_draft_pick': {
-      // Rank the current round's candidates and keep the best one. Look them
+      // Always keep whichever candidate ranks highest on the static
+      // best-to-worst draft value table (see draftCardRanking.ts) -- a
+      // deliberately simple heuristic, not a contextual one. Look candidates
       // up from the true (unsanitized) draft state, not the prompt payload.
       const candidates = state.draft?.hands[botId] ?? [];
       if (candidates.length === 0) return null;
       let best: { uid: string; value: number } | null = null;
       for (const c of candidates) {
-        const value = perceivedDraftCardValue(state, profile, c, botId);
+        const value = staticDraftCardValue(c);
         if (!best || value > best.value) best = { uid: c.uid, value };
       }
       return {
@@ -815,11 +817,13 @@ function respondToPrompt(
 
     case 'backroom_deal_pick_own_card': {
       const stockUid = worstTradeableHandCardUid(state, profile, bot, botId);
-      if (!stockUid) return null;
+      // Respond even with nothing tradeable (empty payload) so the engine's
+      // fizzle path clears the prompt -- returning null here would leave it
+      // open forever, since only this bot can ever respond to it.
       return {
         kind: 'prompt_response',
         promptId: prompt.promptId,
-        response: { cardUid: stockUid }
+        response: stockUid ? { cardUid: stockUid } : {}
       };
     }
 
@@ -838,6 +842,11 @@ function respondToPrompt(
         promptId: prompt.promptId,
         response: { cardUid: best.uid }
       };
+    }
+
+    case 'final_goal_offer': {
+      // Free value at the very end of the game -- always claim.
+      return { kind: 'prompt_response', promptId: prompt.promptId, response: { claim: true } };
     }
   }
   return null;
@@ -888,31 +897,6 @@ function worstTradeableHandCardUid(
     if (!worst || v < worst.value) worst = { uid: c.uid, value: v };
   }
   return worst?.uid;
-}
-
-/** Value of any card that could show up in the setup draft's candidate pile. */
-function perceivedDraftCardValue(
-  state: GameState,
-  profile: BotProfile,
-  card: HandCard,
-  botId: PlayerId
-): number {
-  switch (card.category) {
-    case 'stock':
-      return card.color === 'Wild'
-        ? perceivedWildShareValue(state, profile, botId)
-        : perceivedStockCardValue(state, profile, card, botId);
-    case 'action':
-      return perceivedActionCardValue(card, state, profile, botId);
-    case 'insider_tip':
-      // A small flat premium over the raw score: holding it has optionality
-      // (play it whenever the score turns favorable) even if it's ~0 now.
-      return Math.max(0, tipScoreForBot(state, card, botId)) + 2;
-    case 'goal':
-      return perceivedGoalCardValue(state, card, profile.params);
-    case 'bonus':
-      return perceivedBonusCardValue(state, card, botId);
-  }
 }
 
 function countByColor(hand: HandCard[]): Record<Color, number> {

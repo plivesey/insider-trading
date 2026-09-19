@@ -54,18 +54,22 @@ describe('CardTile — goal branch', () => {
 describe('CardTile — bonus branch', () => {
   it('renders sealed bonus content and the "never played" seal', () => {
     render(<CardTile card={bonus} />);
-    expect(screen.getByText('Sealed Bonus')).toBeInTheDocument();
+    expect(screen.getByText('Sealed Bonus · Game End Only')).toBeInTheDocument();
     expect(screen.getByText('Nest Egg')).toBeInTheDocument();
     expect(screen.getByText('Gain $7 at game end.')).toBeInTheDocument();
     expect(screen.getByText('Never played · scores automatically')).toBeInTheDocument();
   });
 
-  it('is never interactive, even when an onClick is supplied', () => {
+  it('is inert with no onClick supplied (e.g. shown in hand during normal play)', () => {
+    render(<CardTile card={bonus} />);
+    expect(screen.queryByRole('button')).not.toBeInTheDocument();
+  });
+
+  it('is clickable (role=button) when onClick is supplied, like other card categories (e.g. the setup draft picker)', () => {
     const onClick = vi.fn();
     render(<CardTile card={bonus} onClick={onClick} />);
-    expect(screen.queryByRole('button')).not.toBeInTheDocument();
-    const tile = screen.getByText('Nest Egg').closest('.card-tile') as HTMLElement;
-    fireEvent.click(tile);
-    expect(onClick).not.toHaveBeenCalled();
+    const el = screen.getByRole('button');
+    fireEvent.click(el);
+    expect(onClick).toHaveBeenCalled();
   });
 });

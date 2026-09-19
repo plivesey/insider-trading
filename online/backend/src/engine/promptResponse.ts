@@ -4,6 +4,7 @@ import type {
   DeckCard,
   GameLogEntry,
   GameState,
+  GoalCard,
   PlayerId,
   StockCard
 } from '@insider-trading/shared';
@@ -12,6 +13,7 @@ import type { MutationResult } from '../domain/mutate.js';
 import { adjust, setPrice } from '../domain/prices.js';
 import { resolveActionEffect } from './actionCards.js';
 import { event } from './events.js';
+import { autoSatisfyAssignment, claimGoal, claimPrivateGoal } from './goals.js';
 import { clearPrompt, getPrompt, setPrompt } from './prompts.js';
 import { handleDraftPick } from './setupDraft.js';
 import {
@@ -342,7 +344,23 @@ export function respondToPrompt(
           return { ok: true, events };
         }
       }
-      if (!cardUid) return { ok: false, error: 'cardUid required', events };
+      if (!cardUid) {
+        // No eligible market card at all (e.g. the only card left is the one
+        // currently under auction) -- fizzle gracefully instead of demanding
+        // a target that doesn't exist, which would otherwise reject forever
+        // and livelock whoever holds this prompt.
+        const stillAnyEligible = state.market.some(c => !state.auction || state.auction.cardUid !== c.uid);
+        if (!stillAnyEligible) {
+          clearPrompt(state, playerId);
+          events.push(
+            event('pick_market_card_no_target', `${player.name}'s pick fizzles — no eligible market card`, {
+              actor: playerId
+            })
+          );
+          return { ok: true, events };
+        }
+        return { ok: false, error: 'cardUid required', events };
+      }
       const mIdx = state.market.findIndex(c => c.uid === cardUid);
       if (mIdx < 0) return { ok: false, error: 'card not in market', events };
       // Can't grab the card currently being auctioned — that would let the
@@ -500,6 +518,10 @@ export function respondToPrompt(
           { actor: playerId, payload: { keptUids: kept.map(c => c.uid) } }
         )
       );
+      // Cards just went back into mainDeck -- if the market was starved below
+      // 5 (mainDeck + discard both empty at the time), it can now top back up
+      // without waiting on some unrelated future action to notice.
+      refillMarketIfNeeded(state, events);
       return { ok: true, events };
     }
 
@@ -544,7 +566,23 @@ export function respondToPrompt(
 
     case 'backroom_deal_pick_own_card': {
       const cardUid = response.cardUid as string | undefined;
-      if (!cardUid) return { ok: false, error: 'cardUid required', events };
+      if (!cardUid) {
+        // Nothing left to trade (e.g. every non-bonus card was stolen away
+        // by another player's interleaved free action while this prompt was
+        // open) -- fizzle rather than reject forever with no way to satisfy
+        // the request.
+        const stillHasTradeable = player.hand.some(c => c.category !== 'bonus');
+        if (!stillHasTradeable) {
+          clearPrompt(state, playerId);
+          events.push(
+            event('backroom_deal_no_card', `${player.name}'s Backroom Deal fizzles — no tradeable card left in hand`, {
+              actor: playerId
+            })
+          );
+          return { ok: true, events };
+        }
+        return { ok: false, error: 'cardUid required', events };
+      }
       const idx = player.hand.findIndex(c => c.uid === cardUid);
       if (idx < 0) return { ok: false, error: 'card not in hand', events };
       if (player.hand[idx].category === 'bonus') {
@@ -580,6 +618,40 @@ export function respondToPrompt(
       );
       resolveActionEffect(state, player, target as ActionCard, events);
       resolveActionEffect(state, player, target as ActionCard, events);
+      return { ok: true, events };
+    }
+
+    case 'final_goal_offer': {
+      clearPrompt(state, playerId);
+      const goalUid = payload.goalUid as string;
+      const isPrivate = payload.isPrivate as boolean;
+      if (response.claim !== true) {
+        events.push(
+          event('final_goal_offer_declined', `${player.name} declines the final goal offer`, { actor: playerId })
+        );
+        return { ok: true, events };
+      }
+      if (isPrivate) {
+        const card = player.hand.find(c => c.uid === goalUid && c.category === 'goal') as GoalCard | undefined;
+        const assignment = card && autoSatisfyAssignment(player, card.goal.parsed.requirements);
+        if (!card || !assignment) {
+          events.push(
+            event('final_goal_offer_expired', `${player.name} can no longer complete that goal`, { actor: playerId })
+          );
+          return { ok: true, events };
+        }
+        claimPrivateGoal(state, player, goalUid, assignment, events);
+      } else {
+        const goal = state.goalRow.find(g => g.uid === goalUid);
+        const assignment = goal && autoSatisfyAssignment(player, goal.goal.parsed.requirements);
+        if (!goal || !assignment) {
+          events.push(
+            event('final_goal_offer_expired', `${player.name} can no longer complete that goal`, { actor: playerId })
+          );
+          return { ok: true, events };
+        }
+        claimGoal(state, player, goalUid, assignment, events);
+      }
       return { ok: true, events };
     }
   }

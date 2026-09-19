@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { StateResponse } from '@insider-trading/shared';
+import type { GameVariant, StateResponse } from '@insider-trading/shared';
 import {
   api,
   clearBackendOverride,
@@ -18,6 +18,7 @@ export function Lobby({ state, myName }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [backendUrl, setBackendUrl] = useState(getBackendOverride() ?? '');
+  const [variant, setVariant] = useState<GameVariant>('classic');
 
   function applyBackend() {
     if (!backendUrl.trim()) return;
@@ -46,7 +47,7 @@ export function Lobby({ state, myName }: Props) {
   async function start() {
     setError(null);
     try {
-      await api.start();
+      await api.start(variant);
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'failed');
     }
@@ -118,11 +119,24 @@ export function Lobby({ state, myName }: Props) {
             <BrassButton label="Add Bot" onClick={addBot} />
           )}
           {state.canStart && (
-            <BrassButton
-              label={`Start Game (${state.lobby.length} players)`}
-              primary
-              onClick={start}
-            />
+            <>
+              <label className="lobby-variant">
+                <span className="lobby-variant__label">Ruleset</span>
+                <select
+                  className="deco-input"
+                  value={variant}
+                  onChange={e => setVariant(e.target.value as GameVariant)}
+                >
+                  <option value="classic">Classic</option>
+                  <option value="alternate">Alternate</option>
+                </select>
+              </label>
+              <BrassButton
+                label={`Start Game (${state.lobby.length} players)`}
+                primary
+                onClick={start}
+              />
+            </>
           )}
         </div>
 

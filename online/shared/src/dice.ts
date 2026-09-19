@@ -10,7 +10,9 @@ export const DICE: Record<DieId, DieFace[]> = {
   A2: ['bull', 'bull', 'bear', 'nothing', 'nothing', 'nothing'],
   B1: ['bull', 'bull', 'nothing', 'nothing', 'nothing', 'nothing'],
   B2: ['bull', 'bull', 'nothing', 'nothing', 'nothing', 'nothing'],
-  C: ['nothing', 'nothing', 'nothing', 'draw1', 'draw2', 'draw3'],
+  // One "nothing" swapped for "bull" to offset the added bearish tilt from
+  // the expanded Insider Tip pool (more Crash cards, no more Surge).
+  C: ['nothing', 'nothing', 'bull', 'draw1', 'draw2', 'draw3'],
   D: ['draw1', 'draw1', 'draw1', 'draw2', 'draw2', 'draw2']
 };
 

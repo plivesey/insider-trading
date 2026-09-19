@@ -17,6 +17,19 @@ export interface CardCatalog {
   loans: LoanCard[];
   /** Setup-only deck: 12 basic stocks + 7 playable + 5 hidden bonus starter action cards. */
   starterDeck: (StockCard | ActionCard | BonusCard)[];
+  /**
+   * Alternate variant only: Backroom Deal / Double Down / Foresight, re-wrapped
+   * as ordinary Market Deck action cards. Same source starter_deck.json
+   * entries (ids 103, 106, 107) as their Classic starter-deck counterparts --
+   * edit those once, not here, to change their text/effect.
+   */
+  promotedActions: ActionCard[];
+  /**
+   * Alternate variant only: 2 basic stocks per color (8 total), a subset of
+   * the same printed starter-stock entries used by Classic's 12-card (3/color)
+   * starter deck.
+   */
+  alternateStarterStocks: StockCard[];
 }
 
 interface StarterStockRaw {
@@ -118,5 +131,41 @@ export function loadCards(cardsDir: string): CardCatalog {
     } as ActionCard;
   });
 
-  return { stocks, actions, insiderTips, goals, loans, starterDeck };
+  // Alternate variant: promote Foresight (103), Backroom Deal (106), and
+  // Double Down (107) into the Market Deck's action pool. Re-derived from the
+  // same starterRaw entries every load -- editing starter_deck.json is the
+  // only place these cards' text/effect need to change.
+  const PROMOTED_STARTER_ACTION_IDS = new Set([103, 106, 107]);
+  let promotedN = 0;
+  const promotedActions: ActionCard[] = starterRaw
+    .filter((c): c is StarterActionRaw => !isStarterStockRaw(c) && PROMOTED_STARTER_ACTION_IDS.has(c.id))
+    .map(c => {
+      promotedN += 1;
+      return {
+        category: 'action',
+        uid: `promoted-action-${promotedN}`,
+        id: c.id,
+        name: c.name,
+        description: c.description,
+        persistent: false,
+        effect: c.effect
+      } as ActionCard;
+    });
+
+  // Alternate variant: an 8-card mini starter deck (2 basic stocks per
+  // color), a subset of the same printed stock entries above.
+  const colorCounts: Record<string, number> = {};
+  let altStockN = 0;
+  const alternateStarterStocks: StockCard[] = starterRaw
+    .filter(isStarterStockRaw)
+    .filter(c => {
+      colorCounts[c.color] = (colorCounts[c.color] ?? 0) + 1;
+      return colorCounts[c.color] <= 2;
+    })
+    .map(c => {
+      altStockN += 1;
+      return { category: 'stock', uid: `alt-starter-stock-${altStockN}`, color: c.color, type: c.type } as StockCard;
+    });
+
+  return { stocks, actions, insiderTips, goals, loans, starterDeck, promotedActions, alternateStarterStocks };
 }

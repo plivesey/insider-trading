@@ -46,7 +46,7 @@
   {
     "id": 105,
     "name": "Market Panic",
-    "description": "Every other player loses $3. A player with less than $3 just drops to $0 -- this does not trigger a loan.",
+    "description": "Every other player loses $4. A player with less than $4 just drops to $0 -- this does not trigger a loan.",
     "persistent": false,
     "hidden": false,
     "effect": { "type": "market_panic" }
@@ -54,7 +54,7 @@
   {
     "id": 106,
     "name": "Backroom Deal",
-    "description": "Trade any one card from your hand -- a stock, action card, market-movement card, or even a private goal -- for any one face-up market card. Your card goes face-up into that market slot and is auctioned normally later. Taking the market card this way is a plain swap: no price move, no special ability triggers. This exposes the traded card's identity to the whole table, even if it was a private goal.",
+    "description": "Trade any one card from your hand for any face-up market card.",
     "persistent": false,
     "hidden": false,
     "effect": { "type": "backroom_deal" }
@@ -62,7 +62,7 @@
   {
     "id": 107,
     "name": "Double Down",
-    "description": "Pay $2 to the bank (this can trigger a loan if you can't cover it) -- then choose a different single-use action card in your hand, resolve its effect twice, and discard it. Cannot target a persistent card or any hidden end-game bonus card.",
+    "description": "Choose a different single-use action card in your hand, resolve its effect twice, and discard it. Cannot target a persistent card or any hidden end-game bonus card.",
     "persistent": false,
     "hidden": false,
     "effect": { "type": "double_down" }
@@ -78,10 +78,10 @@
   {
     "id": 109,
     "name": "Portfolio",
-    "description": "Never played -- stays secret in your hand all game. +$2 at game end for every stock card you hold (Wild Shares count).",
+    "description": "Never played -- stays secret in your hand all game. +$1 at game end for every stock card you hold (Wild Shares count).",
     "persistent": false,
     "hidden": true,
-    "effect": { "type": "per_stock_held", "amount": 2 }
+    "effect": { "type": "per_stock_held", "amount": 1 }
   },
   {
     "id": 110,

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { Color, HandCard, ProjectedGameState, PromptEnvelope, StockCard } from '@insider-trading/shared';
 import { api } from '../lib/api.js';
 import { showError } from '../lib/toast.js';
@@ -30,6 +30,13 @@ function ColorButton({
 
 export function PromptModal({ prompt, state }: Props) {
   const [draft, setDraft] = useState<any>({});
+  const [minimized, setMinimized] = useState(false);
+  const canMinimize = prompt.type === 'setup_draft_pick';
+
+  // Start expanded on every new prompt (e.g. each draft round).
+  useEffect(() => {
+    setMinimized(false);
+  }, [prompt.promptId]);
 
   async function send(response: Record<string, unknown>) {
     try {
@@ -64,6 +71,9 @@ export function PromptModal({ prompt, state }: Props) {
       }
       case 'foresight_reorder': {
         const candidateUids = (prompt.payload?.candidateUids as string[]) ?? [];
+        const cards = (prompt.payload?.cards as Array<{ uid: string; kind: string; text: string }>) ?? [];
+        const textByUid = new Map(cards.map(c => [c.uid, `${c.kind === 'goal' ? 'Goal: ' : ''}${relabelColors(c.text)}`]));
+        const describe = (uid: string) => textByUid.get(uid) ?? uid;
         const order = (draft.order as string[]) ?? candidateUids;
         const buriedUid = draft.buriedUid as string | undefined;
         const kept = order.filter(u => u !== buriedUid);
@@ -92,13 +102,13 @@ export function PromptModal({ prompt, state }: Props) {
                 <li key={uid} style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
                   <BrassButton label="↑" onClick={() => move(uid, -1)} />
                   <BrassButton label="↓" onClick={() => move(uid, 1)} />
-                  <span>{uid}</span>
+                  <span>{describe(uid)}</span>
                   <BrassButton label="Bury" onClick={() => toggleBury(uid)} />
                 </li>
               ))}
             </ul>
             {buriedUid && (
-              <div className="deco-modal__notice">Buried at the bottom: {buriedUid}</div>
+              <div className="deco-modal__notice">Buried at the bottom: {describe(buriedUid)}</div>
             )}
             <div className="deco-modal__footer">
               <BrassButton
@@ -307,7 +317,7 @@ export function PromptModal({ prompt, state }: Props) {
           </div>
         );
       case 'draw_and_keep': {
-        const drawn = prompt.payload?.drawn as { uid: string; summary: string }[];
+        const drawn = (prompt.payload?.drawn as { uid: string; card: HandCard }[]) ?? [];
         const keepCount = prompt.payload?.keepCount as number;
         const kept = (draft.keepUids as string[]) ?? [];
         function toggle(uid: string) {
@@ -317,16 +327,17 @@ export function PromptModal({ prompt, state }: Props) {
         return (
           <>
             <div style={{ marginBottom: 8 }}>Pick {keepCount}:</div>
-            <ul>
+            <div className="card-row">
               {drawn.map(d => (
-                <li key={d.uid}>
-                  <BrassButton
-                    label={`${kept.includes(d.uid) ? '✓ ' : ''}${relabelColors(d.summary)}`}
-                    onClick={() => toggle(d.uid)}
-                  />
-                </li>
+                <CardTile
+                  key={d.uid}
+                  card={d.card}
+                  onClick={() => toggle(d.uid)}
+                  className={kept.includes(d.uid) ? 'card-tile--selected' : ''}
+                  goalContext="hand"
+                />
               ))}
-            </ul>
+            </div>
             <div className="deco-modal__footer">
               <BrassButton
                 label="Submit"
@@ -428,20 +439,55 @@ export function PromptModal({ prompt, state }: Props) {
           </>
         );
       }
+      case 'final_goal_offer': {
+        const goalText = (prompt.payload?.goalText as string) ?? '';
+        const rewardText = (prompt.payload?.rewardText as string) ?? '';
+        return (
+          <>
+            <div className="deco-modal__notice">
+              {relabelColors(goalText)} → {relabelColors(rewardText)}
+            </div>
+            <div className="deco-modal__footer">
+              <BrassButton label="Claim It" primary onClick={() => send({ claim: true })} />
+              <BrassButton label="Skip" onClick={() => send({ claim: false })} />
+            </div>
+          </>
+        );
+      }
       default:
         return <div>Unhandled prompt type: {prompt.type}</div>;
     }
   }
 
+  if (canMinimize && minimized) {
+    return (
+      <button className="deco-modal-tab" onClick={() => setMinimized(false)}>
+        <span>{relabelColors(prompt.message)}</span>
+        <span className="deco-modal-tab__expand">▲ Expand</span>
+      </button>
+    );
+  }
+
   return (
     <>
-      <div className="deco-overlay" />
+      <div className="deco-overlay" onClick={canMinimize ? () => setMinimized(true) : undefined} />
       <div className="deco-modal">
         <div className="deco-modal__deco deco-modal__deco--tl"><DecoCorner size={18} color={C.brass} /></div>
         <div className="deco-modal__deco deco-modal__deco--tr"><DecoCorner size={18} color={C.brass} rotate={90} /></div>
         <div className="deco-modal__deco deco-modal__deco--bl"><DecoCorner size={18} color={C.brass} rotate={270} /></div>
         <div className="deco-modal__deco deco-modal__deco--br"><DecoCorner size={18} color={C.brass} rotate={180} /></div>
-        <h3 className="deco-modal__title">{relabelColors(prompt.message)}</h3>
+        <h3 className="deco-modal__title">
+          {relabelColors(prompt.message)}
+          {canMinimize && (
+            <button
+              className="deco-modal__minimize"
+              onClick={() => setMinimized(true)}
+              title="Minimize to view the market and goals"
+            >
+              ▾ Minimize
+            </button>
+          )}
+        </h3>
         <div className="deco-modal__body">{renderBody()}</div>
       </div>
     </>

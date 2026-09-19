@@ -1,0 +1,402 @@
+{
+  "meta": {
+    "gamesPerCount": 2000,
+    "playerCounts": [
+      2,
+      3,
+      4,
+      5,
+      6
+    ],
+    "baseSeed": 900001,
+    "seedScheme": {
+      "gameSeed": "BASE_SEED + n*1_000_000 + g",
+      "tickSeed": "BASE_SEED + n*2_000_003 + g*7 + 13",
+      "profileSeed": "BASE_SEED + n*3_000_017 + g*11 + 29"
+    },
+    "totalGamesAttempted": 10000,
+    "completed": 9921,
+    "skipped": 79,
+    "elapsedMs": 11130
+  },
+  "rows": [
+    {
+      "bucket": "Basic Starter Stock",
+      "card": "Starter Stock: Blue",
+      "samples": 9400,
+      "winRate": 0.36542553191489363,
+      "avgPercentile": 0.629079787234055,
+      "approxPlaceAt4": 2.112760638297835,
+      "avgMargin": -39.477446808510635
+    },
+    {
+      "bucket": "Basic Starter Stock",
+      "card": "Starter Stock: Green",
+      "samples": 9578,
+      "winRate": 0.3446439757778242,
+      "avgPercentile": 0.61039361035708,
+      "approxPlaceAt4": 2.16881916892876,
+      "avgMargin": -44.974002923366044
+    },
+    {
+      "bucket": "Basic Starter Stock",
+      "card": "Starter Stock: Orange",
+      "samples": 9554,
+      "winRate": 0.345719070546368,
+      "avgPercentile": 0.6059451538622618,
+      "approxPlaceAt4": 2.1821645384132147,
+      "avgMargin": -46.503977391668414
+    },
+    {
+      "bucket": "Basic Starter Stock",
+      "card": "Starter Stock: Purple",
+      "samples": 9645,
+      "winRate": 0.34152410575427683,
+      "avgPercentile": 0.6002056333160622,
+      "approxPlaceAt4": 2.199383100051813,
+      "avgMargin": -43.30139968895801
+    },
+    {
+      "bucket": "Starter Action Card",
+      "card": "First Look",
+      "samples": 1957,
+      "winRate": 0.3081246806336229,
+      "avgPercentile": 0.56809742803611,
+      "approxPlaceAt4": 2.29570771589167,
+      "avgMargin": -48.45222278998467
+    },
+    {
+      "bucket": "Starter Action Card",
+      "card": "Fire Sale",
+      "samples": 2858,
+      "winRate": 0.2960111966410077,
+      "avgPercentile": 0.5538663400979682,
+      "approxPlaceAt4": 2.3384009797060954,
+      "avgMargin": -53.54268719384185
+    },
+    {
+      "bucket": "Starter Action Card",
+      "card": "Backroom Deal",
+      "samples": 2568,
+      "winRate": 0.27609034267912774,
+      "avgPercentile": 0.5425558151609531,
+      "approxPlaceAt4": 2.3723325545171408,
+      "avgMargin": -44.20132398753894
+    },
+    {
+      "bucket": "Starter Action Card",
+      "card": "Windfall",
+      "samples": 2854,
+      "winRate": 0.2396636299929923,
+      "avgPercentile": 0.508006306937632,
+      "approxPlaceAt4": 2.475981079187104,
+      "avgMargin": -60.16573230553609
+    },
+    {
+      "bucket": "Hidden Bonus Card",
+      "card": "Nest Egg",
+      "samples": 3281,
+      "winRate": 0.21639743980493753,
+      "avgPercentile": 0.4965356090622791,
+      "approxPlaceAt4": 2.5103931728131625,
+      "avgMargin": -67.71959768363304
+    },
+    {
+      "bucket": "Insider Tip Card",
+      "card": "Purple +4",
+      "samples": 1765,
+      "winRate": 0.23626062322946176,
+      "avgPercentile": 0.4942304060434381,
+      "approxPlaceAt4": 2.5173087818696853,
+      "avgMargin": -53.69121813031161
+    },
+    {
+      "bucket": "Insider Tip Card",
+      "card": "Blue +4",
+      "samples": 1726,
+      "winRate": 0.21205098493626884,
+      "avgPercentile": 0.47519312475859427,
+      "approxPlaceAt4": 2.5744206257242173,
+      "avgMargin": -43.45191193511008
+    },
+    {
+      "bucket": "Insider Tip Card",
+      "card": "Green +4",
+      "samples": 1755,
+      "winRate": 0.21424501424501424,
+      "avgPercentile": 0.47176638176638236,
+      "approxPlaceAt4": 2.584700854700853,
+      "avgMargin": -46.593162393162395
+    },
+    {
+      "bucket": "Hidden Bonus Card",
+      "card": "Clean Ledger",
+      "samples": 3304,
+      "winRate": 0.19854721549636803,
+      "avgPercentile": 0.4694057707828907,
+      "approxPlaceAt4": 2.591782687651328,
+      "avgMargin": -67.64830508474576
+    },
+    {
+      "bucket": "Insider Tip Card",
+      "card": "Orange +4",
+      "samples": 1773,
+      "winRate": 0.22053017484489565,
+      "avgPercentile": 0.4693645422071812,
+      "approxPlaceAt4": 2.591906373378456,
+      "avgMargin": -49.68245910885505
+    },
+    {
+      "bucket": "Hidden Bonus Card",
+      "card": "Portfolio",
+      "samples": 2668,
+      "winRate": 0.21139430284857572,
+      "avgPercentile": 0.46352448775612237,
+      "approxPlaceAt4": 2.6094265367316325,
+      "avgMargin": -67.30772113943029
+    },
+    {
+      "bucket": "Hidden Bonus Card",
+      "card": "Easy Credit",
+      "samples": 2761,
+      "winRate": 0.20572256428830135,
+      "avgPercentile": 0.46274900398406615,
+      "approxPlaceAt4": 2.6117529880478014,
+      "avgMargin": -69.26149945671858
+    },
+    {
+      "bucket": "Starter Action Card",
+      "card": "Market Panic",
+      "samples": 2430,
+      "winRate": 0.1683127572016461,
+      "avgPercentile": 0.461913580246914,
+      "approxPlaceAt4": 2.614259259259258,
+      "avgMargin": -71.23497942386831
+    },
+    {
+      "bucket": "Hidden Bonus Card",
+      "card": "Trophy Case",
+      "samples": 2851,
+      "winRate": 0.21360925990880392,
+      "avgPercentile": 0.46058108266105574,
+      "approxPlaceAt4": 2.618256752016833,
+      "avgMargin": -65.86881795861102
+    },
+    {
+      "bucket": "Insider Tip Card",
+      "card": "Purple -2 / Green -2",
+      "samples": 1366,
+      "winRate": 0.21156661786237188,
+      "avgPercentile": 0.45844314299658395,
+      "approxPlaceAt4": 2.624670571010248,
+      "avgMargin": -64.31551976573938
+    },
+    {
+      "bucket": "Insider Tip Card",
+      "card": "Blue stock value is halved (round down)",
+      "samples": 2736,
+      "winRate": 0.21125730994152048,
+      "avgPercentile": 0.45749878167641467,
+      "approxPlaceAt4": 2.6275036549707558,
+      "avgMargin": -63.038011695906434
+    },
+    {
+      "bucket": "Insider Tip Card",
+      "card": "Blue -2 / Orange -2",
+      "samples": 1332,
+      "winRate": 0.2042042042042042,
+      "avgPercentile": 0.45684434434434373,
+      "approxPlaceAt4": 2.6294669669669686,
+      "avgMargin": -65.99849849849849
+    },
+    {
+      "bucket": "Insider Tip Card",
+      "card": "Green stock value is halved (round down)",
+      "samples": 2716,
+      "winRate": 0.20839469808541974,
+      "avgPercentile": 0.45422189494354515,
+      "approxPlaceAt4": 2.6373343151693645,
+      "avgMargin": -69.19513991163475
+    },
+    {
+      "bucket": "Insider Tip Card",
+      "card": "Green -2 / Blue -2",
+      "samples": 1337,
+      "winRate": 0.20044876589379207,
+      "avgPercentile": 0.45208177511842496,
+      "approxPlaceAt4": 2.6437546746447254,
+      "avgMargin": -72.90052356020942
+    },
+    {
+      "bucket": "Insider Tip Card",
+      "card": "Purple stock value is halved (round down)",
+      "samples": 2780,
+      "winRate": 0.20359712230215826,
+      "avgPercentile": 0.4501079136690658,
+      "approxPlaceAt4": 2.6496762589928027,
+      "avgMargin": -72.50107913669065
+    },
+    {
+      "bucket": "Insider Tip Card",
+      "card": "Orange -2 / Purple -2",
+      "samples": 1410,
+      "winRate": 0.22056737588652484,
+      "avgPercentile": 0.44979905437352313,
+      "approxPlaceAt4": 2.6506028368794308,
+      "avgMargin": -62.34964539007092
+    },
+    {
+      "bucket": "Goal Card (drafted as private)",
+      "card": "Branch Line",
+      "samples": 1591,
+      "winRate": 0.1935889377749843,
+      "avgPercentile": 0.4464906767232348,
+      "approxPlaceAt4": 2.6605279698302953,
+      "avgMargin": -50.201759899434315
+    },
+    {
+      "bucket": "Goal Card (drafted as private)",
+      "card": "Foundry Stake",
+      "samples": 1795,
+      "winRate": 0.19944289693593314,
+      "avgPercentile": 0.4430176415970298,
+      "approxPlaceAt4": 2.670947075208911,
+      "avgMargin": -48.41392757660167
+    },
+    {
+      "bucket": "Goal Card (drafted as private)",
+      "card": "Steel Trust",
+      "samples": 1954,
+      "winRate": 0.17553735926305014,
+      "avgPercentile": 0.4386045718184929,
+      "approxPlaceAt4": 2.6841862845445212,
+      "avgMargin": -61.123336745138175
+    },
+    {
+      "bucket": "Goal Card (drafted as private)",
+      "card": "Rail Monopoly",
+      "samples": 2206,
+      "winRate": 0.1944696282864914,
+      "avgPercentile": 0.4377455424599588,
+      "approxPlaceAt4": 2.6867633726201237,
+      "avgMargin": -62.769718948322755
+    },
+    {
+      "bucket": "Starter Action Card",
+      "card": "Foresight",
+      "samples": 619,
+      "winRate": 0.20193861066235863,
+      "avgPercentile": 0.43537964458804507,
+      "approxPlaceAt4": 2.693861066235865,
+      "avgMargin": -52.725363489499195
+    },
+    {
+      "bucket": "Starter Action Card",
+      "card": "Double Down",
+      "samples": 355,
+      "winRate": 0.16619718309859155,
+      "avgPercentile": 0.43286384976525794,
+      "approxPlaceAt4": 2.701408450704226,
+      "avgMargin": -75.4225352112676
+    },
+    {
+      "bucket": "Insider Tip Card",
+      "card": "Orange stock value is halved (round down)",
+      "samples": 2716,
+      "winRate": 0.18814432989690721,
+      "avgPercentile": 0.431363524791361,
+      "approxPlaceAt4": 2.705909425625917,
+      "avgMargin": -69.61303387334316
+    },
+    {
+      "bucket": "Goal Card (drafted as private)",
+      "card": "Wildcat Wells",
+      "samples": 2037,
+      "winRate": 0.18065783014236622,
+      "avgPercentile": 0.4248977254131895,
+      "approxPlaceAt4": 2.7253068237604317,
+      "avgMargin": -58.68433971526755
+    },
+    {
+      "bucket": "Goal Card (drafted as private)",
+      "card": "Crude & Credit",
+      "samples": 2105,
+      "winRate": 0.15914489311163896,
+      "avgPercentile": 0.42335708630245494,
+      "approxPlaceAt4": 2.7299287410926354,
+      "avgMargin": -64.19097387173397
+    },
+    {
+      "bucket": "Goal Card (drafted as private)",
+      "card": "Oil Baron",
+      "samples": 2096,
+      "winRate": 0.17318702290076335,
+      "avgPercentile": 0.4206424936386777,
+      "approxPlaceAt4": 2.7380725190839668,
+      "avgMargin": -60.68654580152672
+    },
+    {
+      "bucket": "Goal Card (drafted as private)",
+      "card": "Money Trust",
+      "samples": 2192,
+      "winRate": 0.17472627737226276,
+      "avgPercentile": 0.4199665450121662,
+      "approxPlaceAt4": 2.7401003649635016,
+      "avgMargin": -53.839416058394164
+    },
+    {
+      "bucket": "Goal Card (drafted as private)",
+      "card": "Heavy Industry",
+      "samples": 2181,
+      "winRate": 0.17606602475928473,
+      "avgPercentile": 0.41736970808497664,
+      "approxPlaceAt4": 2.74789087574507,
+      "avgMargin": -62.74965612104539
+    },
+    {
+      "bucket": "Goal Card (drafted as private)",
+      "card": "Industrial Capital",
+      "samples": 2175,
+      "winRate": 0.167816091954023,
+      "avgPercentile": 0.41266666666666746,
+      "approxPlaceAt4": 2.761999999999998,
+      "avgMargin": -69.65655172413793
+    },
+    {
+      "bucket": "Goal Card (drafted as private)",
+      "card": "Fuel & Freight",
+      "samples": 2262,
+      "winRate": 0.1755083996463307,
+      "avgPercentile": 0.412275272620101,
+      "approxPlaceAt4": 2.763174182139697,
+      "avgMargin": -54.40053050397878
+    },
+    {
+      "bucket": "Goal Card (drafted as private)",
+      "card": "Track & Trust",
+      "samples": 2154,
+      "winRate": 0.1713091922005571,
+      "avgPercentile": 0.40936242649334686,
+      "approxPlaceAt4": 2.7719127205199596,
+      "avgMargin": -63.19545032497679
+    },
+    {
+      "bucket": "Goal Card (drafted as private)",
+      "card": "Counting House",
+      "samples": 1961,
+      "winRate": 0.16420193778684344,
+      "avgPercentile": 0.4049464558898526,
+      "approxPlaceAt4": 2.7851606323304425,
+      "avgMargin": -60.09077001529832
+    },
+    {
+      "bucket": "Goal Card (drafted as private)",
+      "card": "Vertical Integration",
+      "samples": 2095,
+      "winRate": 0.15799522673031027,
+      "avgPercentile": 0.39741447891806037,
+      "approxPlaceAt4": 2.807756563245819,
+      "avgMargin": -59.21241050119332
+    }
+  ]
+}

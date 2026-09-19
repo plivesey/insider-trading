@@ -52,10 +52,11 @@ interface Variant {
   rules: Partial<RulesConfig>;
 }
 // V5 rule knobs (see v5_tuning_notes.md): initialGoalRevealCount (flat 4 by
-// default) and progressThresholdPerPlayer (flat 4 by default, i.e. threshold
-// = 4 x players). Variants below sweep both to see the effect on game length.
+// default) and progressThresholdPerPlayer/progressThresholdBase (3x+2 by
+// default, e.g. 11 for 3 players). Variants below sweep both to see the
+// effect on game length.
 const VARIANTS: Variant[] = [
-  { name: 'baseline (4 / 4x)', rules: {} },
+  { name: 'baseline (4 / 3x+2)', rules: {} },
   { name: 'goals=6', rules: { initialGoalRevealCount: 6 } },
   { name: 'threshold=3x', rules: { progressThresholdPerPlayer: 3 } },
   { name: 'threshold=5x', rules: { progressThresholdPerPlayer: 5 } },

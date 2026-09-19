@@ -95,6 +95,78 @@
       "type": "slump",
       "text": "Green -2 / Blue -2",
       "effect": { "type": "adjust", "changes": { "Green": -2, "Blue": -2 } }
+    },
+    {
+      "id": 17,
+      "type": "crash",
+      "text": "Blue stock value is halved (round down)",
+      "effect": { "type": "halve", "color": "Blue" }
+    },
+    {
+      "id": 18,
+      "type": "crash",
+      "text": "Orange stock value is halved (round down)",
+      "effect": { "type": "halve", "color": "Orange" }
+    },
+    {
+      "id": 19,
+      "type": "crash",
+      "text": "Green stock value is halved (round down)",
+      "effect": { "type": "halve", "color": "Green" }
+    },
+    {
+      "id": 20,
+      "type": "crash",
+      "text": "Purple stock value is halved (round down)",
+      "effect": { "type": "halve", "color": "Purple" }
+    },
+    {
+      "id": 21,
+      "type": "slump",
+      "text": "Blue -2 / Purple -2",
+      "effect": { "type": "adjust", "changes": { "Blue": -2, "Purple": -2 } }
+    },
+    {
+      "id": 22,
+      "type": "slump",
+      "text": "Orange -2 / Green -2",
+      "effect": { "type": "adjust", "changes": { "Orange": -2, "Green": -2 } }
+    },
+    {
+      "id": 23,
+      "type": "shift",
+      "text": "Blue +2 / Orange -2",
+      "effect": { "type": "adjust", "changes": { "Blue": 2, "Orange": -2 } }
+    },
+    {
+      "id": 24,
+      "type": "shift",
+      "text": "Orange +2 / Green -2",
+      "effect": { "type": "adjust", "changes": { "Orange": 2, "Green": -2 } }
+    },
+    {
+      "id": 25,
+      "type": "shift",
+      "text": "Green +2 / Purple -2",
+      "effect": { "type": "adjust", "changes": { "Green": 2, "Purple": -2 } }
+    },
+    {
+      "id": 26,
+      "type": "shift",
+      "text": "Purple +2 / Blue -2",
+      "effect": { "type": "adjust", "changes": { "Purple": 2, "Blue": -2 } }
+    },
+    {
+      "id": 27,
+      "type": "shift",
+      "text": "Blue +2 / Green -2",
+      "effect": { "type": "adjust", "changes": { "Blue": 2, "Green": -2 } }
+    },
+    {
+      "id": 28,
+      "type": "shift",
+      "text": "Orange +2 / Purple -2",
+      "effect": { "type": "adjust", "changes": { "Orange": 2, "Purple": -2 } }
     }
   ]
 }

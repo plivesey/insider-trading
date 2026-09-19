@@ -108,6 +108,38 @@ describe('HTTP layer', () => {
     expect((bob as any).handSize).toBeDefined();
   });
 
+  it('start with variant: "alternate" builds an Alternate-variant game', async () => {
+    const a = request.agent(server.app);
+    const b = request.agent(server.app);
+    const c = request.agent(server.app);
+    const d = request.agent(server.app);
+    await a.post('/api/join').send({ name: 'Alice' });
+    await b.post('/api/join').send({ name: 'Bob' });
+    await c.post('/api/join').send({ name: 'Carol' });
+    await d.post('/api/join').send({ name: 'Dave' });
+    const s = await a.post('/api/start').send({ variant: 'alternate' });
+    expect(s.status).toBe(200);
+    const sa = await a.get('/api/state');
+    const state = sa.body.state;
+    expect(state.variant).toBe('alternate');
+    expect(state.progressThreshold).toBe(4 * 4); // 4 players * 4
+  });
+
+  it('start with no body (or variant omitted) defaults to Classic', async () => {
+    const a = request.agent(server.app);
+    const b = request.agent(server.app);
+    const c = request.agent(server.app);
+    await a.post('/api/join').send({ name: 'Alice' });
+    await b.post('/api/join').send({ name: 'Bob' });
+    await c.post('/api/join').send({ name: 'Carol' });
+    const s = await a.post('/api/start');
+    expect(s.status).toBe(200);
+    const sa = await a.get('/api/state');
+    const state = sa.body.state;
+    expect(state.variant).toBe('classic');
+    expect(state.progressThreshold).toBe(3 * 3 + 2); // 3 players
+  });
+
   it('spectator (no cookie / unknown cookie) sees game_in_progress_spectator after start', async () => {
     const a = request.agent(server.app);
     const b = request.agent(server.app);
