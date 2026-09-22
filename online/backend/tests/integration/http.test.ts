@@ -122,7 +122,7 @@ describe('HTTP layer', () => {
     const sa = await a.get('/api/state');
     const state = sa.body.state;
     expect(state.variant).toBe('alternate');
-    expect(state.progressThreshold).toBe(4 * 4); // 4 players * 4
+    expect(state.progressThreshold).toBe(4 * 4 + 1); // 4 players * 4 + 1
   });
 
   it('start with no body (or variant omitted) defaults to Classic', async () => {

@@ -171,6 +171,7 @@ export function createGameState(input: SetupInput): GameState {
     draft: null,
     freeActionQueue: [],
     pendingPrompts,
+    pendingDoubleDown: [],
     gameOver: null,
     log: [
       {

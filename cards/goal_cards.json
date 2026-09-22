@@ -12,8 +12,8 @@
         }
       },
       "reward": {
-        "text": "Gain $4",
-        "parsed": { "type": "gain_cash", "amount": 4 }
+        "text": "Steal $1 from each other player",
+        "parsed": { "type": "steal_from_all", "amount": 1 }
       }
     },
     {
@@ -44,8 +44,8 @@
         }
       },
       "reward": {
-        "text": "Set any one stock to exactly $6",
-        "parsed": { "type": "set_stock", "amount": 6 }
+        "text": "Look at the top 3 Insider Tips. Draw 1 into your hand; return the other 2 to the top of the deck",
+        "parsed": { "type": "draw_and_choose_tips", "drawCount": 3, "keepCount": 1 }
       }
     },
     {
@@ -60,8 +60,8 @@
         }
       },
       "reward": {
-        "text": "Look at the top 2 Insider Tips; you may put one on the bottom of the deck",
-        "parsed": { "type": "peek_tips_bottom", "count": 2 }
+        "text": "Gain $4",
+        "parsed": { "type": "gain_cash", "amount": 4 }
       }
     },
     {
@@ -92,7 +92,7 @@
         }
       },
       "reward": {
-        "text": "Sell all your stocks; gain +$3 per stock sold",
+        "text": "Sell any number of your stocks; gain +$3 per stock sold",
         "parsed": { "type": "sell_bonus_batch", "bonus": 3 }
       }
     },
@@ -108,8 +108,8 @@
         }
       },
       "reward": {
-        "text": "Gain $8",
-        "parsed": { "type": "gain_cash", "amount": 8 }
+        "text": "Look at the top 4 Insider Tips. Draw 2 into your hand; return the other 2 to the top of the deck",
+        "parsed": { "type": "draw_and_choose_tips", "drawCount": 4, "keepCount": 2 }
       }
     },
     {
@@ -124,8 +124,8 @@
         }
       },
       "reward": {
-        "text": "Swap one of your cards with a face-up market card",
-        "parsed": { "type": "swap_with_market" }
+        "text": "Gain $8",
+        "parsed": { "type": "gain_cash", "amount": 8 }
       }
     },
     {
@@ -140,8 +140,8 @@
         }
       },
       "reward": {
-        "text": "Gain $9",
-        "parsed": { "type": "gain_cash", "amount": 9 }
+        "text": "Adjust one stock by +2 and another stock by -2",
+        "parsed": { "type": "adjust_two_stocks", "up": 2, "down": 2 }
       }
     },
     {
@@ -156,8 +156,8 @@
         }
       },
       "reward": {
-        "text": "Draw 2 unused Insider Tips into your hand",
-        "parsed": { "type": "draw_tips", "count": 2 }
+        "text": "Swap one of your cards for a face-up market card",
+        "parsed": { "type": "swap_with_market" }
       }
     },
     {
@@ -172,8 +172,8 @@
         }
       },
       "reward": {
-        "text": "Adjust any one stock by +4 and another stock by -4",
-        "parsed": { "type": "adjust_two_stocks", "up": 4, "down": 4 }
+        "text": "At the end of the game, gain $12",
+        "parsed": { "type": "end_game_cash", "amount": 12 }
       }
     },
     {
@@ -188,8 +188,8 @@
         }
       },
       "reward": {
-        "text": "Draw the top Insider Tip from the deck into your hand and gain $7",
-        "parsed": { "type": "draw_deck_tip", "cash": 7 }
+        "text": "Draw the top Insider Tip into your hand. Adjust any one stock by +2 or -2",
+        "parsed": { "type": "draw_deck_tip_adjust", "amount": 2 }
       }
     },
     {
@@ -204,8 +204,8 @@
         }
       },
       "reward": {
-        "text": "Draw 3 cards from the main deck, keep 1",
-        "parsed": { "type": "draw_and_choose", "drawCount": 3, "keepCount": 1 }
+        "text": "Gain $4 and adjust one stock by +2 or -2",
+        "parsed": { "type": "gain_cash_adjust", "cash": 4, "amount": 2 }
       }
     },
     {
@@ -220,8 +220,8 @@
         }
       },
       "reward": {
-        "text": "At the end of the game, gain $11",
-        "parsed": { "type": "end_game_cash", "amount": 11 }
+        "text": "Draw the top Insider Tip into your hand and gain $6",
+        "parsed": { "type": "draw_deck_tip", "cash": 6 }
       }
     },
     {

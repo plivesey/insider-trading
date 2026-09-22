@@ -362,14 +362,16 @@ function applyReward(
       );
       return;
     case 'sell_bonus_batch': {
-      // Sell EVERY colored stock in hand at once. Each stock pays its color's
-      // current price + bonus; all payouts use pre-batch prices (so a color's
-      // price doesn't cannibalize its own sales). Price drops (−1 per stock
-      // sold) are applied only AFTER the whole batch. Wild Shares can't be sold.
-      const toSell = player.hand.filter(
-        (c): c is StockCard => c.category === 'stock' && (c as StockCard).color !== 'Wild'
+      // Opt-in: the player may sell any number (including zero) of their
+      // colored stocks, one at a time, each paying its price + bonus. Routes
+      // into the same iterative pick_stock_from_hand/'sell_bonus_batch' mode
+      // already used by the Liquidation action card's sibling 'sell_same_bonus'
+      // mode -- the prompt handler, bot decision logic, and frontend all
+      // already support this mode; only this reward case needed to start it.
+      const canSell = player.hand.some(
+        c => c.category === 'stock' && (c as StockCard).color !== 'Wild'
       );
-      if (toSell.length === 0) {
+      if (!canSell) {
         events.push(
           event('sell_bonus_none', `${player.name} has no stocks to sell for the reward`, {
             actor: player.playerId
@@ -377,27 +379,12 @@ function applyReward(
         );
         return;
       }
-      const soldByColor: Partial<Record<Color, number>> = {};
-      let total = 0;
-      for (const card of toSell) {
-        const color = card.color as Color;
-        const payout = state.stockPrices[color] + r.bonus; // pre-batch price
-        receiveBank(player, payout);
-        total += payout;
-        soldByColor[color] = (soldByColor[color] ?? 0) + 1;
-        const hIdx = player.hand.findIndex(c => c.uid === card.uid);
-        if (hIdx >= 0) player.hand.splice(hIdx, 1);
-        state.discardPile.push(card);
-      }
-      for (const color of Object.keys(soldByColor) as Color[]) {
-        adjust(state.stockPrices, color, -(soldByColor[color] ?? 0));
-      }
-      events.push(
-        event(
-          'sell_bonus_batch_all',
-          `${player.name} sells ${toSell.length} stock${toSell.length === 1 ? '' : 's'} for $${total} total (+$${r.bonus} each); prices drop after the batch`,
-          { actor: player.playerId, payload: { count: toSell.length, total, bonus: r.bonus, soldByColor } }
-        )
+      setPrompt(
+        state,
+        player.playerId,
+        'pick_stock_from_hand',
+        `Reward: sell any number of your stocks for +$${r.bonus} each (send done when finished).`,
+        { mode: 'sell_bonus_batch', bonus: r.bonus, goalReward: true }
       );
       return;
     }
@@ -428,19 +415,97 @@ function applyReward(
       );
       return;
     }
+    case 'draw_deck_tip_adjust': {
+      // Same draw-into-hand half as draw_deck_tip, but no cash -- followed by
+      // the same generic pick_color_amount prompt adjust_stock already uses.
+      const [drawn] = drawEventCardsIntoHand(state, 1);
+      if (drawn) {
+        player.hand.push(drawn);
+        events.push(
+          event('reward_draw_deck_tip', `${player.name} draws the top event card into hand`, {
+            actor: player.playerId,
+            payload: { uid: drawn.uid }
+          })
+        );
+      } else {
+        events.push(
+          event('reward_draw_deck_tip_empty', `${player.name}'s reward: the event deck is empty`, {
+            actor: player.playerId
+          })
+        );
+      }
+      setPrompt(
+        state,
+        player.playerId,
+        'pick_color_amount',
+        `Reward: adjust one stock by ±${r.amount}.`,
+        { amount: r.amount, allowSign: true, goalReward: true }
+      );
+      return;
+    }
+    case 'gain_cash_adjust': {
+      // Flat cash grant, then the same generic pick_color_amount prompt
+      // adjust_stock already uses.
+      receiveBank(player, r.cash);
+      events.push(
+        event('reward_cash', `${player.name} gains $${r.cash}`, {
+          actor: player.playerId,
+          payload: { amount: r.cash, newCash: player.cash }
+        })
+      );
+      setPrompt(
+        state,
+        player.playerId,
+        'pick_color_amount',
+        `Reward: adjust one stock by ±${r.amount}.`,
+        { amount: r.amount, allowSign: true, goalReward: true }
+      );
+      return;
+    }
     case 'draw_and_choose': {
       // Pull `drawCount` from the market deck and prompt player to keep `keepCount`.
+      // The deck may hold fewer than drawCount cards (rare, but possible late
+      // in a game) -- clamp keepCount to however many actually got drawn, or
+      // the prompt would demand more picks than exist and could never resolve.
       const drawn = state.mainDeck.splice(0, Math.min(r.drawCount, state.mainDeck.length));
       if (drawn.length === 0) return;
+      const keepCount = Math.min(r.keepCount, drawn.length);
       setPrompt(
         state,
         player.playerId,
         'draw_and_keep',
-        `Reward: choose ${r.keepCount} to keep, return the rest to the bottom.`,
+        `Reward: choose ${keepCount} to keep, return the rest to the bottom.`,
         {
           drawn: drawn.map(c => ({ uid: c.uid, summary: describeCard(c), card: c })),
           stagedCards: drawn,
-          keepCount: r.keepCount,
+          keepCount,
+          goalReward: true
+        }
+      );
+      return;
+    }
+    case 'draw_and_choose_tips': {
+      // Same shape as draw_and_choose, but pulls from the top of the event
+      // deck (not the main deck) and returns the un-kept cards to the TOP of
+      // the event deck (not the bottom of the main deck) -- see the
+      // returnTarget branch in promptResponse.ts's draw_and_keep handler.
+      // The event deck is far smaller than the main deck and depletes over
+      // the course of a game, so running short here is common enough to hit
+      // in practice, not just a theoretical edge case -- same keepCount clamp
+      // as draw_and_choose above.
+      const drawn = drawEventCardsIntoHand(state, r.drawCount);
+      if (drawn.length === 0) return;
+      const keepCount = Math.min(r.keepCount, drawn.length);
+      setPrompt(
+        state,
+        player.playerId,
+        'draw_and_keep',
+        `Reward: choose ${keepCount} to keep, return the rest to the top of the event deck.`,
+        {
+          drawn: drawn.map(c => ({ uid: c.uid, summary: describeEventCardForPrompt(c), card: c })),
+          stagedCards: drawn,
+          keepCount,
+          returnTarget: 'eventDeck_top',
           goalReward: true
         }
       );

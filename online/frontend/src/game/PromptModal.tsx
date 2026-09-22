@@ -91,7 +91,13 @@ export function PromptModal({ prompt, state }: Props) {
             setDraft({ ...draft, buriedUid: undefined, order: candidateUids });
             return;
           }
-          setDraft({ ...draft, buriedUid: uid, order: [...kept.filter(u => u !== uid), uid] });
+          // Derive the new order from the full `order` (which still contains
+          // every candidate, including whichever one is currently buried),
+          // not `kept` (which has already excluded it) -- otherwise burying a
+          // second card permanently drops the first one from `order`
+          // entirely instead of un-burying it, and the mismatched count then
+          // makes Submit impossible.
+          setDraft({ ...draft, buriedUid: uid, order: [...order.filter(u => u !== uid), uid] });
         }
         return (
           <>
@@ -107,10 +113,13 @@ export function PromptModal({ prompt, state }: Props) {
                   <BrassButton label="Bury" onClick={() => toggleBury(uid)} />
                 </li>
               ))}
+              {buriedUid && (
+                <li key={buriedUid} style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4, opacity: 0.7 }}>
+                  <span>{describe(buriedUid)} (buried at the bottom)</span>
+                  <BrassButton label="Un-bury" onClick={() => toggleBury(buriedUid)} />
+                </li>
+              )}
             </ul>
-            {buriedUid && (
-              <div className="deco-modal__notice">Buried at the bottom: {describe(buriedUid)}</div>
-            )}
             <div className="deco-modal__footer">
               <BrassButton
                 label="Submit"

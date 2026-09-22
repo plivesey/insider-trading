@@ -184,6 +184,19 @@ export interface GameState {
   freeActionQueue: FreeActionQueueEntry[];
   /** Active per-player prompts. Only one entry per player. */
   pendingPrompts: Record<PlayerId, PromptEnvelope | null>;
+  /**
+   * A LIFO stack of deferred Double Down second-resolutions. Entries are
+   * pushed when a Double Down's first resolution of its target card leaves a
+   * prompt open (most effects do) -- since a player has only one prompt
+   * slot, resolving the target twice back-to-back would let the second
+   * `setPrompt` silently clobber the first before it's ever answered, so the
+   * second resolution is deferred until the first one's whole prompt chain
+   * (which may itself be multi-step, e.g. Hostile Takeover or Backroom Deal)
+   * actually finishes. A stack (not a single slot) so that Double-Downing a
+   * Double Down -- resolving one doubled card that itself doubles another --
+   * nests correctly instead of one deferred resolution clobbering the other.
+   */
+  pendingDoubleDown: { playerId: PlayerId; card: ActionCard }[];
   /** Set to non-null when the game ends. */
   gameOver: GameOver | null;
   log: GameLogEntry[];
@@ -232,11 +245,11 @@ export const DEFAULT_RULES: RulesConfig = {
   progressThresholdBase: 2
 };
 
-/** Alternate: same goal-reveal count as Classic, but a flat 4x-players threshold (no base offset). 2p:8, 3p:12, 4p:16, 5p:20, 6p:24. */
+/** Alternate: same goal-reveal count as Classic, threshold 4x-players + 1. 2p:9, 3p:13, 4p:17, 5p:21, 6p:25. */
 export const ALTERNATE_DEFAULT_RULES: RulesConfig = {
   ...DEFAULT_RULES,
   progressThresholdPerPlayer: 4,
-  progressThresholdBase: 0
+  progressThresholdBase: 1
 };
 
 /** Default rules for each selectable variant -- `createGameState` starts from this, then applies any `input.rules` override on top. */

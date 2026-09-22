@@ -608,13 +608,21 @@ function respondToPrompt(
         };
       }
       if (mode === 'sell_bonus_batch') {
-        // Sell colored stocks one at a time (highest price first) until the
-        // bot is out of saleable stocks; then send done.
-        let best: { uid: string; price: number } | null = null;
+        // Genuinely opt-in (unlike sell_same_bonus below, which always sells
+        // everything of a locked color): only sell a stock if the batch's
+        // opening price + bonus beats what the bot thinks the stock is worth
+        // to keep holding, so the "sell any number, including zero" reward
+        // actually gets exercised selectively rather than degenerating into
+        // "sell everything, just one at a time."
+        const bonus = (payload.bonus as number) ?? 0;
+        const batchPrices = (payload.batchPrices as Record<string, number> | undefined) ?? {};
+        let best: { uid: string; margin: number } | null = null;
         for (const c of bot.hand) {
           if (c.category !== 'stock' || c.color === 'Wild') continue;
-          const p = state.stockPrices[c.color];
-          if (!best || p > best.price) best = { uid: c.uid, price: p };
+          const salePrice = batchPrices[c.color] ?? state.stockPrices[c.color];
+          const holdValue = perceivedStockCardValue(state, profile, c as StockCard, botId);
+          const margin = salePrice + bonus - holdValue;
+          if (margin > 0 && (!best || margin > best.margin)) best = { uid: c.uid, margin };
         }
         if (!best) {
           return {
@@ -755,14 +763,16 @@ function respondToPrompt(
     }
 
     case 'draw_and_keep': {
-      // Keep the highest-perceived-value drawn cards. Drawn cards come from the
-      // market deck so they're stocks or actions (never event-deck cards).
-      const drawn = (payload.drawn as Array<{ uid: string; card: StockCard | ActionCard }>) ?? [];
+      // Keep the highest-perceived-value drawn cards. Drawn cards come from
+      // either the market deck (stocks/actions, draw_and_choose) or the event
+      // deck (tips/goals, draw_and_choose_tips) -- marketCardValue dispatches
+      // on card category so one path handles both sources.
+      const drawn = (payload.drawn as Array<{ uid: string; card: StockCard | ActionCard | InsiderTipCard | GoalCard }>) ?? [];
       const keepCount = payload.keepCount as number;
       const sorted = drawn
         .map(d => ({
           uid: d.uid,
-          value: perceivedCardValue(d.card, state, profile, botId)
+          value: marketCardValue(d.card, state, profile, botId)
         }))
         .sort((a, b) => b.value - a.value);
       const keepUids = sorted.slice(0, keepCount).map(s => s.uid);

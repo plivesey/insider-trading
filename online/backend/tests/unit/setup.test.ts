@@ -211,7 +211,7 @@ describe('createGameState -- Alternate variant', () => {
     expect(new Set(uids).size).toBe(uids.length);
 
     expect(g.progressThreshold).toBe(computeProgressThreshold(4, ALTERNATE_DEFAULT_RULES));
-    expect(g.progressThreshold).toBe(16);
+    expect(g.progressThreshold).toBe(17);
 
     // None of the Classic-only starter actions/bonus cards ever appear.
     const forbiddenNames = new Set(['First Look', 'Fire Sale', 'Windfall', 'Market Panic', 'Nest Egg', 'Portfolio', 'Trophy Case', 'Clean Ledger', 'Easy Credit']);
@@ -221,7 +221,7 @@ describe('createGameState -- Alternate variant', () => {
     }
   });
 
-  it.each([2, 3, 4, 5, 6])('progress threshold is a flat 4x players (%i players)', n => {
+  it.each([2, 3, 4, 5, 6])('progress threshold is 4x players + 1 (%i players)', n => {
     const ps = Array.from({ length: n }, (_, i) => ({ playerId: `p${i}`, name: `P${i}` }));
     const g = createGameState({
       catalog,
@@ -231,7 +231,7 @@ describe('createGameState -- Alternate variant', () => {
       startedAt: '2026-01-01T00:00:00.000Z',
       variant: 'alternate'
     });
-    expect(g.progressThreshold).toBe(4 * n);
+    expect(g.progressThreshold).toBe(4 * n + 1);
   });
 
   it('the guaranteed starter stock is visible in hand immediately, before and throughout the draft', () => {

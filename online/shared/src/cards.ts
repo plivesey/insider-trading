@@ -74,7 +74,10 @@ export type GoalReward =
   | { type: 'adjust_two_stocks'; up: number; down: number }
   | { type: 'swap_with_market' }
   | { type: 'draw_and_choose'; drawCount: number; keepCount: number }
+  | { type: 'draw_and_choose_tips'; drawCount: number; keepCount: number }
   | { type: 'draw_deck_tip'; cash: number }
+  | { type: 'draw_deck_tip_adjust'; amount: number }
+  | { type: 'gain_cash_adjust'; cash: number; amount: number }
   | { type: 'end_game_cash'; amount: number };
 
 export interface GoalCard {

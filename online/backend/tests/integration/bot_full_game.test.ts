@@ -190,7 +190,7 @@ describe('bot full-game integration -- Alternate variant', () => {
       const profiles = new Map<PlayerId, BotProfile>();
       for (const p of players) profiles.set(p.playerId, createBotProfile(botRng));
       const tickRng = makeRng((seed * 4 + 7) | 0);
-      // Alternate's progress threshold (4x players) runs ~20% higher than
+      // Alternate's progress threshold (4x players + 1) runs ~20% higher than
       // Classic's (3x players + 2) at 6 players, and Classic 6p games were
       // already observed needing up to ~19,000 ticks (see the comment on
       // driveBotGame) -- give Alternate proportionally more headroom.

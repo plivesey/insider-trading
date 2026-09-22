@@ -14,6 +14,7 @@ import { hashSeed } from '../src/bots/esCore.js';
 import { makeProductionBotProfile, type BotParams } from '../src/bots/botParams.js';
 import { decideBotAction } from '../src/bots/decide.js';
 import { executeBotActionDirect } from '../src/bots/selfPlay.js';
+import { advance } from '../src/engine/advance.js';
 import type { BotProfile } from '../src/bots/profile.js';
 import type { ValueNetWeights } from '../src/bots/valueNet.js';
 
@@ -57,6 +58,10 @@ function drive(seed: number, seats: number): GameState {
     gameId: `agw-${seed}`,
     startedAt: '2026-01-01T00:00:00.000Z'
   });
+  // createGameState leaves turnPhase:'setup_draft' with no prompts queued --
+  // advance() lazily calls beginDraft() the first time it runs on a state
+  // like that, so a directly-constructed state needs one up front.
+  advance(state, []);
   const rng = makeRng(hashSeed(seed, 1));
   let ticks = 0;
   while (!state.gameOver && ticks < 20000) {

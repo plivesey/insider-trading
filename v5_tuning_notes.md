@@ -227,3 +227,55 @@ so the change is a light, contained nudge rather than amplifying an
 already-Bull-heavy die (A/B). Not an exact numeric offset — just a rough
 counterbalance; worth re-measuring average price drift over a full game
 once there's been some playtesting.
+
+## 16. Dice bag: fewer big multi-card draws
+
+Mixed-draw C's "Draw 3" face was toned down to "Draw 2", and one of
+Draw-heavy D's three "Draw 2" faces was toned down to "Draw 1"
+(`online/shared/src/dice.ts`). There is no longer a "Draw 3" face anywhere
+in the bag — `DieFace`/the `draw3` case in `engine/turn.ts` are left in
+place (harmless dead code) rather than removed, since old game logs and
+replays still legitimately contain `draw3` events. Net effect: fewer
+big multi-card event-deck draws per 6-turn bag cycle, which also modestly
+slows how fast the progress tracker (and Event Deck) depletes.
+
+## 17. Goal card re-theme + reward balance pass
+
+Following on from item 12's "goal cards generally" note: goals were re-themed
+per stock color (Bank=pure cash, Rail=insider-tip draws, Oil=market
+manipulation/pump-and-dump, Steel=backchanneling/wheeling-and-dealing),
+14 of the 19 cards' reward text/mechanics changed (`cards/goal_cards.json`),
+the value net and `bot_params.json` were retrained against the new set, and
+claim-rate/win-lift/Δwealth were re-measured via
+`online/backend/scripts/analyzeGoalValue.ts` (3,000,000-game Alternate-variant
+run) — [Goal Reward Ledger](https://claude.ai/code/artifact/7ad9bb3e-1572-451b-8572-785e208452b9).
+See `.claude/skills/goal-balancing/SKILL.md` for the reusable process.
+
+Headline finding: Rail's insider-tip theme is the weak link even after
+buffing 2 Rail from a peek into a guaranteed card draw — still the lowest-lift
+card in the set. Also surfaced a real engine bug (a draw-then-choose prompt
+could demand more picks than the event deck actually had left, livelocking
+the game) and confirmed Oil's Three-of-a-Kind ("sell any number of your
+stocks" vs. the old forced "sell all") was being underplayed by the old bot
+policy, not underpowered — same $3/stock value, opt-in selling flipped it
+from underpaid to overpaid in the data.
+
+**Follow-up rebalance (same artifact link, re-measured at 200k games/seat)**:
+investigating *why* Four-of-a-Kind's Δwealth varies so much by color despite
+an identical $12 reward (ledger's own "stock-holding confound" caveat) turned
+up that Steel's Three-of-a-Kind ("swap one of your cards for a face-up
+market card") was letting bots snipe a strong action card for free — the
+mechanism behind a lot of Steel's outsized numbers. Moved that swap to the
+harder 2 Steel+2 Rail slot (Two Pair), gave 3 Steel a plain $2-per-opponent
+steal instead (doubled from Pair's $1), toned Steel+Oil's stock adjust
+±3→±2, and widened Rail's draw-and-choose pool (2/3→3/4 cards looked at,
+same keep count) on the theory that more selection should help a human even
+if the bots can't exploit it. Re-measured: the swap relocation worked as
+intended (3 Steel's Δwealth dropped from ~$18 to ~$14; the swap itself is
+now the single strongest Two Pair card, so difficulty gating — not raw
+power — is what moved). The Rail widening did not help in simulation — both
+2 Rail and 3 Rail got *more* negative, consistent across all three player
+counts — which was the predicted outcome going in, since the bots'
+`rewardCashEquivalent` formula for this type has no concept of selection
+quality. Left as a known bots-can't-use-it gap pending either a smarter
+valuation formula or human-table validation.

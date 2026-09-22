@@ -106,6 +106,21 @@ export function rewardCashEquivalent(
     case 'draw_deck_tip':
       // A card in hand (playable later, or a new private goal) plus flat cash.
       return reward.cash + params.rewardDrawTipsMult;
+    case 'draw_deck_tip_adjust':
+      // Same "card into hand" component as draw_deck_tip minus its cash term,
+      // plus a stock adjust valued the same way adjust_stock already is.
+      return params.rewardDrawTipsMult + reward.amount * params.rewardAdjustMult;
+    case 'gain_cash_adjust':
+      return reward.cash + reward.amount * params.rewardAdjustMult;
+    case 'draw_and_choose_tips':
+      // keepCount cards guaranteed into hand (valued like draw_tips); the
+      // extra drawCount-keepCount cards seen-but-discarded are worth a
+      // look/select bonus (valued like a peek, since the worse one(s) were
+      // rejected).
+      return (
+        reward.keepCount * params.rewardDrawTipsMult +
+        Math.max(0, reward.drawCount - reward.keepCount) * params.rewardPeekMult
+      );
   }
 }
 

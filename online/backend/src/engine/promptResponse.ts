@@ -5,6 +5,7 @@ import type {
   GameLogEntry,
   GameState,
   GoalCard,
+  InsiderTipCard,
   PlayerId,
   StockCard
 } from '@insider-trading/shared';
@@ -25,6 +26,30 @@ import {
   refillMarketIfNeeded,
   resolveStockSpecialOnBuy
 } from './turn.js';
+
+/**
+ * Call at every point where an action card's effect has FULLY resolved (its
+ * whole prompt chain is done, not just one stage of a multi-step effect like
+ * Hostile Takeover or Backroom Deal) -- if a Double Down is waiting on this
+ * player's resolution to finish, this triggers its second resolution.
+ * No-op if no Double Down is pending for this player.
+ */
+function maybeContinueDoubleDown(state: GameState, playerId: PlayerId, events: GameLogEntry[]): void {
+  // LIFO: the most recently deferred resolution for this player (if any) is
+  // the one whose prompt chain just finished, so it resolves first.
+  const idx = findLastIndex(state.pendingDoubleDown, e => e.playerId === playerId);
+  if (idx < 0) return;
+  const [pending] = state.pendingDoubleDown.splice(idx, 1);
+  const player = findPlayer(state, playerId);
+  resolveActionEffect(state, player, pending.card, events);
+}
+
+function findLastIndex<T>(arr: T[], pred: (item: T) => boolean): number {
+  for (let i = arr.length - 1; i >= 0; i--) {
+    if (pred(arr[i])) return i;
+  }
+  return -1;
+}
 
 export function respondToPrompt(
   state: GameState,
@@ -122,6 +147,7 @@ export function respondToPrompt(
             { actor: playerId, payload: { choices, newPrices: { ...state.stockPrices } } }
           )
         );
+        maybeContinueDoubleDown(state, playerId, events);
         return { ok: true, events };
       } else {
         const color = response.color as Color | undefined;
@@ -141,6 +167,7 @@ export function respondToPrompt(
             payload: { color, delta, newPrice: state.stockPrices[color] }
           })
         );
+        maybeContinueDoubleDown(state, playerId, events);
         return { ok: true, events };
       }
     }
@@ -191,6 +218,7 @@ export function respondToPrompt(
       if ((mode === 'sell_bonus_batch' || mode === 'sell_same_bonus') && response.done && !stockUid) {
         clearPrompt(state, playerId);
         events.push(event('sell_bonus_done', `${player.name} ends sell bonus batch`, { actor: playerId }));
+        maybeContinueDoubleDown(state, playerId, events);
         return { ok: true, events };
       }
       if (!stockUid) return { ok: false, error: 'stockUid required', events };
@@ -215,6 +243,7 @@ export function respondToPrompt(
             { actor: playerId, payload: { color: card.color, payout, newPrice: state.stockPrices[card.color] } }
           )
         );
+        maybeContinueDoubleDown(state, playerId, events);
         return { ok: true, events };
       }
       if (mode === 'sell_bonus_batch' || mode === 'sell_same_bonus') {
@@ -252,6 +281,7 @@ export function respondToPrompt(
         const done = response.done as boolean | undefined;
         if (done) {
           clearPrompt(state, playerId);
+          maybeContinueDoubleDown(state, playerId, events);
         }
         return { ok: true, events };
       }
@@ -278,6 +308,7 @@ export function respondToPrompt(
             { actor: playerId, payload: drawn ? { drawnUid: drawn.uid } : {} }
           )
         );
+        maybeContinueDoubleDown(state, playerId, events);
         return { ok: true, events };
       }
       setPrompt(
@@ -315,6 +346,7 @@ export function respondToPrompt(
           { actor: playerId, payload: { targetId, stockUid: card.uid, drawnUid: drawn?.uid } }
         )
       );
+      maybeContinueDoubleDown(state, playerId, events);
       return { ok: true, events };
     }
 
@@ -341,6 +373,7 @@ export function respondToPrompt(
               { actor: playerId }
             )
           );
+          maybeContinueDoubleDown(state, playerId, events);
           return { ok: true, events };
         }
       }
@@ -357,6 +390,7 @@ export function respondToPrompt(
               actor: playerId
             })
           );
+          maybeContinueDoubleDown(state, playerId, events);
           return { ok: true, events };
         }
         return { ok: false, error: 'cardUid required', events };
@@ -380,6 +414,7 @@ export function respondToPrompt(
           })
         );
         refillMarketIfNeeded(state, events);
+        maybeContinueDoubleDown(state, playerId, events);
         return { ok: true, events };
       }
       if (mode === 'swap_with_market_stage1') {
@@ -406,6 +441,7 @@ export function respondToPrompt(
               actor: playerId
             })
           );
+          maybeContinueDoubleDown(state, playerId, events);
           return { ok: true, events };
         }
         state.market.splice(mIdx, 1);
@@ -420,6 +456,7 @@ export function respondToPrompt(
           )
         );
         refillMarketIfNeeded(state, events);
+        maybeContinueDoubleDown(state, playerId, events);
         return { ok: true, events };
       }
       if (mode === 'backroom_deal') {
@@ -441,6 +478,7 @@ export function respondToPrompt(
             { actor: playerId, payload: { tradedAwayUid: handCard.uid, takenUid: marketCard.uid } }
           )
         );
+        maybeContinueDoubleDown(state, playerId, events);
         return { ok: true, events };
       }
       return { ok: false, error: 'unknown pick_market_card mode', events };
@@ -488,40 +526,53 @@ export function respondToPrompt(
           { actor: playerId, payload: { color, sign, newPrice: state.stockPrices[color] } }
         )
       );
+      maybeContinueDoubleDown(state, playerId, events);
       return { ok: true, events };
     }
 
     case 'draw_and_keep': {
       const keepUids = response.keepUids as string[] | undefined;
-      const stagedCards = payload.stagedCards as DeckCard[] | undefined;
+      const stagedCards = payload.stagedCards as (DeckCard | InsiderTipCard | GoalCard)[] | undefined;
       const keepCount = payload.keepCount as number;
+      // 'mainDeck_bottom' (the original behavior, still used by draw_and_choose)
+      // returns un-kept cards to the bottom of state.mainDeck; 'eventDeck_top'
+      // (used by the new draw_and_choose_tips goal reward) returns them to the
+      // TOP of state.eventDeck instead. Default preserves existing callers'
+      // behavior byte-for-byte.
+      const returnTarget = (payload.returnTarget as 'mainDeck_bottom' | 'eventDeck_top' | undefined) ?? 'mainDeck_bottom';
       if (!keepUids || !Array.isArray(keepUids) || keepUids.length !== keepCount) {
         return { ok: false, error: `must keep exactly ${keepCount}`, events };
       }
       if (!stagedCards) return { ok: false, error: 'staged cards missing', events };
-      const kept: DeckCard[] = [];
-      const returnedToBottom: DeckCard[] = [];
+      const kept: (DeckCard | InsiderTipCard | GoalCard)[] = [];
+      const returned: (DeckCard | InsiderTipCard | GoalCard)[] = [];
       for (const c of stagedCards) {
         if (keepUids.includes(c.uid)) kept.push(c);
-        else returnedToBottom.push(c);
+        else returned.push(c);
       }
       if (kept.length !== keepCount) {
         return { ok: false, error: 'keepUids does not match staged cards', events };
       }
       player.hand.push(...kept);
-      state.mainDeck.push(...returnedToBottom);
+      if (returnTarget === 'eventDeck_top') {
+        state.eventDeck.unshift(...(returned as (InsiderTipCard | GoalCard)[]));
+      } else {
+        state.mainDeck.push(...(returned as DeckCard[]));
+      }
       clearPrompt(state, playerId);
       events.push(
         event(
           'draw_and_keep_resolved',
-          `${player.name} kept ${kept.length}, returned ${returnedToBottom.length} to bottom`,
+          `${player.name} kept ${kept.length}, returned ${returned.length} to the ${returnTarget === 'eventDeck_top' ? 'top of the event deck' : 'bottom of the deck'}`,
           { actor: playerId, payload: { keptUids: kept.map(c => c.uid) } }
         )
       );
       // Cards just went back into mainDeck -- if the market was starved below
       // 5 (mainDeck + discard both empty at the time), it can now top back up
-      // without waiting on some unrelated future action to notice.
+      // without waiting on some unrelated future action to notice. No-op when
+      // the return went to the event deck instead.
       refillMarketIfNeeded(state, events);
+      maybeContinueDoubleDown(state, playerId, events);
       return { ok: true, events };
     }
 
@@ -561,6 +612,7 @@ export function respondToPrompt(
           { actor: playerId, payload: { keepOrder, buriedUid } }
         )
       );
+      maybeContinueDoubleDown(state, playerId, events);
       return { ok: true, events };
     }
 
@@ -579,6 +631,7 @@ export function respondToPrompt(
               actor: playerId
             })
           );
+          maybeContinueDoubleDown(state, playerId, events);
           return { ok: true, events };
         }
         return { ok: false, error: 'cardUid required', events };
@@ -606,7 +659,7 @@ export function respondToPrompt(
       }
       const idx = player.hand.findIndex(c => c.uid === cardUid);
       if (idx < 0) return { ok: false, error: 'card no longer in hand', events };
-      const target = player.hand.splice(idx, 1)[0];
+      const target = player.hand.splice(idx, 1)[0] as ActionCard;
       if (target.category !== 'action') return { ok: false, error: 'target is not an action card', events };
       state.discardPile.push(target);
       clearPrompt(state, playerId);
@@ -616,8 +669,20 @@ export function respondToPrompt(
           payload: { targetUid: target.uid }
         })
       );
-      resolveActionEffect(state, player, target as ActionCard, events);
-      resolveActionEffect(state, player, target as ActionCard, events);
+      // Resolve once now. Most effects immediately set a follow-up prompt
+      // (e.g. "pick a stock to sell") rather than applying instantly -- if
+      // that happened, defer the second resolution until that prompt (and
+      // any further stages it chains into) fully resolves, via
+      // maybeContinueDoubleDown. Calling resolveActionEffect twice back to
+      // back here would let the second call's setPrompt silently clobber the
+      // first before the player ever answered it, so only one resolution
+      // would ever actually happen.
+      resolveActionEffect(state, player, target, events);
+      if (state.pendingPrompts[playerId]) {
+        state.pendingDoubleDown.push({ playerId, card: target });
+      } else {
+        resolveActionEffect(state, player, target, events);
+      }
       return { ok: true, events };
     }
 

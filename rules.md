@@ -161,16 +161,16 @@ A selectable alternate configuration, chosen when the game is started, alongside
 - **Starter deck:** just **8 basic stock cards** (2 per color), no starter action cards or hidden bonus cards at all. Shuffle and deal exactly **1** to each player (2-6 players → up to 2 cards go unused; unused cards are permanently removed from the game, same as Classic's leftover starter cards).
 - **Initial hand / draft:** each player is dealt **4 cards** straight from the (already-shuffled) Event Deck — no starter cards mixed in at all. Your guaranteed starter stock (above) is already in your hand and visible from the start; it is never part of the draft. Draft the 4 event cards down to a final hand of 3 using the same pass-one-keep-one procedure as Classic (Setup step 6), so you start play with **4 cards** total (1 stock + 3 drafted), one more than Classic's 3.
 - **Market Deck:** 36 stock cards + **14 action cards** — the same 11 as Classic's Action Cards list, plus **Foresight**, **Backroom Deal**, and **Double Down** (Starter Action Cards in Classic) promoted into the Market Deck here instead. **First Look**, **Fire Sale**, **Windfall**, **Market Panic**, and all 5 hidden end-game bonus cards do not exist in this variant at all.
-- **Progress tracker threshold:** a flat **4 × players** (vs. Classic's 3 × players + 2).
+- **Progress tracker threshold:** **4 × players + 1** (vs. Classic's 3 × players + 2).
 - **Scout special stock:** gains the top event-deck card into your hand when bought, instead of just peeking at it (see The Special Stocks above).
 
-| Players | Alternate threshold (4 × players) |
-|---------|------------------------------------|
-| 2 | 8 |
-| 3 | 12 |
-| 4 | 16 |
-| 5 | 20 |
-| 6 | 24 |
+| Players | Alternate threshold (4 × players + 1) |
+|---------|-----------------------------------------|
+| 2 | 9 |
+| 3 | 13 |
+| 4 | 17 |
+| 5 | 21 |
+| 6 | 25 |
 
 ---
 
@@ -298,16 +298,16 @@ V5 replaces the single d6 with a **bag of 6 dice**. At the end of your turn, dra
 |---|---|
 | Bull-heavy A ×2 | Bull, Bull, Bear, Nothing, Nothing, Nothing |
 | Bull-heavy B ×2 | Bull, Bull, Nothing, Nothing, Nothing, Nothing |
-| Mixed-draw C ×1 | Nothing, Nothing, Bull, Draw 1, Draw 2, Draw 3 |
-| Draw-heavy D ×1 | Draw 1, Draw 1, Draw 1, Draw 2, Draw 2, Draw 2 |
+| Mixed-draw C ×1 | Nothing, Nothing, Bull, Draw 1, Draw 2, Draw 2 |
+| Draw-heavy D ×1 | Draw 1, Draw 1, Draw 1, Draw 1, Draw 2, Draw 2 |
 
-> **Changed:** Mixed-draw C's third "Nothing" was swapped for a "Bull" to offset the more bearish-leaning expanded Event Deck (more Crash cards, no added Surge — see Event Deck below).
+> **Changed:** Mixed-draw C's third "Nothing" was swapped for a "Bull" to offset the more bearish-leaning expanded Event Deck (more Crash cards, no added Surge — see Event Deck below). Separately, C's "Draw 3" was toned down to "Draw 2", and one of Draw-heavy D's three "Draw 2" faces was toned down to "Draw 1" — fewer big multi-card draws per bag cycle. There is no longer a "Draw 3" face anywhere in the bag.
 
 **Face effects:**
 - **Nothing:** no effect.
 - **Bull Market:** all four stock prices rise **+1**.
 - **Bear Market:** all four stock prices fall **−1** (floor $0).
-- **Draw 1 / Draw 2 / Draw 3 Event(s):** draw that many cards from the top of the event deck, one at a time, fully resolving each (see Event Deck above) before revealing the next. Order matters — e.g. a Crash and a same-color Surge drawn together resolve in the order they came up.
+- **Draw 1 / Draw 2 Event(s):** draw that many cards from the top of the event deck, one at a time, fully resolving each (see Event Deck above) before revealing the next. Order matters — e.g. a Crash and a same-color Surge drawn together resolve in the order they came up.
 
 If resolving a multi-card draw pushes the progress tracker past its threshold partway through, **finish resolving every card drawn** before the game ends. If the event deck ever runs out mid-draw (expected to be essentially impossible given its size), simply resolve whatever cards remain — nothing else happens, and the game is unaffected.
 
