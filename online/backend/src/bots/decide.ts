@@ -70,8 +70,22 @@ const MAX_OWN_TURN_ACTION_CARDS = 10;
  * taking if the perceived value above current cash exceeds the *next* loan's
  * marginal cost (which grows with each loan already held). The `+10` is the
  * game's fixed loan cash amount (a rule constant, not a bot knob).
+ *
+ * `loanWillingness` (0..1, see v5_tuning_notes.md item 18) grades how much of
+ * the remaining loan headroom (`maxAfford - cash`) a bot credits itself once
+ * the EV gate below already says a loan is worth taking -- replacing what
+ * used to be a flat "+$10 regardless of how much headroom is actually left"
+ * jump. It deliberately does NOT relax the gate itself: an initial version
+ * that also let a marginal-EV bid through (when `worthTakingLoan` was false)
+ * was A/B-tested and came out net negative (`tournamentVariants.ts`, 10k
+ * games, meanMargin 95% CI entirely below 0) -- bots were taking on debt for
+ * purchases that didn't pay off often enough to be worth the loan's end-game
+ * penalty. Scoped to just the cap, it targets only the confirmed weakness
+ * (a bot with a second loan slot free still couldn't credit more than one
+ * loan's worth even when the gate had already confirmed it was worthwhile).
+ * At `loanWillingness=0` this is byte-for-byte the old behavior.
  */
-function effectiveBidCeiling(
+export function effectiveBidCeiling(
   perceived: number,
   cash: number,
   currentLoans: number,
@@ -81,10 +95,38 @@ function effectiveBidCeiling(
   if (adjusted <= cash) return adjusted;
   // Otherwise we'd need a loan. Never bid beyond the loan cap (max 2 loans).
   const maxAfford = maxAffordableSpend(cash, currentLoans);
-  if (maxAfford > cash && adjusted - nextLoanCost(currentLoans, params.loanCostOffset) > cash) {
-    return Math.min(adjusted, cash + 10, maxAfford);
-  }
-  return cash;
+  if (maxAfford <= cash) return cash; // loan-capped: no further credit possible
+  const worthTakingLoan = adjusted - nextLoanCost(currentLoans, params.loanCostOffset) > cash;
+  if (!worthTakingLoan) return cash; // gate unchanged -- loanWillingness never overrides it
+  const credit = cash + Math.max(10, params.loanWillingness * (maxAfford - cash));
+  return Math.min(adjusted, credit, maxAfford);
+}
+
+/**
+ * How close to the progress-tracker threshold (in ticks remaining) the
+ * end-game discount starts to apply. Chosen small relative to typical
+ * thresholds (8-20 across 2-6 players, see v5_game_length_log.md) so it only
+ * bites in the last stretch, not for most of the game.
+ */
+const ENDGAME_DISCOUNT_WINDOW = 3;
+
+/**
+ * Shrinks a perceived value as the progress tracker nears its threshold, so
+ * speculative future value (goal-completion bumps baked into `perceived` via
+ * marketCardValue -> goalBumpPerStock/rewardCashEquivalent) stops driving bids
+ * up on auctions the bot may never get to act on the payoff from. See
+ * v5_tuning_notes.md item 18. At `endgameDiscountStrength=0` this is always
+ * 1 (no discount) -- byte-for-byte the old behavior. Deliberately lives here
+ * in decide.ts rather than inside the shared valuation.ts helpers those
+ * functions also feed as value-net *input features* -- discounting there
+ * would silently shift what the already-trained net receives without a
+ * retrain (see the plan's Track 1/Track 2 split).
+ */
+function endgameDiscountFactor(state: GameState, strength: number): number {
+  if (strength <= 0) return 1;
+  const remaining = state.progressThreshold - state.progressTracker;
+  const imminence = Math.max(0, Math.min(1, 1 - remaining / ENDGAME_DISCOUNT_WINDOW));
+  return 1 - strength * imminence;
 }
 
 /**
@@ -92,7 +134,7 @@ function effectiveBidCeiling(
  * The bot opens at `maxBid - r` and climbs by the minimum legal raise up to
  * `maxBid`, so it tries to win below its ceiling rather than slamming the max.
  */
-function auctionOffset(profile: BotProfile, cardUid: string, rng: Rng): number {
+export function auctionOffset(profile: BotProfile, cardUid: string, rng: Rng): number {
   let r = profile.auctionBidOffsets[cardUid];
   if (r === undefined) {
     r = rng.int(4); // 0..3
@@ -200,13 +242,19 @@ export function decideBotAction(
     }
   }
 
-  // 4. Market-movement card in hand worth playing (positive tipScore for the bot).
+  // 4. Market-movement card in hand worth playing now. `tipPlayDelayThreshold`
+  // (see v5_tuning_notes.md item 18) raises the auto-play bar above a bare
+  // "score > 0", so a card doesn't get played the instant it's marginally
+  // positive off a single owned share -- a card below the bar just isn't
+  // auto-played yet (it stays in hand, still eligible for the stagnation
+  // fallback below). At the default 0, `score > 0` alone already implies
+  // `score >= 0`, so this is byte-for-byte the old behavior.
   let leastBadTipUid: string | null = null;
   let leastBadTipScore = -Infinity;
   for (const c of bot.hand) {
     if (c.category !== 'insider_tip') continue;
     const score = tipScoreForBot(state, c, botId);
-    if (score > 0) {
+    if (score > 0 && score >= profile.params.tipPlayDelayThreshold) {
       return {
         kind: 'free_action',
         request: { kind: 'play_market_movement', cardUid: c.uid }
@@ -395,7 +443,10 @@ function decideTurnAction(
   const target = state.market[chosenIdx];
   // Floor to whole dollars: tuned params make perceived values fractional, but
   // bids must be integers (a $X.7 valuation ⇒ max bid $X).
-  const perceived = Math.floor(marketCardValue(target, state, profile, bot.playerId));
+  const perceived = Math.floor(
+    marketCardValue(target, state, profile, bot.playerId) *
+      endgameDiscountFactor(state, profile.params.endgameDiscountStrength)
+  );
   // Open at minBid = maxBid − rand(0..3): below the ceiling so the bot can win
   // cheap, then it climbs by the minimum legal raise up to maxBid on re-bids.
   const maxBid = effectiveBidCeiling(perceived, bot.cash, bot.loans, profile.params);
@@ -434,7 +485,10 @@ function respondToPrompt(
         if (!card) {
           return { kind: 'auction_bid', action: { type: 'pass' } };
         }
-        perceived = Math.floor(marketCardValue(card, state, profile, botId));
+        perceived = Math.floor(
+          marketCardValue(card, state, profile, botId) *
+            endgameDiscountFactor(state, profile.params.endgameDiscountStrength)
+        );
         profile.auctionCeilings[auction.cardUid] = perceived;
       }
       // Recompute maxBid each round (cash changes between bids). minBid =

@@ -12,10 +12,12 @@ import type { ValueNetWeights } from '../src/bots/valueNet.js';
  * stock value, across table sizes 2..5.
  *
  *   tsx scripts/abBotParams.ts <bot_params.json> [--net nets/champion.json]
- *       [--games 2400] [--seed 4242] [--vs default|random]
+ *       [--games 2400] [--seed 4242] [--vs default|random|<other_bot_params.json>]
  *
- * --vs default : opponents = net + default params (isolates the tuning effect)
- * --vs random  : opponents = net + randomized-personality params (today's deployed bot)
+ * --vs default        : opponents = net + default params (isolates the tuning effect)
+ * --vs random         : opponents = net + randomized-personality params (today's deployed bot)
+ * --vs <path>.json     : opponents = net + that file's params (head-to-head vs. e.g. the
+ *                        currently-shipped nets/bot_params.json, before promoting a candidate)
  */
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
@@ -45,13 +47,22 @@ const vs = strFlag('vs', 'default');
 
 const catalog = loadCards(CARDS_DIR);
 const subject: ProfileBuilder = () => makeBotProfile(params, net);
-const field: ProfileBuilder =
-  vs === 'random'
-    ? rng => withValueNet(createBotProfile(rng), net)
-    : () => makeBotProfile(defaultBotParams(), net);
+let field: ProfileBuilder;
+let vsLabel: string;
+if (vs === 'random') {
+  field = rng => withValueNet(createBotProfile(rng), net);
+  vsLabel = 'random-personality';
+} else if (vs === 'default') {
+  field = () => makeBotProfile(defaultBotParams(), net);
+  vsLabel = 'default-params';
+} else {
+  const otherParams = JSON.parse(fs.readFileSync(vs, 'utf8')) as BotParams;
+  field = () => makeBotProfile(otherParams, net);
+  vsLabel = vs;
+}
 
 const pct = (x: number) => `${(x * 100).toFixed(1)}%`;
-console.log(`Tuned params vs ${vs === 'random' ? 'random-personality' : 'default-params'} bot (both + net), ${games} games/count\n`);
+console.log(`Tuned params (${paramsPath}) vs ${vsLabel} bot (both + net), ${games} games/count\n`);
 console.log('count  winRate (95% CI)        fair   margin      verdict');
 for (let n = 2; n <= 5; n++) {
   const r = evalSubjectVsField({ catalog, subject, field, games, numSeats: n, baseSeed: baseSeed + n });

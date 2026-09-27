@@ -21,6 +21,11 @@ playtesting found games running too long, especially at higher player
 counts. Needs more playtesting to confirm 3×+2 is the right slope/offset;
 still just a placeholder.
 
+Dated game-length benchmarks (mean/percentile turns per player count,
+bot self-play) are tracked in `v5_game_length_log.md` — check there before
+changing this knob, and add a new dated entry after any change that might
+affect pacing.
+
 ## 3. Merged event deck card counts — RESOLVED: expanded to 47 cards
 
 The original merge carried over V4's 16 market-movement cards (8 crash / 4
@@ -279,3 +284,225 @@ counts — which was the predicted outcome going in, since the bots'
 `rewardCashEquivalent` formula for this type has no concept of selection
 quality. Left as a known bots-can't-use-it gap pending either a smarter
 valuation formula or human-table validation.
+
+## 18. Bot bidding/action-play weaknesses (found via human playtesting + a 10-game decision trace, 2026-09-27)
+
+Human playtesting flagged four bot weaknesses; a new diagnostic script
+(`online/backend/scripts/traceBotDecisions.ts`, production bots + champion
+net, 10 games) confirmed two of them directly with concrete examples and
+left two as code-audit-only findings (the trace sample didn't happen to hit
+a dramatic case, but the root cause is unambiguous either way):
+
+- **Bid-ceiling cliff (confirmed, 2 clear examples in 10 games)**:
+  `effectiveBidCeiling` (`online/backend/src/bots/decide.ts`) collapses a
+  bot's willingness to bid far below its own perceived value in two distinct
+  ways. (a) Loan-capped: seed 31000 T13, Bot1 perceived a Green stock at $17
+  but was already holding 2 loans (`MAX_LOANS`), so its ceiling collapsed
+  straight to `cash` ($9) — it won the auction outright at $6, $11 under its
+  own valuation, purely because nobody else happened to bid higher. (b) Even
+  *without* being loan-capped, the smoothed branch caps at a hardcoded
+  `cash + 10` (one loan's worth) rather than `maxAffordableSpend` (which
+  accounts for *all* remaining loan headroom): seed 31009 T20, Bot1 perceived
+  a Green stock at $20.33 with 0 loans, but its ceiling still capped at $13
+  (cash $3 + $10), well short of the ~$23 two-loan headroom the EV gate had
+  already confirmed was worth it. Both feed directly into Track 1's
+  `loanWillingness` knob design.
+- **Greedy tip-card play (confirmed, 9 examples in 10 games)**: bots
+  routinely play a surge/shift card the instant it's net-positive off a
+  single owned share (e.g. seed 31006 T1, T17; seed 31000 T4, T12, T22 — all
+  "owned at play: `<color>`=1"). Exactly the "plays Rail +4 off one Rail
+  card" pattern reported from playtesting. Feeds Track 1's
+  `tipPlayDelayThreshold` knob.
+- **End-game overbidding (confirmed with a follow-up 50-game trace + explicit
+  goal-bump breakdown logging)**: the original 10-game sample didn't catch a
+  dramatic example, but adding a `winnerGoalBump` field to
+  `traceBotDecisions.ts` (prints the `goalBumpPerStock` component of the
+  auction winner's own valuation, flagging any endgame auction where it's
+  ≥30% of the price paid) found 3 clean examples in the next 50 games — e.g.
+  seed 500 T33 [ENDGAME]: Bot1 wins an Orange/peek_sell stock for $10, of
+  which $3.00 is a goal-completion bump baked into its perceived value, with
+  the progress tracker already within 2 ticks of ending the game. The
+  code-level cause was already certain (`progressThreshold`/`progressTracker`
+  are never consulted anywhere in bidding or valuation — the one read of
+  them, `decide.ts:306`, is an unrelated private-goal-claim-timing check) —
+  this just puts concrete numbers on it.
+- **Hidden opponent-hand risk**: not something this trace can observe
+  directly (it would require deliberately engineering a scenario where an
+  opponent is sitting on an unplayed crash/surge card). Deferred entirely to
+  Track 2 (a new public-information-only `colorRisk` value-net feature) per
+  plan.
+
+Full trace output (2,086 lines) not checked in — regenerate with
+`npx tsx scripts/traceBotDecisions.ts --games 10 --seats 4 --seed 31` if
+needed for a fresh look.
+
+### Track 1 implementation + bake-off (2026-09-27): none of the three hand-picked fixes beat control
+
+Implemented all three diagnosed fixes as new `BotParams` fields (`loanWillingness`,
+`endgameDiscountStrength`, `tipPlayDelayThreshold`, appended to the end of
+`PARAM_SPECS` so ES vector layout is preserved), each defaulting to a value
+that reproduces the old behavior byte-for-byte (verified: a 10-game trace
+with all three at their default is identical, diff-for-diff, to the pre-change
+trace). `nets/bot_params.json` was updated with the three new keys at their
+no-op defaults (0), so the shipped champion is unaffected until one is
+deliberately set nonzero.
+
+- **`loanWillingness`**: `effectiveBidCeiling` (`decide.ts`) now grades a
+  bot's loan-funded credit line rather than a flat `+$10`, but — after an
+  A/B against control showed a first, looser version (which also relaxed the
+  EV gate itself, not just the cap) net-negative — was narrowed to *only*
+  extend the cap once the existing EV gate already says a loan is worth
+  taking, never overriding the gate. Even in this narrower form it tested
+  negative (see below).
+- **`endgameDiscountStrength`**: shrinks a bot's `perceived` value as
+  `progressThreshold - progressTracker` nears 0, at both the opening-bid and
+  re-bid sites in `decide.ts`. Deliberately implemented in `decide.ts` itself
+  rather than inside `valuation.ts`'s shared `goalBumpPerStock`/
+  `rewardCashEquivalent` — those also feed the trained value net's input
+  features, and discounting there would have silently shifted what the
+  *already-trained* net receives without a retrain.
+- **`tipPlayDelayThreshold`**: raises the auto-play bar in the market-movement
+  loop from `score > 0` to `score > 0 && score >= threshold`.
+
+**A new `tournamentVariants.ts` script** (seats 4 labeled `BotParams` variants
+in one 4-player table, sharing the same value net) was built to bake off
+candidate values. Its first version rotated seats via a deterministic
+`(variant + game) % 4` cyclic schedule — this turned out to be a real bug: a
+sanity check seating **four byte-identical control copies** against each
+other showed a reproducible ~1pp "advantage" for whichever copy sat at array
+index 3, persisting across three different `--seed` values. Root cause: a
+fixed-period cyclic schedule locks every variant to exactly one seat within
+each `game-number mod 4` residue class *forever*, so any structural
+correlation between that residue and the outcome (however small, and
+regardless of its source) never averages out per variant — it's fully
+inherited by whichever variant is locked to the "lucky" residue/seat pairing.
+Fixed by drawing a genuine Fisher–Yates random permutation each game instead
+of a fixed formula; the four-identical-copies sanity check then came back
+clean (all four indistinguishable, margin CIs straddling 0) across three
+seeds. Left the fixed-schedule failure mode documented in the script's own
+comments since it's a non-obvious trap for any future N-variant-in-one-table
+bake-off design.
+
+A second false lead: the first test of `tipPlayDelayThreshold` used a value
+of 2, which turned out to be a mathematical no-op — every card's achievable
+score is an even integer (deltas are only ever ±2/+4, so score = Σ delta ×
+ownedCount is always even), and the auto-play condition is `score >=
+threshold`, so `threshold=2` still passes every `score=2` case exactly like
+`threshold=0` does. Confirmed via an exact trace diff (byte-identical output
+with the deck-wide default at 2 vs. 0) before re-testing at `threshold=3`
+(confirmed via the same diff method to actually change decisions).
+
+**Final read, 50,000 games/variant (corrected random-permutation
+methodology, `--seed 31`)**:
+
+| variant | winRate | edge vs fair | meanMargin | 95% CI |
+| --- | --- | --- | --- | --- |
+| control | 25.6% | +0.6% | +0.354 | [+0.178, +0.529] |
+| loanFix (loanWillingness=1) | 25.0% | +0.0% | **−0.401** | **[−0.578, −0.225]** |
+| endgameFix (endgameDiscountStrength=0.5) | 24.9% | −0.1% | −0.046 | [−0.213, +0.121] |
+| tipDelayFix (tipPlayDelayThreshold=3) | 25.4% | +0.4% | +0.094 | [−0.079, +0.266] |
+
+**Conclusion: don't ship any of the three at the tested magnitudes.**
+`loanFix` is robustly, significantly *worse* than control (bots taking on
+loan-funded bids that don't pay off often enough to cover the loan's
+end-game penalty). `endgameFix` and `tipDelayFix` are statistically
+indistinguishable from control at n=50,000 — genuinely neutral, not a
+disproven hypothesis so much as "this specific hand-picked magnitude doesn't
+move the needle." All three `BotParams` knobs are left in place at their
+no-op defaults (real weaknesses, confirmed via the trace; the fixes just
+don't clear the bar in self-play at the values tried).
+
+### ES search over all params, including the 3 new knobs (2026-09-27)
+
+Ran `trainBotParams.ts --resume nets/bot_params.json --gen 200 --pop 32
+--games 16` (full joint ES search over all 32 params, not just the 3 new
+ones — resolves the open question above more thoroughly than hand-picking
+more magnitudes would). Champion bar rose from 7.3% avgEdge (vs. raw
+defaults) to **11.5%** at generation 160. Validated head-to-head against the
+pre-ES `bot_params.json` with `abBotParams.ts <new> --vs <old_backup>
+--games 3000`:
+
+| count | winRate | 95% CI | vs fair | verdict |
+| --- | --- | --- | --- | --- |
+| 2p | 56.0% | 54.2–57.7% | 50.0% | beats |
+| 3p | 39.8% | 38.0–41.6% | 33.3% | beats |
+| 4p | 29.0% | 27.4–30.7% | 25.0% | beats |
+| 5p | 21.6% | 20.1–23.0% | 20.0% | beats (narrowly) |
+
+**Promoted** — this is now the shipped `nets/bot_params.json`. Confirms the
+gain came from ES fine-tuning the ~20 *pre-existing* constants (owned-color
+weight, special-ability bumps, action-card valuation floors, reward
+multipliers), not from the 3 new knobs: ES converged `loanWillingness` to
+0.00024 and `endgameDiscountStrength` to -0.0003 (both `<=0`, i.e. still
+functionally off) and left `tipPlayDelayThreshold` at 0 exactly. This
+independently corroborates the bake-off's conclusion via a completely
+different method (a full joint search vs. two hand-picked points per knob)
+— both agree these three specific mechanisms, as currently formulated,
+aren't worth turning on. `abBotParamsFile` support (`--vs <path>.json`) was
+added to `abBotParams.ts` to make this kind of old-vs-new head-to-head
+validation reusable going forward.
+
+### Track 2: value-net features — `progressRemaining` + `colorRisk` (2026-09-27, promoted)
+
+Grew `STOCK_FEATURE_LEN` from 40 to 45 (`valueNetFeatures.ts`) to add two new
+signals, both targeting gaps confirmed by the trace analysis above:
+
+- **`x[40]` `progressRemaining`**: `(progressThreshold - progressTracker) /
+  progressThreshold` — replaces the poorly-correlated raw `turnNumber/30`
+  (x[31]) as the net's endgame-awareness signal. Unlike Track 1's
+  `endgameDiscountStrength` (a blunt heuristic multiplier applied post-hoc in
+  `decide.ts`), this lets the *trained net itself* learn how much to
+  discount speculative value near the end, and how that interacts with
+  everything else it already knows (goal proximity, cash, etc.) — the more
+  principled long-term version of the same fix.
+- **`x[41..44]` `colorRisk`**: signed price-drift risk still "out there" per
+  color, computed from **public information only** — `state.resolvedEventCards`
+  (what's already publicly resolved) and the bot's own hand, weighed against
+  the fixed, publicly-known 28-card deck composition (12 crash/4 surge/6
+  slump/6 shift; exact per-color/per-pair breakdown hardcoded as
+  `CRASH_COUNT_PER_COLOR`/`SURGE_COUNT_PER_COLOR`/`PAIR_TIP_DEFS` in
+  `valueNetFeatures.ts`). Deliberately never reads any other player's actual
+  hand contents — per the design decision earlier in this item, bots should
+  reason about hidden-card risk the way a sharp human could, not by cheating.
+
+**Migration**: `champion.json`'s `inputDim` was 40 and its `w1` matrix sized
+accordingly; growing `STOCK_FEATURE_LEN` alone doesn't touch a *loaded*
+net's shape (`forward()` only reads `x[0..inputDim-1]`, so an unmigrated net
+just silently ignores the 5 new slots). Wrote `scripts/growNet.ts`, a
+one-time migration that pads `w1` with zero-initialized columns for the new
+indices and verifies the grown net's forward pass is byte-identical to the
+original across 80 sampled (state, color) pairs before writing anything —
+confirmed clean.
+
+**Retrain**: `trainSelfPlay.ts --champion <grown net> --zeroInputs
+40,41,42,43,44 --gen 150 --pop 24 --games 16 --maxRounds 4`, output isolated
+to scratch (never touched production `champion.json` mid-run). All 4 rounds
+promoted internally (round-over-round edges of +16.0%, then two more, then
++19.4%) — per the training scripts' own non-transitivity warning, round-over-
+round edges can be illusory, so the only number that matters is the final
+head-to-head against the **original, unmigrated** champion:
+`abNets.ts <champion_selfplay.json> <original champion.json> --games 3000`:
+
+| count | winRate | 95% CI | vs fair | verdict |
+| --- | --- | --- | --- | --- |
+| 2p | 51.6% | 49.8–53.4% | 50.0% | ≈ par (no regression) |
+| 3p | 37.7% | 36.0–39.4% | 33.3% | beats |
+| 4p | 30.7% | 29.0–32.3% | 25.0% | beats |
+| 5p | 28.6% | 27.0–30.3% | 20.0% | beats |
+
+**Promoted** — this is now the shipped `nets/champion.json`. A genuine,
+validated win at 3-5p with no regression at 2p, achieved in a single
+overnight-scale run rather than the many-round tuning campaigns earlier
+retrains needed — the new features gave the net real, previously-missing
+signal to work with. `npm test` (218 tests, +3 new ones covering the two
+features) and a 3,000-game `measureGameLength.ts` + 5,000-game
+`analyzeGoalValue.ts` regression check both came back clean (game length
+within ~1 turn of the pre-retrain baseline; goal claim%/lift/Δwealth
+patterns consistent with the existing Goal Reward Ledger, no degenerate
+behavior).
+
+Old artifacts kept for reference (not checked in, but reproducible): the
+pre-Track-2 `champion.json`/`bot_params.json` and the grown/pre-retrain net
+are backed up under this session's scratch directory. Re-derive by
+re-running `growNet.ts` against a git-historical `champion.json` if ever
+needed.

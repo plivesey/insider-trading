@@ -1,4 +1,4 @@
-import type { Color, GameState, GoalCard, PlayerId, StockCard } from '@insider-trading/shared';
+import type { Color, GameState, GoalCard, InsiderTipCard, PlayerId, StockCard } from '@insider-trading/shared';
 import { COLORS, MAX_LOANS } from '@insider-trading/shared';
 import type { BotProfile } from './profile.js';
 import {
@@ -10,17 +10,92 @@ import {
 } from './valuation.js';
 
 /**
- * Fixed length of the stock-valuation feature vector. Frozen: changing it
- * invalidates every trained checkpoint, so add new signals into the reserved
- * tail slots rather than resizing. (V5 note: slot semantics are unchanged
- * from V4 -- the 4th color slot now sources from Green instead of Yellow,
- * and goal/event-deck-size slots source from the V5 equivalents, but no
- * slots were added, removed, or repositioned. See v5_tuning_notes.md /
- * online/V5_MIGRATION_PLAN.md Phase 8 for why a full retrain is out of scope.)
+ * Fixed length of the stock-valuation feature vector. Frozen at 40 for a long
+ * time -- see v5_tuning_notes.md / online/V5_MIGRATION_PLAN.md Phase 8 for why
+ * a full retrain was out of scope back then. Grown to 45 on 2026-09-27 (item
+ * 18) to add `progressRemaining` (x[40]) and `colorRisk` (x[41..44]) -- see
+ * `scripts/growNet.ts` for the one-time migration that pads an existing
+ * champion's weight matrix with zero-initialized columns for the new slots
+ * before retraining, so old checkpoints aren't silently invalidated.
  */
-export const STOCK_FEATURE_LEN = 40;
+export const STOCK_FEATURE_LEN = 45;
 
 const COLOR_INDEX: Record<Color, number> = { Blue: 0, Orange: 1, Green: 2, Purple: 3 };
+
+/**
+ * Fixed composition of the 28-card market-movement half of the Event Deck
+ * (see CLAUDE.md, tests/insider_tip_cards.test.js) -- used only by
+ * `colorRiskStillOut` below to know how much of each card type existed in
+ * the first place. Crash and surge are uniform per color (a flat count);
+ * slump and shift are each one specific, directional color-pair card, so
+ * each gets its own definition instead of a count.
+ */
+const CRASH_COUNT_PER_COLOR = 3;
+const SURGE_COUNT_PER_COLOR = 1;
+const PAIR_TIP_DEFS: Array<{ a: Color; aDelta: number; b: Color; bDelta: number }> = [
+  // slump: -2/-2, all 6 color pairs
+  { a: 'Blue', aDelta: -2, b: 'Orange', bDelta: -2 },
+  { a: 'Orange', aDelta: -2, b: 'Purple', bDelta: -2 },
+  { a: 'Purple', aDelta: -2, b: 'Green', bDelta: -2 },
+  { a: 'Green', aDelta: -2, b: 'Blue', bDelta: -2 },
+  { a: 'Blue', aDelta: -2, b: 'Purple', bDelta: -2 },
+  { a: 'Orange', aDelta: -2, b: 'Green', bDelta: -2 },
+  // shift: +2 one color / -2 another, all 6 color pairs, each a fixed direction
+  { a: 'Blue', aDelta: 2, b: 'Orange', bDelta: -2 },
+  { a: 'Orange', aDelta: 2, b: 'Green', bDelta: -2 },
+  { a: 'Green', aDelta: 2, b: 'Purple', bDelta: -2 },
+  { a: 'Purple', aDelta: 2, b: 'Blue', bDelta: -2 },
+  { a: 'Blue', aDelta: 2, b: 'Green', bDelta: -2 },
+  { a: 'Orange', aDelta: 2, b: 'Purple', bDelta: -2 }
+];
+
+function pairDefMatches(card: InsiderTipCard, def: { a: Color; aDelta: number; b: Color; bDelta: number }): boolean {
+  return card.effect.type === 'adjust' && card.effect.changes[def.a] === def.aDelta && card.effect.changes[def.b] === def.bDelta;
+}
+
+/**
+ * Public-information-only estimate of the signed price drift for `color`
+ * still "out there" (in the undrawn event deck, or in another player's
+ * hand): never reads any other player's actual hand contents, only
+ * `state.resolvedEventCards` (public) and the bot's own hand, weighed
+ * against the fixed, publicly-known deck composition above. Deliberately
+ * scoped this way per the design decision in v5_tuning_notes.md item 18 --
+ * bots should reason about hidden-card risk the way a sharp human could
+ * (from what's already been revealed and the known deck composition), not
+ * by cheating and reading opponents' hands directly.
+ *
+ * A crash card's impact uses the *current* price as a proxy (ignores that
+ * more than one remaining crash for the same color would compound); fine for
+ * a net input feature the trained weights will scale appropriately, not
+ * meant to be a precise simulator.
+ */
+function colorRiskStillOut(state: GameState, color: Color, botId: PlayerId): number {
+  const bot = state.players.find(p => p.playerId === botId);
+  const ownHand = bot ? bot.hand.filter((c): c is InsiderTipCard => c.category === 'insider_tip') : [];
+  const seen = [...state.resolvedEventCards, ...ownHand];
+
+  let risk = 0;
+
+  const resolvedCrash = seen.filter(c => c.type === 'crash' && c.effect.type === 'halve' && c.effect.color === color).length;
+  const remainingCrash = Math.max(0, CRASH_COUNT_PER_COLOR - resolvedCrash);
+  if (remainingCrash > 0) {
+    const price = state.stockPrices[color];
+    risk += remainingCrash * (Math.floor(price / 2) - price); // negative
+  }
+
+  const resolvedSurge = seen.filter(
+    c => c.type === 'surge' && c.effect.type === 'adjust' && c.effect.changes[color] !== undefined
+  ).length;
+  risk += Math.max(0, SURGE_COUNT_PER_COLOR - resolvedSurge) * 4;
+
+  for (const def of PAIR_TIP_DEFS) {
+    if (def.a !== color && def.b !== color) continue;
+    if (seen.some(c => pairDefMatches(c, def))) continue; // this specific card is already accounted for
+    risk += def.a === color ? def.aDelta : def.bDelta;
+  }
+
+  return risk;
+}
 
 /** Goals relevant to this bot: the public row plus its own private goals in hand. */
 function relevantGoalsForBot(state: GameState, botId: PlayerId): GoalCard[] {
@@ -176,6 +251,21 @@ export function encodeColorFeatures(
     x[38] = Math.min(1, bestCompletion / 12);
     x[39] = Math.min(1, bestAdvance / 12);
   }
+
+  // Fraction of the game likely still remaining (1 = just started, 0 = the
+  // progress tracker is about to hit its threshold) -- replaces the poorly-
+  // correlated raw turnNumber (x[31]) as an endgame-awareness signal, since
+  // real game length varies ~8-77 turns (see v5_game_length_log.md) while the
+  // progress tracker's distance to its own threshold is the actual trigger.
+  x[40] = Math.max(0, state.progressThreshold - state.progressTracker) / state.progressThreshold;
+
+  // Public-information-only signed price-drift risk still "out there" for
+  // each color, from market-movement cards not yet resolved and not in this
+  // bot's own hand (see colorRiskStillOut above).
+  x[41] = colorRiskStillOut(state, 'Blue', botId) / 10;
+  x[42] = colorRiskStillOut(state, 'Orange', botId) / 10;
+  x[43] = colorRiskStillOut(state, 'Green', botId) / 10;
+  x[44] = colorRiskStillOut(state, 'Purple', botId) / 10;
 
   return x;
 }

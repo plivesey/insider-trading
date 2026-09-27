@@ -51,6 +51,15 @@ export interface BotParams {
   actionOffset: number;
   wildShareValue: number;
   hotTipThreshold: number;
+
+  // --- bidding/action-play fixes (decide.ts), appended 2026-09-27 -- see
+  // v5_tuning_notes.md item 18. Each defaults to a value that exactly
+  // reproduces pre-fix behavior, so existing trained vectors are unaffected
+  // until these are deliberately tuned. Appended at the END of the params
+  // list (and PARAM_SPECS below) since order defines the ES vector layout.
+  loanWillingness: number; // 0..1: graduated credit line vs. effectiveBidCeiling's old cliff (0 = old behavior)
+  endgameDiscountStrength: number; // 0..1: discounts `perceived` as the progress tracker nears threshold (0 = no discount)
+  tipPlayDelayThreshold: number; // only auto-play a market-movement card once its score >= this (0 = old "any score > 0" behavior)
 }
 
 export interface ParamSpec {
@@ -98,7 +107,14 @@ export const PARAM_SPECS: ParamSpec[] = [
   { key: 'stockOffset', min: -2, max: 3, int: false },
   { key: 'actionOffset', min: -3, max: 2, int: false },
   { key: 'wildShareValue', min: 0, max: 8, int: false },
-  { key: 'hotTipThreshold', min: 0, max: 4, int: true }
+  { key: 'hotTipThreshold', min: 0, max: 4, int: true },
+
+  // min is nudged just below 0 (rather than 0) so the "no effect" default of
+  // exactly 0 is strictly interior to the range, not sitting on the logit
+  // encoding's undefined boundary -- see the ParamSpec doc comment above.
+  { key: 'loanWillingness', min: -0.001, max: 1, int: false },
+  { key: 'endgameDiscountStrength', min: -0.001, max: 1, int: false },
+  { key: 'tipPlayDelayThreshold', min: 0, max: 6, int: true }
 ];
 
 export function defaultBotParams(): BotParams {
@@ -135,7 +151,11 @@ export function defaultBotParams(): BotParams {
     stockOffset: 1,
     actionOffset: -1,
     wildShareValue: 4,
-    hotTipThreshold: 1
+    hotTipThreshold: 1,
+
+    loanWillingness: 0,
+    endgameDiscountStrength: 0,
+    tipPlayDelayThreshold: 0
   };
 }
 

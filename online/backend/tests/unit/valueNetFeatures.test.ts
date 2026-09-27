@@ -89,6 +89,41 @@ describe('valueNetFeatures encoder', () => {
     const orangeX = encodeColorFeatures(state, 'Orange', false, 'a', profile());
     expect(orangeX[38]).toBe(0);
   });
+
+  test('x[40] progressRemaining shrinks toward 0 as the progress tracker nears its threshold', () => {
+    const state = freshGame();
+    const early = encodeColorFeatures(state, 'Blue', false, 'a', profile())[40];
+    expect(early).toBeCloseTo(1, 5); // tracker at 0 -> full game still ahead
+    state.progressTracker = state.progressThreshold - 1;
+    const late = encodeColorFeatures(state, 'Blue', false, 'a', profile())[40];
+    expect(late).toBeCloseTo(1 / state.progressThreshold, 5);
+    expect(late).toBeLessThan(early);
+  });
+
+  test('x[41..44] colorRisk rises (less downside) once every crash card for a color has resolved', () => {
+    const state = freshGame();
+    const before = encodeColorFeatures(state, 'Blue', false, 'a', profile())[41];
+    const crashBlueCards = catalog.insiderTips.filter(
+      c => c.type === 'crash' && c.effect.type === 'halve' && c.effect.color === 'Blue'
+    );
+    expect(crashBlueCards.length).toBe(3);
+    state.resolvedEventCards = crashBlueCards;
+    const after = encodeColorFeatures(state, 'Blue', false, 'a', profile())[41];
+    expect(after).toBeGreaterThan(before);
+  });
+
+  test('x[41..44] colorRisk excludes market-movement cards already in the bot\'s own hand', () => {
+    const state = freshGame();
+    const a = state.players.find(p => p.playerId === 'a')!;
+    const surgeBlue = catalog.insiderTips.find(
+      c => c.type === 'surge' && c.effect.type === 'adjust' && c.effect.changes.Blue === 4
+    )!;
+    const before = encodeColorFeatures(state, 'Blue', false, 'a', profile())[41];
+    a.hand = [surgeBlue];
+    const after = encodeColorFeatures(state, 'Blue', false, 'a', profile())[41];
+    // The bot's own held surge is no longer "risk still out there" -- less upside unaccounted for.
+    expect(after).toBeLessThan(before);
+  });
 });
 
 describe('valuation net integration', () => {
