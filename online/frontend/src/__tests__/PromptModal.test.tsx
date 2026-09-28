@@ -19,7 +19,6 @@ const baseState: ProjectedGameState = {
   gameId: 'g',
   startedAt: '2026-01-01T00:00:00.000Z',
   version: 5,
-  variant: 'classic',
   status: 'in_progress',
   stockPrices: { Blue: 4, Orange: 4, Green: 4, Purple: 4 },
   currentPlayerIndex: 0,

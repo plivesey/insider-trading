@@ -10,13 +10,13 @@ import { event } from './events.js';
 export function beginDraft(state: GameState, events: GameLogEntry[]): void {
   const hands: Record<PlayerId, HandCard[]> = {};
   for (const p of state.players) {
-    // Alternate's guaranteed starter stock is dealt directly into `hand` at
-    // setup (so it's visible to the player immediately) but is never part of
-    // the draft pool -- leave it in place and only sweep the rest.
+    // The guaranteed starter stock is dealt directly into `hand` at setup (so
+    // it's visible to the player immediately) but is never part of the draft
+    // pool -- leave it in place and only sweep the rest.
     const keep: HandCard[] = [];
     const draftable: HandCard[] = [];
     for (const c of p.hand) {
-      (c.uid.startsWith('alt-starter-stock-') ? keep : draftable).push(c);
+      (c.uid.startsWith('mini-starter-stock-') ? keep : draftable).push(c);
     }
     p.hand = keep;
     hands[p.playerId] = draftable;
@@ -39,7 +39,7 @@ function issueDraftPrompts(state: GameState, events: GameLogEntry[]): void {
         round: draft.round,
         candidateUids: candidates.map(c => c.uid),
         // Full card objects too (not just uids) -- during the draft, a
-        // player's `hand` holds at most their Alternate starter stock (if
+        // player's `hand` holds at most their guaranteed starter stock (if
         // any); the draft candidates themselves live only in state.draft,
         // which isn't part of the client projection, so the client has no
         // other way to know what these cards actually are. Safe to include

@@ -112,9 +112,9 @@ npx tsx scripts/abSell.ts --games 1500 --counts 2,3,4,5
 ## Rulesets
 
 `createGameState` takes an optional `rules: Partial<RulesConfig>` merged over `DEFAULT_RULES`
-(shared/state.ts). `DEFAULT_RULES` is the shipped game (the "1+2+3" config); `CLASSIC_RULES` is the
-original V4 game (used by engine-mechanics unit tests). Knobs: `startingBuyCard`, `goalStopCount`,
-`extraGoals`, `tipReduction` (tips floored at `MIN_TIPS=4`).
+(shared/state.ts) -- the shipped game's only ruleset (the old selectable Classic/Alternate variant
+was removed; Alternate's setup is now the only way to play). Knobs: `initialGoalRevealCount`,
+`progressThresholdPerPlayer`, `progressThresholdBase` (see v5_tuning_notes.md items 1-2).
 
 ## Verifying changes
 ```bash

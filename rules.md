@@ -15,10 +15,14 @@ A strategic trading and market-manipulation game for 2-6 players set in the 1920
 
 ## Components (124 cards + 6 dice)
 
-> Everything below describes the **Classic** setup variant. A second selectable
-> **Alternate** variant exists with a different starter deck, initial-hand
-> draft, and action-card pool — see **Alternate Setup Variant** below for the
-> deltas from Classic.
+> Everything below describes the **Classic** setup — the physical game's
+> setup. The online implementation (`online/`) instead always uses the
+> **Alternate** setup — a different starter deck, initial-hand draft, and
+> action-card pool — see **Alternate Setup Variant** below for the deltas
+> from Classic. (Alternate was previously a selectable option alongside
+> Classic in the online implementation; as of 2026-09-28 it's the only way
+> to play online, and the setup-choice dropdown is gone — see
+> `v5_tuning_notes.md` item 19.)
 
 ### Market Deck (47 cards, Classic)
 - **36 stock cards:** 32 colored (8 each of **Blue** [Steel], **Orange** [Oil], **Green** [Rail], **Purple** [Bank] — 4 blank + 4 special per color) + **4 Wild Share** cards (colorless).
@@ -156,7 +160,7 @@ These moves happen on **every** purchase and **every** sale, including sales mad
 
 ## Alternate Setup Variant
 
-A selectable alternate configuration, chosen when the game is started, alongside Classic. Everything not called out here (turn structure, buying/selling, goals, dice, loans, scoring) is identical to Classic.
+The only setup used by the online implementation (`online/`) — there is no setup choice there anymore; this replaces Classic setup entirely online. Everything not called out here (turn structure, buying/selling, goals, dice, loans, scoring) is identical to Classic.
 
 - **Starter deck:** just **8 basic stock cards** (2 per color), no starter action cards or hidden bonus cards at all. Shuffle and deal exactly **1** to each player (2-6 players → up to 2 cards go unused; unused cards are permanently removed from the game, same as Classic's leftover starter cards).
 - **Initial hand / draft:** each player is dealt **4 cards** straight from the (already-shuffled) Event Deck — no starter cards mixed in at all. Your guaranteed starter stock (above) is already in your hand and visible from the start; it is never part of the draft. Draft the 4 event cards down to a final hand of 3 using the same pass-one-keep-one procedure as Classic (Setup step 6), so you start play with **4 cards** total (1 stock + 3 drafted), one more than Classic's 3.

@@ -123,37 +123,22 @@ export function resolveStockSpecialOnBuy(
       break;
     }
     case 'peek_buy': {
-      if (state.variant === 'alternate') {
-        // Alternate: Scout gains the top event card into hand instead of
-        // just peeking at it.
-        const [drawn] = drawEventCardsIntoHand(state, 1);
-        if (drawn) {
-          buyer.hand.push(drawn);
-          events.push(
-            event(
-              'special_scout_gain',
-              `Scout: ${buyer.name} gains ${drawn.category === 'insider_tip' ? 'a market-movement card' : 'a private goal'} from the event deck`,
-              { actor: buyer.playerId, payload: { uid: drawn.uid, category: drawn.category } }
-            )
-          );
-        } else {
-          events.push(
-            event('special_scout_empty', `Scout: ${buyer.name} gains nothing — the event deck is empty`, {
-              actor: buyer.playerId
-            })
-          );
-        }
-        break;
-      }
-      // Classic: Scout peeks the top 1 card of the event deck.
-      const top = state.eventDeck.slice(0, 1);
-      if (top.length > 0) {
-        setPrompt(
-          state,
-          buyer.playerId,
-          'peek_ack',
-          `Scout: top event card is "${top[0].category === 'insider_tip' ? top[0].text : top[0].goal.text}". Acknowledge to continue.`,
-          { cards: top.map(describeEventCardForPrompt) }
+      // Scout gains the top event card into hand instead of just peeking at it.
+      const [drawn] = drawEventCardsIntoHand(state, 1);
+      if (drawn) {
+        buyer.hand.push(drawn);
+        events.push(
+          event(
+            'special_scout_gain',
+            `Scout: ${buyer.name} gains ${drawn.category === 'insider_tip' ? 'a market-movement card' : 'a private goal'} from the event deck`,
+            { actor: buyer.playerId, payload: { uid: drawn.uid, category: drawn.category } }
+          )
+        );
+      } else {
+        events.push(
+          event('special_scout_empty', `Scout: ${buyer.name} gains nothing — the event deck is empty`, {
+            actor: buyer.playerId
+          })
         );
       }
       break;

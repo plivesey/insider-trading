@@ -1190,13 +1190,6 @@ html, body {
 .lobby-join { display: flex; gap: 8px; margin-bottom: 14px; }
 .lobby-join .deco-input { flex: 1; }
 .lobby-actions { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
-.lobby-variant { display: flex; align-items: center; gap: 8px; }
-.lobby-variant__label {
-  font-family: var(--font-body); font-size: 11px;
-  text-transform: uppercase; letter-spacing: 0.06em;
-  color: var(--ivoryD);
-}
-.lobby-variant .deco-input { padding: 6px 10px; }
 .lobby-hint {
   margin-top: 18px;
   font-family: var(--font-body); font-size: 11px;

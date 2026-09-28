@@ -41,3 +41,15 @@ for 3/4/5 players — within ~1 turn of the pre-retrain baseline above (26.2 /
 31.8 / 37.7) at this smaller sample size. No meaningful pacing shift; the
 small decrease is consistent with marginally sharper play (faster goal
 completions / fewer wasted rounds), not a rules or threshold change.
+
+## 2026-09-28 — Classic removed; Alternate's 4×players+1 is now DEFAULT_RULES (see v5_tuning_notes.md item 19)
+
+**Not comparable to the entries above** — the online implementation's default
+ruleset itself changed today (Classic's 3×players+2 threshold no longer
+exists; `DEFAULT_RULES` is now what was Alternate's 4×players+1), on top of a
+full bot retrain under the new ruleset. 3,000-game/count check: mean turns
+26.0 / 34.5 / 43.4 for 3/4/5 players. Higher than the old Classic numbers, as
+expected from the larger threshold multiplier (4x+1 vs 3x+2) — not a
+regression, a different game. This is the new baseline going forward; a full
+100k-game run would be worth doing once there's more human playtesting on
+this ruleset specifically.

@@ -5,7 +5,6 @@ import {
   loadCards,
   type GameLogEntry,
   type GameState,
-  type GameVariant,
   type GoalCard,
   type PlayerId
 } from '@insider-trading/shared';
@@ -44,7 +43,7 @@ import type { ValueNetWeights } from '../src/bots/valueNet.js';
  * Runs GAMES games at each of --seats (default 3,4,5), all on production bot
  * profiles (the shipped champion net + bot params).
  *
- *   tsx scripts/analyzeGoalValue.ts [--games 100000] [--seats 3,4,5] [--seed 1000000] [--variant classic|alternate]
+ *   tsx scripts/analyzeGoalValue.ts [--games 100000] [--seats 3,4,5] [--seed 1000000]
  */
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
@@ -60,18 +59,10 @@ function listFlag(name: string, dflt: number[]): number[] {
   if (i < 0) return dflt;
   return process.argv[i + 1].split(',').map(Number);
 }
-function strFlag(name: string, dflt: string): string {
-  const i = process.argv.indexOf(`--${name}`);
-  return i >= 0 ? process.argv[i + 1] : dflt;
-}
 const GAMES = numFlag('games', 100000);
 const SEAT_COUNTS = listFlag('seats', [3, 4, 5]);
 const SEED_BASE = numFlag('seed', 1_000_000);
 const SEED_STRIDE = 10_000_000; // keep each seat count's seed range disjoint
-const VARIANT = strFlag('variant', 'classic') as GameVariant;
-if (VARIANT !== 'classic' && VARIANT !== 'alternate') {
-  throw new Error(`--variant must be 'classic' or 'alternate', got '${VARIANT}'`);
-}
 
 const catalog = loadCards(CARDS_DIR);
 const net = JSON.parse(fs.readFileSync(path.join(NETS_DIR, 'champion.json'), 'utf8')) as ValueNetWeights;
@@ -90,8 +81,7 @@ function drive(seed: number, seats: number): GameState {
     players: ids.map(playerId => ({ playerId, name: playerId, isBot: true })),
     seed,
     gameId: `agv-${seed}`,
-    startedAt: '2026-01-01T00:00:00.000Z',
-    variant: VARIANT
+    startedAt: '2026-01-01T00:00:00.000Z'
   });
   // createGameState leaves turnPhase:'setup_draft' with no prompts queued --
   // advance() lazily calls beginDraft() the first time it runs on a state
@@ -361,10 +351,10 @@ const pooledRows: Row[] = [...pooled.values()].map(s => {
 
 // --- Write report ---
 const L: string[] = [];
-L.push(`# Goal Reward Value Study — ${VARIANT === 'alternate' ? 'Alternate variant' : 'Classic'}`);
+L.push('# Goal Reward Value Study');
 L.push('');
 L.push(
-  `Production-bot self-play across ${SEAT_COUNTS.join('/')}-player games (**${VARIANT}** setup variant), ${GAMES} games per seat count (seed base ${SEED_BASE}).`
+  `Production-bot self-play across ${SEAT_COUNTS.join('/')}-player games, ${GAMES} games per seat count (seed base ${SEED_BASE}).`
 );
 L.push('');
 L.push('## Methodology');
@@ -435,18 +425,16 @@ for (const tier of tierOrder) {
 }
 L.push('');
 
-const SUFFIX = VARIANT === 'alternate' ? '_alternate' : '';
-const OUT = path.resolve(HERE, `../../../goal_value_analysis${SUFFIX}.md`);
+const OUT = path.resolve(HERE, '../../../goal_value_analysis.md');
 fs.writeFileSync(OUT, L.join('\n'));
 console.log(`Wrote ${OUT}`);
 
 // Also dump raw pooled + per-count rows as JSON for further offline analysis (e.g. charting).
-const JSON_OUT = path.resolve(HERE, `../../../goal_value_analysis${SUFFIX}.json`);
+const JSON_OUT = path.resolve(HERE, '../../../goal_value_analysis.json');
 fs.writeFileSync(
   JSON_OUT,
   JSON.stringify(
     {
-      variant: VARIANT,
       games: GAMES,
       seedBase: SEED_BASE,
       seatCounts: SEAT_COUNTS,

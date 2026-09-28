@@ -110,6 +110,45 @@ export function evalSubjectVsField(opts: {
   };
 }
 
+export interface PoolEvalResult {
+  perArchetype: EvalResult[];
+  /** The archetype the subject did WORST against, by winRate - fairShare -- the number that
+   * matters: averaging across a diverse pool can hide a single bad matchup (see
+   * v5_tuning_notes.md item 18's self-play exploit postmortem). */
+  worstEdge: number;
+  worstArchetypeIndex: number;
+}
+
+/**
+ * Evaluate a subject against each member of a FIXED, diverse opponent pool
+ * (see opponentPool.ts) separately, rather than one homogeneous field. Use
+ * `worstEdge` (not an average) as the promotion gate: a candidate that beats
+ * every pool member soundly is a much stronger claim than one that merely
+ * beats their average.
+ */
+export function evalSubjectVsPool(opts: {
+  catalog: CardCatalog;
+  subject: ProfileBuilder;
+  pool: ProfileBuilder[];
+  games: number;
+  numSeats?: number;
+  baseSeed?: number;
+}): PoolEvalResult {
+  const perArchetype = opts.pool.map((field, i) =>
+    evalSubjectVsField({
+      catalog: opts.catalog,
+      subject: opts.subject,
+      field,
+      games: opts.games,
+      numSeats: opts.numSeats,
+      baseSeed: (opts.baseSeed ?? 1) + i * 1_000_003
+    })
+  );
+  const edges = perArchetype.map(r => r.nnWinRate - r.fairShare);
+  const worstArchetypeIndex = edges.indexOf(Math.min(...edges));
+  return { perArchetype, worstEdge: edges[worstArchetypeIndex], worstArchetypeIndex };
+}
+
 /** Net bot vs pure-heuristic field (the original NN evaluation). */
 export function evalNetVsHeuristic(opts: {
   catalog: CardCatalog;

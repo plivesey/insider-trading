@@ -25,7 +25,7 @@ Full rules: `rules.md`. Open/tunable numbers not yet settled by playtesting: `v5
 - **Black Market removed entirely** (its V4 mechanic depended on a "leftover unused tips" pool that no longer exists once the whole event deck goes into circulation at setup).
 - **Action pool trimmed and Insider Source buffed**: Tipster's Choice, The Squeeze, and Wild Speculation removed; the two Insider Source copies merged into one card that draws **2** event-deck cards (was 1).
 - **Event Deck expanded 30→47 cards**: more Crash (12, was 8), Slump now covers all 6 color pairs (was 4), a new **Shift** market-movement type (one color +2, another −2, all 6 pairs), plus two new goal tiers — **Four of a Kind** (very hard, own 4 of one color) and **Full Spread** (medium, own 1 of each color). One dice face (Mixed-draw C) changed Nothing→Bull to partially offset the more bearish tip mix. See `v5_tuning_notes.md` items 3, 4, and 15.
-- **Selectable online setup variant ("Alternate")**: the online implementation (`online/`) supports choosing a leaner setup at game creation — an 8-card basic-stock-only starter deck (1 dealt straight into each player's hand), a 4-card event-deck-only initial draft, 3 starter actions (Backroom Deal/Double Down/Foresight) promoted into its Market Deck instead, no hidden bonus cards, and a flat 4×players progress threshold. This only affects `online/`, not the physical game or its card JSON. See rules.md's "Alternate Setup Variant" section and `v5_tuning_notes.md` item 13.
+- **Online setup uses a leaner variant than the physical game**: the online implementation (`online/`) always uses a leaner setup — an 8-card basic-stock-only starter deck (1 dealt straight into each player's hand), a 4-card event-deck-only initial draft, 3 starter actions (Backroom Deal/Double Down/Foresight) promoted into its Market Deck instead, no hidden bonus cards, and a flat 4×players+1 progress threshold. (This was previously a selectable "Alternate" variant alongside "Classic"; Classic was removed from `online/` on 2026-09-28 — it's now the only way to play online, and the setup-variant dropdown is gone.) This only affects `online/`, not the physical game or its card JSON. See rules.md's "Alternate Setup Variant" section and `v5_tuning_notes.md` items 13 and 19.
 
 ## Card Types (124 cards + 6 dice)
 
@@ -53,7 +53,7 @@ Full rules: `rules.md`. Open/tunable numbers not yet settled by playtesting: `v5
 - Face-up; auto-issued ($10 each) when a player cannot cover a payment. **Max 2 per player.** End-game cost: 1st loan $12, 2nd $14 (computed by the engine, not stored per-card — the JSON's `endGameValue` field is legacy/decorative).
 
 ### Starter Deck (24) - `cards/starter_deck.json`
-- Setup-only, then set aside for the rest of the game (Classic). The online Alternate variant instead uses just its 8 basic stock cards and none of its 12 action cards — see "Selectable online setup variant" above.
+- Setup-only for the physical game, then set aside for the rest of the game. The online implementation instead uses just 8 of its basic stock cards (2/color) and 3 of its 12 action cards, promoted into the Market Deck — see the online setup bullet above.
 - 12 basic stock cards (3 each of Blue/Orange/Green/Purple, blank, no special ability).
 - 12 starter action cards: 7 playable (Fire Sale, First Look, Foresight, Windfall, Market Panic, Backroom Deal, Double Down — `"hidden": false`) + 5 hidden end-game bonus cards (Nest Egg, Portfolio, Trophy Case, Clean Ledger, Easy Credit — `"hidden": true`, never played, auto-score at game end).
 

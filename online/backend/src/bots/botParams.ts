@@ -23,6 +23,9 @@ export interface BotParams {
   // --- stock special bumps (valuation.ts SPECIAL_BUMP) ---
   bumpExtraUp: number;
   bumpOtherUp: number;
+  /** @deprecated Vestigial since Classic's setup variant was removed -- peek_buy
+   * (Scout) always values via `drawTipValue` now. Kept so saved bot_params.json
+   * + the ES vector layout stay valid. */
   bumpPeekBuy: number;
   bumpPeekSell: number;
 

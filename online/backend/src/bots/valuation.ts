@@ -3,7 +3,6 @@ import type {
   BonusCard,
   Color,
   GameState,
-  GameVariant,
   GoalCard,
   GoalReward,
   InsiderTipCard,
@@ -193,20 +192,16 @@ export function bestGoalBump(
   return best;
 }
 
-export function perceivedStockSpecialBump(
-  stockType: StockType,
-  params: BotParams = DEFAULTS,
-  variant: GameVariant = 'classic'
-): number {
+export function perceivedStockSpecialBump(stockType: StockType, params: BotParams = DEFAULTS): number {
   switch (stockType) {
     case 'extra_up':
       return params.bumpExtraUp;
     case 'other_up':
       return params.bumpOtherUp;
     case 'peek_buy':
-      // Alternate: Scout gains the card outright instead of just peeking --
-      // worth roughly what Insider Source's per-card draw value is.
-      return variant === 'alternate' ? params.drawTipValue : params.bumpPeekBuy;
+      // Scout gains the card outright instead of just peeking -- worth
+      // roughly what Insider Source's per-card draw value is.
+      return params.drawTipValue;
     case 'peek_sell':
       return params.bumpPeekSell;
     default:
@@ -270,7 +265,7 @@ export function perceivedStockCardValue(
   if (card.color === 'Wild') return perceivedWildShareValue(state, profile, botId);
   return (
     perceivedStockValue(state, profile, card.color, botId) +
-    perceivedStockSpecialBump(card.type, profile.params, state.variant)
+    perceivedStockSpecialBump(card.type, profile.params)
   );
 }
 

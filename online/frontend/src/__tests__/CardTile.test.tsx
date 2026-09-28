@@ -61,18 +61,12 @@ describe('CardTile — goal branch', () => {
 });
 
 describe('CardTile — stock branch, Scout ability text', () => {
-  it('shows the peek text by default (Classic)', () => {
+  it('shows the gain text (Scout gains the top event card into hand)', () => {
     render(<CardTile card={scout} />);
-    expect(screen.getByText('When bought, look at the top 1 card of the event deck.')).toBeInTheDocument();
-  });
-
-  it('shows the gain text in the Alternate variant', () => {
-    render(<CardTile card={scout} variant="alternate" />);
     expect(screen.getByText('When bought, gain the top card of the event deck into your hand.')).toBeInTheDocument();
-    expect(screen.queryByText('When bought, look at the top 1 card of the event deck.')).not.toBeInTheDocument();
   });
 
-  it('other special stocks are unaffected by variant', () => {
+  it('other special stocks show their printed ability text', () => {
     const boom: StockCard = {
       category: 'stock',
       uid: 'stock-boom-1',
@@ -81,7 +75,7 @@ describe('CardTile — stock branch, Scout ability text', () => {
       name: 'Boom',
       ability: 'When bought, Blue rises an extra +1 (Blue rises +2 total).'
     };
-    render(<CardTile card={boom} variant="alternate" />);
+    render(<CardTile card={boom} />);
     // Blue is relabeled to its industry name ("Steel") by relabelColors.
     expect(screen.getByText('When bought, Steel rises an extra +1 (Steel rises +2 total).')).toBeInTheDocument();
   });

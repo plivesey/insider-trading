@@ -506,3 +506,93 @@ pre-Track-2 `champion.json`/`bot_params.json` and the grown/pre-retrain net
 are backed up under this session's scratch directory. Re-derive by
 re-running `growNet.ts` against a git-historical `champion.json` if ever
 needed.
+
+## 19. The real root cause of "bots feel much worse now": Classic vs. Alternate, not a bidding bug (2026-09-28)
+
+Playtesting the Track 2 champion above, the user steamrolled the bots
+($121 vs $37/$22 final wealth in a 3-player game) and reported they felt
+"way under-bidding." Pulled the real game log (`online/backend/game_logs/`
+-- disk logging is on unconditionally for `npm run dev`, one `.jsonl` per
+game) and replayed it with a new ground-truth diagnostic
+(`scripts/analyzeRealGame.ts`): recomputing the folding bot's own
+`perceived`/`maxBid` at the exact moment of every fold showed **every single
+fold was mathematically rational given the bot's own valuation** -- no
+bidding-cliff bug. The bots just valued several stocks meaningfully lower
+than the human did (e.g. Purple bought by bots' opponents for $6-8 later
+resold by the human for $15-16).
+
+The real finding: **that game was played on the "Alternate" setup variant,
+and `playOneGame` (the self-play function underlying every training/
+validation script run this session -- `trainBotParams.ts`, `trainSelfPlay.ts`,
+`tournamentVariants.ts`, `validateVsPool.ts`, all of it) never passed a
+`variant` through to `createGameState`, so self-play always silently
+defaulted to Classic.** Every ES retrain and value-net retrain this session,
+and every validation that said "beats the old champion," was measured
+against Classic games -- a setup the user wasn't even playing. The bots
+weren't exploited by a clever human strategy; they were never trained or
+validated on the ruleset actually being played.
+
+**Decision: remove Classic entirely, make Alternate the only way to play.**
+Rather than plumb variant selection through the self-play harness (which
+would perpetuate a real ongoing risk of silently training/validating against
+the wrong mode again), the game itself no longer has two modes:
+
+- **Full removal from `online/`**: `GameVariant` type, `ALTERNATE_DEFAULT_RULES`/
+  `VARIANT_DEFAULT_RULES` (Alternate's former rules are now simply
+  `DEFAULT_RULES`), the `variant` field on `GameState`/`ProjectedGameState`,
+  the `variant` param on `createGameState`/`ServerHub.startGame`, the
+  `/api/start` request field, and the Lobby ruleset dropdown are all gone.
+  `setup.ts`'s Classic dealing branch (24-card starter-deck draft pile) and
+  `turn.ts`'s Classic Scout-peek branch are deleted -- there's only one
+  setup/resolution path now. `CardCatalog.alternateStarterStocks` renamed to
+  `starterStocks` (the `alt-` prefix no longer means anything); `starterDeck`
+  (the 24-card Classic deck) is kept loaded as a data source since several
+  unit tests use it as a fixture for specific named cards (Windfall, hidden
+  bonus cards), even though no real game deals from it anymore.
+  `bumpPeekBuy` in `BotParams` is now vestigial (Scout always values via
+  `drawTipValue`) -- left in place rather than resized out of the ES vector.
+  Merged the duplicate `bot_full_game.test.ts` describe blocks (Classic +
+  "Alternate variant" were testing near-identical things once there's only
+  one setup) into one, preserving the known seed-1234-at-6-players exclusion
+  (`v5_tuning_notes.md` item 14).
+- **Full retrain from scratch under the now-only ruleset**: with Classic
+  gone, `playOneGame` unconditionally builds Alternate-shaped games, so
+  simply re-running the existing training scripts retrains correctly with no
+  special flag needed.
+  - `trainBotParams.ts --resume nets/bot_params.json --gen 200`: avgEdge
+    7.3%->9.6%. Validated head-to-head vs. the pre-retrain (Classic-tuned)
+    params: beats at 4p (30.0% vs 25% fair)/5p (22.5% vs 20% fair), at-par at
+    2p/3p. Promoted.
+  - `trainSelfPlay.ts --champion nets/champion.json --params
+    nets/bot_params.json --maxRounds 4`: all 4 rounds promoted internally.
+    Validated head-to-head vs. the pre-retrain (Classic-trained) champion
+    with `abNets.ts`, 3000 games/count:
+
+    | count | winRate | fair | verdict |
+    | --- | --- | --- | --- |
+    | 2p | 55.3% | 50.0% | beats |
+    | 3p | 49.0% | 33.3% | beats |
+    | 4p | 36.8% | 25.0% | beats |
+    | 5p | 30.9% | 20.0% | beats |
+
+    A decisive win at every table size -- much larger than the params-only
+    retrain's edge, confirming the old net was meaningfully miscalibrated for
+    a game shape it was never actually trained on. Promoted.
+- **Full regression sweep**: `npm run build` + `npm test` clean across the
+  whole `online/` workspace (backend 195 tests, frontend 32 tests -- both
+  updated for the removed variant: merged/renumbered Scout tests, updated
+  hardcoded threshold-formula expectations from 3x+2 to 4x+1 throughout,
+  removed the dropdown's Lobby/CardTile tests). `measureGameLength.ts`
+  (3000 games/count) and a 5000-game `analyzeGoalValue.ts` spot check both
+  came back with no degenerate patterns (Rail still weakest goal color,
+  consistent with the existing Goal Reward Ledger).
+
+**Lesson for future retrains**: `playOneGame`/`createGameState` no longer
+have a variant concept to get wrong, so this specific failure mode can't
+recur -- but the general lesson (verify what self-play actually simulates
+matches what's actually shipped/played) is worth remembering for any future
+rule/setup change. The real-game-log diagnostic (`analyzeRealGame.ts`,
+replaying `online/backend/game_logs/*.jsonl` with the live bot params to
+recompute perceived-value/bid-ceiling at any decision point) is a reusable
+tool for grounding any future "bots feel off" report in what the bots
+actually saw, not just self-play aggregates.

@@ -1,11 +1,9 @@
 import type {
   AuctionBidRequest,
   FreeActionApiRequest,
-  GameVariant,
   JoinRequest,
   MeResponse,
   PromptResponseRequest,
-  StartRequest,
   StateResponse,
   TurnActionRequest
 } from '@insider-trading/shared';
@@ -60,11 +58,7 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ name } satisfies JoinRequest)
     }),
-  start: (variant: GameVariant = 'classic') =>
-    call<{ ok: true }>('/start', {
-      method: 'POST',
-      body: JSON.stringify({ variant } satisfies StartRequest)
-    }),
+  start: () => call<{ ok: true }>('/start', { method: 'POST' }),
   reset: () => call<{ ok: true }>('/reset', { method: 'POST' }),
   addBot: () =>
     call<{ playerId: string; name: string }>('/add-bot', { method: 'POST' }),

@@ -209,20 +209,7 @@ export interface GameState {
    * the default ruleset (see DEFAULT_RULES / createGameState).
    */
   rules?: RulesConfig;
-  /** Which setup variant this game was created under. See GameVariant. */
-  variant: GameVariant;
 }
-
-/**
- * Selectable game-setup ruleset, chosen when a game is started.
- * - `classic`: the shipped V5 setup (24-card starter deck, combined
- *   event+starter draft pile, full 15-card action pool minus the global cuts
- *   below).
- * - `alternate`: leaner setup (8-card basic-stock-only starter deck dealt 1
- *   per player, event-deck-only draft, 3 starter actions promoted into the
- *   Market Deck, no hidden bonus cards, flat 4x-players progress threshold).
- */
-export type GameVariant = 'classic' | 'alternate';
 
 /**
  * Game-balance rule knobs for V5's still-being-playtested numbers (see
@@ -238,24 +225,11 @@ export interface RulesConfig {
   progressThresholdBase: number;
 }
 
-/** The live, shipped Classic ruleset. 2p:8, 3p:11, 4p:14, 5p:17, 6p:20. */
+/** The live, shipped ruleset. 2p:9, 3p:13, 4p:17, 5p:21, 6p:25. */
 export const DEFAULT_RULES: RulesConfig = {
   initialGoalRevealCount: 4,
-  progressThresholdPerPlayer: 3,
-  progressThresholdBase: 2
-};
-
-/** Alternate: same goal-reveal count as Classic, threshold 4x-players + 1. 2p:9, 3p:13, 4p:17, 5p:21, 6p:25. */
-export const ALTERNATE_DEFAULT_RULES: RulesConfig = {
-  ...DEFAULT_RULES,
   progressThresholdPerPlayer: 4,
   progressThresholdBase: 1
-};
-
-/** Default rules for each selectable variant -- `createGameState` starts from this, then applies any `input.rules` override on top. */
-export const VARIANT_DEFAULT_RULES: Record<GameVariant, RulesConfig> = {
-  classic: DEFAULT_RULES,
-  alternate: ALTERNATE_DEFAULT_RULES
 };
 
 /** Computes the progress-tracker threshold for a given player count under the given rules. */
@@ -299,7 +273,6 @@ export interface ProjectedGameState {
   gameId: string;
   startedAt: string;
   version: 5;
-  variant: GameVariant;
   status: 'in_progress' | 'finished';
   stockPrices: StockPrices;
   currentPlayerIndex: number;

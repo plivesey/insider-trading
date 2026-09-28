@@ -1,4 +1,4 @@
-import type { ActionCard, BonusCard, GameVariant, GoalCard, InsiderTipCard, StockCard } from '@insider-trading/shared';
+import type { ActionCard, BonusCard, GoalCard, InsiderTipCard, StockCard } from '@insider-trading/shared';
 import { C, DecoCorner, INDUSTRY, IndustryIcon, industryClass, relabelColors } from './theme.js';
 
 type Card = StockCard | ActionCard | InsiderTipCard | GoalCard | BonusCard;
@@ -15,8 +15,6 @@ interface Props {
   playPipLabel?: string;
   /** For a goal card: whether it's being shown from the public row or a hand (private). Irrelevant for other categories. */
   goalContext?: 'row' | 'hand';
-  /** Which ruleset is live -- affects Scout's displayed ability text. Defaults to 'classic'. */
-  variant?: GameVariant;
 }
 
 export function CardTile({
@@ -26,8 +24,7 @@ export function CardTile({
   className = '',
   showPlayPip = false,
   playPipLabel = 'Click to Play',
-  goalContext = 'row',
-  variant = 'classic'
+  goalContext = 'row'
 }: Props) {
   const indClass =
     card.category === 'stock'
@@ -48,7 +45,7 @@ export function CardTile({
       role={onClick ? 'button' : undefined}
       tabIndex={onClick ? 0 : -1}
     >
-      {card.category === 'stock' && <StockBody card={card as StockCard} variant={variant} />}
+      {card.category === 'stock' && <StockBody card={card as StockCard} />}
       {card.category === 'action' && <ActionBody card={card as ActionCard} />}
       {card.category === 'insider_tip' && <TipBody card={card as InsiderTipCard} />}
       {card.category === 'goal' && <GoalBody card={card as GoalCard} context={goalContext} />}
@@ -76,17 +73,16 @@ export function CardTile({
   );
 }
 
-/** Scout's ability text depends on the ruleset (Classic peeks, Alternate gains the card). */
-function stockAbilityText(card: StockCard, variant: GameVariant): string | undefined {
-  if (card.type === 'peek_buy' && variant === 'alternate') {
+function stockAbilityText(card: StockCard): string | undefined {
+  if (card.type === 'peek_buy') {
     return 'When bought, gain the top card of the event deck into your hand.';
   }
   return card.ability;
 }
 
-function StockBody({ card, variant }: { card: StockCard; variant: GameVariant }) {
+function StockBody({ card }: { card: StockCard }) {
   const meta = INDUSTRY[card.color];
-  const ability = stockAbilityText(card, variant);
+  const ability = stockAbilityText(card);
   return (
     <>
       <div className="card-tile__category">

@@ -17,17 +17,17 @@ describe('cardLoader', () => {
     expect(catalog.starterDeck).toHaveLength(24);
   });
 
-  it('derives the Alternate-variant promoted actions and mini starter stocks', () => {
+  it('derives the promoted actions and mini starter stocks', () => {
     expect(catalog.promotedActions).toHaveLength(3);
     expect(catalog.promotedActions.map(c => c.name).sort()).toEqual(
       ['Backroom Deal', 'Double Down', 'Foresight'].sort()
     );
     expect(catalog.promotedActions.every(c => c.category === 'action' && c.persistent === false)).toBe(true);
 
-    expect(catalog.alternateStarterStocks).toHaveLength(8);
-    expect(catalog.alternateStarterStocks.every(c => c.category === 'stock')).toBe(true);
+    expect(catalog.starterStocks).toHaveLength(8);
+    expect(catalog.starterStocks.every(c => c.category === 'stock')).toBe(true);
     for (const color of ['Blue', 'Orange', 'Green', 'Purple'] as const) {
-      expect(catalog.alternateStarterStocks.filter(c => c.category === 'stock' && c.color === color)).toHaveLength(2);
+      expect(catalog.starterStocks.filter(c => c.category === 'stock' && c.color === color)).toHaveLength(2);
     }
   });
 
@@ -40,7 +40,7 @@ describe('cardLoader', () => {
       ...catalog.loans.map(c => c.uid),
       ...catalog.starterDeck.map(c => c.uid),
       ...catalog.promotedActions.map(c => c.uid),
-      ...catalog.alternateStarterStocks.map(c => c.uid)
+      ...catalog.starterStocks.map(c => c.uid)
     ];
     expect(new Set(all).size).toBe(all.length);
   });

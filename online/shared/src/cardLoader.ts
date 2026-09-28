@@ -15,21 +15,28 @@ export interface CardCatalog {
   insiderTips: InsiderTipCard[];
   goals: GoalCard[];
   loans: LoanCard[];
-  /** Setup-only deck: 12 basic stocks + 7 playable + 5 hidden bonus starter action cards. */
+  /**
+   * The full 24-card printed Starter Deck (12 basic stocks + 7 playable + 5
+   * hidden bonus action cards). Not dealt directly by `createGameState`
+   * anymore (only `promotedActions`/`starterStocks` below are) -- kept as a
+   * loaded data source for tests that need a specific named starter card
+   * (e.g. Windfall, a hidden bonus card) as a fixture.
+   */
   starterDeck: (StockCard | ActionCard | BonusCard)[];
   /**
-   * Alternate variant only: Backroom Deal / Double Down / Foresight, re-wrapped
-   * as ordinary Market Deck action cards. Same source starter_deck.json
-   * entries (ids 103, 106, 107) as their Classic starter-deck counterparts --
-   * edit those once, not here, to change their text/effect.
+   * Foresight / Backroom Deal / Double Down, re-wrapped as ordinary Market
+   * Deck action cards -- the only starter actions actually dealt in the live
+   * game. Same source starter_deck.json entries (ids 103, 106, 107) as their
+   * `starterDeck` counterparts -- edit those once, not here, to change their
+   * text/effect.
    */
   promotedActions: ActionCard[];
   /**
-   * Alternate variant only: 2 basic stocks per color (8 total), a subset of
-   * the same printed starter-stock entries used by Classic's 12-card (3/color)
-   * starter deck.
+   * The 8-card mini starter deck (2 basic stocks per color) dealt 1 per
+   * player at setup -- a subset of the same printed starter-stock entries in
+   * `starterDeck`.
    */
-  alternateStarterStocks: StockCard[];
+  starterStocks: StockCard[];
 }
 
 interface StarterStockRaw {
@@ -131,10 +138,10 @@ export function loadCards(cardsDir: string): CardCatalog {
     } as ActionCard;
   });
 
-  // Alternate variant: promote Foresight (103), Backroom Deal (106), and
-  // Double Down (107) into the Market Deck's action pool. Re-derived from the
-  // same starterRaw entries every load -- editing starter_deck.json is the
-  // only place these cards' text/effect need to change.
+  // Promote Foresight (103), Backroom Deal (106), and Double Down (107) into
+  // the Market Deck's action pool. Re-derived from the same starterRaw
+  // entries every load -- editing starter_deck.json is the only place these
+  // cards' text/effect need to change.
   const PROMOTED_STARTER_ACTION_IDS = new Set([103, 106, 107]);
   let promotedN = 0;
   const promotedActions: ActionCard[] = starterRaw
@@ -152,20 +159,20 @@ export function loadCards(cardsDir: string): CardCatalog {
       } as ActionCard;
     });
 
-  // Alternate variant: an 8-card mini starter deck (2 basic stocks per
-  // color), a subset of the same printed stock entries above.
+  // An 8-card mini starter deck (2 basic stocks per color), a subset of the
+  // same printed stock entries above, dealt 1 per player at setup.
   const colorCounts: Record<string, number> = {};
-  let altStockN = 0;
-  const alternateStarterStocks: StockCard[] = starterRaw
+  let miniStockN = 0;
+  const starterStocks: StockCard[] = starterRaw
     .filter(isStarterStockRaw)
     .filter(c => {
       colorCounts[c.color] = (colorCounts[c.color] ?? 0) + 1;
       return colorCounts[c.color] <= 2;
     })
     .map(c => {
-      altStockN += 1;
-      return { category: 'stock', uid: `alt-starter-stock-${altStockN}`, color: c.color, type: c.type } as StockCard;
+      miniStockN += 1;
+      return { category: 'stock', uid: `mini-starter-stock-${miniStockN}`, color: c.color, type: c.type } as StockCard;
     });
 
-  return { stocks, actions, insiderTips, goals, loans, starterDeck, promotedActions, alternateStarterStocks };
+  return { stocks, actions, insiderTips, goals, loans, starterDeck, promotedActions, starterStocks };
 }

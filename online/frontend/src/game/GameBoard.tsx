@@ -74,7 +74,6 @@ export function GameBoard({ state, log, mode }: Props) {
             market={state.market}
             onPick={canPickAuction ? uid => setAuctionPickUid(uid) : undefined}
             selectedUid={auctionPickUid}
-            variant={state.variant}
           />
           <GoalsPanel
             state={state}

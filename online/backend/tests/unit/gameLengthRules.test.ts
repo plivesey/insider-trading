@@ -30,11 +30,11 @@ function mkState(rules?: Partial<RulesConfig>, seed = 1): GameState {
 }
 
 describe('RulesConfig plumbing (V5)', () => {
-  it('the shipped default ruleset has initialGoalRevealCount=4 and progressThresholdPerPlayer=3/base=2', () => {
+  it('the shipped default ruleset has initialGoalRevealCount=4 and progressThresholdPerPlayer=4/base=1', () => {
     const s = mkState(); // no override → DEFAULT_RULES
     expect(s.rules).toEqual(DEFAULT_RULES);
     expect(s.goalRow).toHaveLength(4);
-    expect(s.progressThreshold).toBe(3 * 3 + 2); // 3 players → 11
+    expect(s.progressThreshold).toBe(4 * 3 + 1); // 3 players → 13
   });
 
   it('initialGoalRevealCount controls how many goals are revealed at setup', () => {
@@ -47,8 +47,8 @@ describe('RulesConfig plumbing (V5)', () => {
     expect(mkState({ progressThresholdPerPlayer: 5, progressThresholdBase: 1 }).progressThreshold).toBe(16);
   });
 
-  it('matches the 2-6 player table: 8, 11, 14, 17, 20', () => {
-    const expected = [8, 11, 14, 17, 20];
+  it('matches the 2-6 player table: 9, 13, 17, 21, 25', () => {
+    const expected = [9, 13, 17, 21, 25];
     for (let n = 2; n <= 6; n++) {
       expect(computeProgressThreshold(n, DEFAULT_RULES)).toBe(expected[n - 2]);
     }
