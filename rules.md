@@ -165,16 +165,16 @@ The only setup used by the online implementation (`online/`) — there is no set
 - **Starter deck:** just **8 basic stock cards** (2 per color), no starter action cards or hidden bonus cards at all. Shuffle and deal exactly **1** to each player (2-6 players → up to 2 cards go unused; unused cards are permanently removed from the game, same as Classic's leftover starter cards).
 - **Initial hand / draft:** each player is dealt **4 cards** straight from the (already-shuffled) Event Deck — no starter cards mixed in at all. Your guaranteed starter stock (above) is already in your hand and visible from the start; it is never part of the draft. Draft the 4 event cards down to a final hand of 3 using the same pass-one-keep-one procedure as Classic (Setup step 6), so you start play with **4 cards** total (1 stock + 3 drafted), one more than Classic's 3.
 - **Market Deck:** 36 stock cards + **14 action cards** — the same 11 as Classic's Action Cards list, plus **Foresight**, **Backroom Deal**, and **Double Down** (Starter Action Cards in Classic) promoted into the Market Deck here instead. **First Look**, **Fire Sale**, **Windfall**, **Market Panic**, and all 5 hidden end-game bonus cards do not exist in this variant at all.
-- **Progress tracker threshold:** **4 × players + 1** (vs. Classic's 3 × players + 2).
+- **Progress tracker threshold:** **3 × players + 3** (vs. Classic's 3 × players + 2). Lowered from an initial 4 × players + 1 on 2026-09-28 after simulation showed that formula produced pathologically long 6-player games (mean 85 turns, one run hitting 1,208) driven by the same card-exhaustion long tail as item 14 — see `v5_tuning_notes.md` item 20.
 - **Scout special stock:** gains the top event-deck card into your hand when bought, instead of just peeking at it (see The Special Stocks above).
 
-| Players | Alternate threshold (4 × players + 1) |
+| Players | Alternate threshold (3 × players + 3) |
 |---------|-----------------------------------------|
 | 2 | 9 |
-| 3 | 13 |
-| 4 | 17 |
-| 5 | 21 |
-| 6 | 25 |
+| 3 | 12 |
+| 4 | 15 |
+| 5 | 18 |
+| 6 | 21 |
 
 ---
 

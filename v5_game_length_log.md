@@ -53,3 +53,23 @@ expected from the larger threshold multiplier (4x+1 vs 3x+2) — not a
 regression, a different game. This is the new baseline going forward; a full
 100k-game run would be worth doing once there's more human playtesting on
 this ruleset specifically.
+
+## 2026-09-28 — threshold lowered again to 3×players+3 (see v5_tuning_notes.md item 20)
+
+Same day, second change: `4×players+1` (above) turned out to have a severe
+6-player long tail — a 5,000-game/count before/after comparison found the
+old threshold (25 at 6p) produced a mean of 85.4 turns (median 76, **max
+1208**) driven by the item-14 card-exhaustion dynamic, versus 49.2 mean
+(max 176) under the new `3×players+3` threshold (21 at 6p). 2-5p also get a
+modest ~10-15% shorter game.
+
+| Players | Old thresh (4n+1) | Old mean | Old turns/person | New thresh (3n+3) | New mean | New turns/person |
+| --- | --- | --- | --- | --- | --- | --- |
+| 2 | 9 | 17.3 | 8.67 | 9 | 17.3 | 8.67 |
+| 3 | 13 | 25.9 | 8.63 | 12 | 23.8 | 7.93 |
+| 4 | 17 | 34.4 | 8.60 | 15 | 30.3 | 7.57 |
+| 5 | 21 | 43.3 | 8.67 | 18 | 36.3 | 7.27 |
+| 6 | 25 | 85.4 | 14.23 | 21 | 49.2 | 8.21 |
+
+**Adopted** as the new `DEFAULT_RULES` (9/12/15/18/21 for 2-6 players). This
+supersedes the entry immediately above as the current baseline.

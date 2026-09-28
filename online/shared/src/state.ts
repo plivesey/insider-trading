@@ -225,11 +225,11 @@ export interface RulesConfig {
   progressThresholdBase: number;
 }
 
-/** The live, shipped ruleset. 2p:9, 3p:13, 4p:17, 5p:21, 6p:25. */
+/** The live, shipped ruleset. 2p:9, 3p:12, 4p:15, 5p:18, 6p:21. */
 export const DEFAULT_RULES: RulesConfig = {
   initialGoalRevealCount: 4,
-  progressThresholdPerPlayer: 4,
-  progressThresholdBase: 1
+  progressThresholdPerPlayer: 3,
+  progressThresholdBase: 3
 };
 
 /** Computes the progress-tracker threshold for a given player count under the given rules. */

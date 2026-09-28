@@ -37,7 +37,7 @@ describe('createGameState (V5)', () => {
     expect(g.stockPrices).toEqual({ Blue: 4, Orange: 4, Green: 4, Purple: 4 });
     expect(g.gameOver).toBeNull();
     expect(g.progressTracker).toBe(0);
-    expect(g.progressThreshold).toBe(4 * 3 + 1); // 3 players: progressThresholdPerPlayer=4, base=1 -> 13
+    expect(g.progressThreshold).toBe(3 * 3 + 3); // 3 players: progressThresholdPerPlayer=3, base=3 -> 12
     expect(g.diceBagRemaining.sort()).toEqual(['A1', 'A2', 'B1', 'B2', 'C', 'D'].sort());
     expect(g.turnPhase).toBe('setup_draft');
     expect(g.draft).toBeNull();
@@ -111,13 +111,13 @@ describe('createGameState (V5)', () => {
   });
 
   it('different player counts produce expected event-deck/goal-row/threshold sizes (default ruleset)', () => {
-    // [players, eventDeck = 43 - 4*players, goalRow = 4, threshold = 4*players + 1]
+    // [players, eventDeck = 43 - 4*players, goalRow = 4, threshold = 3*players + 3]
     const counts: Array<[number, number, number, number]> = [
       [2, 35, 4, 9],
-      [3, 31, 4, 13],
-      [4, 27, 4, 17],
-      [5, 23, 4, 21],
-      [6, 19, 4, 25]
+      [3, 31, 4, 12],
+      [4, 27, 4, 15],
+      [5, 23, 4, 18],
+      [6, 19, 4, 21]
     ];
     for (const [n, eventDeckSize, goalRowSize, threshold] of counts) {
       const ps = Array.from({ length: n }, (_, i) => ({
@@ -165,7 +165,7 @@ describe('createGameState (V5)', () => {
     expect(new Set(uids).size).toBe(uids.length);
 
     expect(g.progressThreshold).toBe(computeProgressThreshold(4, DEFAULT_RULES));
-    expect(g.progressThreshold).toBe(17);
+    expect(g.progressThreshold).toBe(15);
 
     // None of the never-dealt starter actions/bonus cards ever appear.
     const forbiddenNames = new Set(['First Look', 'Fire Sale', 'Windfall', 'Market Panic', 'Nest Egg', 'Portfolio', 'Trophy Case', 'Clean Ledger', 'Easy Credit']);
@@ -175,7 +175,7 @@ describe('createGameState (V5)', () => {
     }
   });
 
-  it.each([2, 3, 4, 5, 6])('progress threshold is 4x players + 1 (%i players)', n => {
+  it.each([2, 3, 4, 5, 6])('progress threshold is 3x players + 3 (%i players)', n => {
     const ps = Array.from({ length: n }, (_, i) => ({ playerId: `p${i}`, name: `P${i}` }));
     const g = createGameState({
       catalog,
@@ -184,7 +184,7 @@ describe('createGameState (V5)', () => {
       gameId: `threshold-${n}`,
       startedAt: '2026-01-01T00:00:00.000Z'
     });
-    expect(g.progressThreshold).toBe(4 * n + 1);
+    expect(g.progressThreshold).toBe(3 * n + 3);
   });
 
   it('the guaranteed starter stock is visible in hand immediately, before and throughout the draft', () => {

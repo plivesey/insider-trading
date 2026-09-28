@@ -121,7 +121,7 @@ describe('HTTP layer', () => {
     expect(s.status).toBe(200);
     const sa = await a.get('/api/state');
     const state = sa.body.state;
-    expect(state.progressThreshold).toBe(4 * 4 + 1); // 4 players * 4 + 1
+    expect(state.progressThreshold).toBe(3 * 4 + 3); // 4 players * 3 + 3
   });
 
   it('spectator (no cookie / unknown cookie) sees game_in_progress_spectator after start', async () => {

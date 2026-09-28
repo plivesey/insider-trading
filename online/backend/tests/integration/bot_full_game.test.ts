@@ -161,8 +161,9 @@ describe('bot full-game integration', () => {
       for (const p of players) profiles.set(p.playerId, createBotProfile(botRng));
       // RNG used for bot tick-time randomness (auction discounts, weighted picks).
       const tickRng = makeRng((seed * 4 + 7) | 0);
-      // 45,000 covers 6-player games under this ruleset's progress threshold
-      // (4x players + 1), which needs more ticks than the old 3x+2 formula.
+      // 45,000 is a generous ceiling for 6-player games under this ruleset's
+      // progress threshold (3x players + 3); see gameLengthRules.test.ts for
+      // the actual formula.
       const { ticks } = driveBotGame(state, profiles, tickRng, 45_000);
       expect(state.gameOver).not.toBeNull();
       // Sanity: at least some progress happened.

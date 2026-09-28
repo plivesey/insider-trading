@@ -596,3 +596,48 @@ replaying `online/backend/game_logs/*.jsonl` with the live bot params to
 recompute perceived-value/bid-ceiling at any decision point) is a reusable
 tool for grounding any future "bots feel off" report in what the bots
 actually saw, not just self-play aggregates.
+
+## 20. Progress-tracker threshold lowered to 3×players+3 (2026-09-28)
+
+After item 19's Classic removal put the online game on the `4×players+1`
+formula (inherited unchanged from the old Alternate variant), a quick
+before/after simulation comparing it against a proposed `3×players+3`
+(5,000 games/count, production bots, `DEFAULT_RULES` overridden per run)
+surfaced two things worth acting on, not just a pacing preference:
+
+| Players | Old threshold (4n+1) | Old mean turns | Old turns/person | New threshold (3n+3) | New mean turns | New turns/person |
+| --- | --- | --- | --- | --- | --- | --- |
+| 2 | 9 | 17.3 | 8.67 | 9 | 17.3 | 8.67 |
+| 3 | 13 | 25.9 | 8.63 | 12 | 23.8 | 7.93 |
+| 4 | 17 | 34.4 | 8.60 | 15 | 30.3 | 7.57 |
+| 5 | 21 | 43.3 | 8.67 | 18 | 36.3 | 7.27 |
+| 6 | 25 | **85.4** (median 76, p90 121, **max 1208**) | 14.23 | 21 | 49.2 (median 46, p90 68, max 176) | 8.21 |
+
+2p is unchanged (both formulas give 9 there). 3-5p get a modest ~10-15%
+shorter game with the new formula. **6p was the real finding**: under the
+old threshold it's a severe outlier — mean 85 turns and a max of 1,208 in a
+5,000-game sample, dragging turns/person up to 14+ versus ~8.6 at every
+other count. This is the same card-exhaustion long-tail dynamic documented
+in item 14 ("Total card exhaustion can deadlock a marathon game"), showing
+up here as *pathologically slow* rather than a hard deadlock — a higher
+threshold gives the game more opportunities to wander into that near-empty-
+deck long tail before finishing. The new threshold's 6p max (176) is still
+the largest of the five counts but nowhere near the old 1,208, and its
+turns/person (8.21) is back in line with 2-5p.
+
+**Decision: adopt `progressThresholdPerPlayer: 3, progressThresholdBase: 3`**
+(`DEFAULT_RULES` in `online/shared/src/state.ts`) — new thresholds 9/12/15/18/21
+for 2-6 players. This is a genuine, deliberate choice (not a placeholder like
+the item 2/13 history), made with real simulation data on the ruleset
+actually being played (post item-19), and it materially reduces the 6-player
+long-tail risk as a side effect of simply being a smaller number to reach.
+Updated every hardcoded reference to the old 9/13/17/21/25 table (`setup.test.ts`,
+`gameLengthRules.test.ts`, `http.test.ts`, `measureGameLength.ts`'s baseline
+label, `rules.md`'s Alternate Setup Variant table) — full `npm test` (195
+backend tests) clean afterward.
+
+Worth revisiting once there's more human playtesting at this new pace, and
+worth checking whether item 14's underlying card-exhaustion mechanism is
+worth an actual engine fix now that a real game (not just an extreme
+bot-stress-test seed) can wander into its long tail, rather than continuing
+to treat threshold-tuning as the only lever against it.
