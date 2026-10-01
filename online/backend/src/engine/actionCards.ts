@@ -9,12 +9,12 @@ import type {
 } from '@insider-trading/shared';
 import { COLORS } from '@insider-trading/shared';
 import { reshuffleDiscardIfNeeded } from '../domain/deck.js';
-import { drawEventCardsIntoHand } from './eventDeck.js';
+import { drawTipCardsIntoHand } from './eventDeck.js';
 import { event } from './events.js';
-import { describeEventCardForPrompt } from './goals.js';
+import { describeTipCardForPrompt } from './goals.js';
 import { setPrompt } from './prompts.js';
 import { nextRng } from './rng.js';
-import { describeCard, drawTopOfDeck, receiveBank } from './turn.js';
+import { describeCard, drawTopOfDeck, receiveBank, refillMarketIfNeeded } from './turn.js';
 
 /**
  * Begin processing a played action card. Persistent cards (Preferred Bidder,
@@ -41,6 +41,14 @@ export function startActionCard(
     return;
   }
   state.discardPile.push(card);
+  // A discarded single-use action card is the single most common way a
+  // reshufflable card enters the discard pile (far more frequent than a
+  // sell) -- if nothing rechecks the market afterward, it can sit stranded
+  // indefinitely once mainDeck is empty, which is exactly what permanently
+  // deadlocked several stuck games in self-play (see the V6 stuck-game
+  // investigation): market=0, mainDeck=0, a couple of cards idle in
+  // discardPile, and no bot's mandatory turn action ever able to fire again.
+  refillMarketIfNeeded(state, events);
   resolveActionEffect(state, player, card, events);
 }
 
@@ -217,26 +225,29 @@ export function resolveActionEffect(
     }
 
     case 'draw_tip': {
-      // Insider Source: draw the top N (default 1) event-deck cards into
-      // hand. A market-movement card is playable later as a free action; a
-      // goal card is now simply a private goal (privacy is positional).
+      // Insider Source: draw the top N (default 1) tip-deck cards into hand,
+      // playable later as a free action. Tip-deck-only in V6 -- goals are
+      // never drawn mid-game (see domain/setup.ts).
       const count = card.effect.count ?? 1;
-      const drawn = drawEventCardsIntoHand(state, count);
+      const drawn = drawTipCardsIntoHand(state, count);
       if (drawn.length === 0) {
         events.push(
-          event('insider_source_empty', `${player.name} plays Insider Source but the event deck is empty`, {
+          event('insider_source_empty', `${player.name} plays Insider Source but the tip deck is empty`, {
             actor: player.playerId
           })
         );
         return;
       }
       for (const d of drawn) player.hand.push(d);
-      const kinds = drawn.map(d => (d.category === 'insider_tip' ? 'a market-movement card' : 'a private goal'));
       events.push(
-        event('insider_source_drawn', `${player.name} draws ${kinds.join(' and ')} into hand via Insider Source`, {
-          actor: player.playerId,
-          payload: { uids: drawn.map(d => d.uid), categories: drawn.map(d => d.category) }
-        })
+        event(
+          'insider_source_drawn',
+          `${player.name} draws ${drawn.length} market-movement card${drawn.length === 1 ? '' : 's'} into hand via Insider Source`,
+          {
+            actor: player.playerId,
+            payload: { uids: drawn.map(d => d.uid) }
+          }
+        )
       );
       return;
     }
@@ -276,17 +287,17 @@ export function resolveActionEffect(
     }
 
     case 'foresight': {
-      const top = state.eventDeck.slice(0, 4);
+      const top = state.tipDeck.slice(0, 4);
       if (top.length === 0) {
-        events.push(event('foresight_empty', `${player.name} plays Foresight but the event deck is empty`, { actor: player.playerId }));
+        events.push(event('foresight_empty', `${player.name} plays Foresight but the tip deck is empty`, { actor: player.playerId }));
         return;
       }
       setPrompt(
         state,
         player.playerId,
         'foresight_reorder',
-        `Foresight: reorder the top ${top.length} event cards, optionally burying one at the bottom.`,
-        { candidateUids: top.map(c => c.uid), cards: top.map(describeEventCardForPrompt) }
+        `Foresight: reorder the top ${top.length} tip cards, optionally burying one at the bottom.`,
+        { candidateUids: top.map(c => c.uid), cards: top.map(describeTipCardForPrompt) }
       );
       return;
     }

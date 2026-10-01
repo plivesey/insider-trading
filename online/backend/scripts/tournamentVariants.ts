@@ -44,7 +44,10 @@ const VARIANTS: Variant[] = [
   { name: 'control', overrides: {} },
   { name: 'loanFix', overrides: { loanWillingness: 1 } },
   { name: 'endgameFix', overrides: { endgameDiscountStrength: 0.5 } },
-  { name: 'tipDelayFix', overrides: { tipPlayDelayThreshold: 3 } }
+  {
+    name: 'tipDecayFix',
+    overrides: { tipPlayThresholdStart: 10, tipPlayThresholdFloor: 7, tipPlayThresholdDecayWindow: 1 }
+  }
 ];
 
 interface VariantStats {

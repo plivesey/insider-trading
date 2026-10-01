@@ -267,7 +267,7 @@ for (let g = 0; g < GAMES; g++) {
             turn: state.turnNumber,
             player: player.name,
             desc: describeTip(card),
-            score: tipScoreForBot(state, card, player.playerId),
+            score: tipScoreForBot(state, card, player.playerId, profile.params),
             ownedAffected: owned,
             isEndgame: state.progressThreshold - state.progressTracker <= ENDGAME_PROGRESS_MARGIN
           };

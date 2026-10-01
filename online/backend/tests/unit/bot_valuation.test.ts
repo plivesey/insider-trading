@@ -154,7 +154,7 @@ describe('bot valuation', () => {
     );
     if (!halveTip) throw new Error('catalog missing halve-Green tip');
     // Put it at the front of the deck and tell the bot it knows about it.
-    state.eventDeck = [halveTip, ...state.eventDeck.filter(t => t.uid !== halveTip.uid)];
+    state.tipDeck = [halveTip, ...state.tipDeck.filter(t => t.uid !== halveTip.uid)];
     profile.knownPeekedTips.push(halveTip);
 
     // Green basePrice should be floor(6/2)=3; no visible/goal/offset → value=3.

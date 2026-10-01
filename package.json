@@ -1,14 +1,14 @@
 {
-  "name": "insider-trading-v4",
-  "version": "4.0.0",
-  "description": "Insider Trading Board Game - V4",
+  "name": "insider-trading-v6",
+  "version": "6.0.0",
+  "description": "Insider Trading Board Game - V6",
   "scripts": {
     "test": "jest",
     "test:watch": "jest --watch"
   },
   "jest": {
-    "testPathIgnorePatterns": ["/node_modules/", "/v2/", "/v3/", "/v4/", "/online/", "/card-studio/"],
-    "modulePathIgnorePatterns": ["<rootDir>/v2/", "<rootDir>/v3/", "<rootDir>/v4/", "<rootDir>/online/", "<rootDir>/card-studio/"]
+    "testPathIgnorePatterns": ["/node_modules/", "/v2/", "/v3/", "/v4/", "/v5/", "/online/", "/card-studio/"],
+    "modulePathIgnorePatterns": ["<rootDir>/v2/", "<rootDir>/v3/", "<rootDir>/v4/", "<rootDir>/v5/", "<rootDir>/online/", "<rootDir>/card-studio/"]
   },
   "devDependencies": {
     "jest": "^29.7.0"

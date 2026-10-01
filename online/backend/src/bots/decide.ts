@@ -21,6 +21,7 @@ import { staticDraftCardValue } from './draftCardRanking.js';
 import {
   bestOwnedColor,
   effectivePrices,
+  negativeColorsForTip,
   perceivedActionCardValue,
   perceivedCardValue,
   perceivedGoalCardValue,
@@ -127,6 +128,26 @@ function endgameDiscountFactor(state: GameState, strength: number): number {
   const remaining = state.progressThreshold - state.progressTracker;
   const imminence = Math.max(0, Math.min(1, 1 - remaining / ENDGAME_DISCOUNT_WINDOW));
   return 1 - strength * imminence;
+}
+
+/**
+ * The $-value a held market-movement card's score must clear before a bot
+ * auto-plays it (step 4 of decideBotAction). Decays linearly from
+ * `tipPlayThresholdStart` (progress fraction 0) down to
+ * `tipPlayThresholdFloor`, reaching the floor at progress fraction
+ * `tipPlayThresholdDecayWindow` and staying there after. Progress-relative
+ * (progressTracker/progressThreshold) rather than raw turn number, mirroring
+ * `endgameDiscountFactor` above, since turn counts vary a lot by player count
+ * -- see v6_tuning_notes.md. Replaces the old flat, permanently-inert
+ * `tipPlayDelayThreshold` (v5_tuning_notes.md item 18): bots used to auto-play
+ * a tip card the instant it cleared a bare `score > 0`, almost always too
+ * early, since the same card is usually worth more later as stock ownership
+ * concentrates.
+ */
+export function tipPlayThreshold(state: GameState, params: BotParams): number {
+  const progress = state.progressThreshold > 0 ? state.progressTracker / state.progressThreshold : 0;
+  const t = Math.min(1, progress / Math.max(params.tipPlayThresholdDecayWindow, 1e-6));
+  return params.tipPlayThresholdStart - t * (params.tipPlayThresholdStart - params.tipPlayThresholdFloor);
 }
 
 /**
@@ -242,19 +263,19 @@ export function decideBotAction(
     }
   }
 
-  // 4. Market-movement card in hand worth playing now. `tipPlayDelayThreshold`
-  // (see v5_tuning_notes.md item 18) raises the auto-play bar above a bare
-  // "score > 0", so a card doesn't get played the instant it's marginally
-  // positive off a single owned share -- a card below the bar just isn't
-  // auto-played yet (it stays in hand, still eligible for the stagnation
-  // fallback below). At the default 0, `score > 0` alone already implies
-  // `score >= 0`, so this is byte-for-byte the old behavior.
+  // 4. Market-movement card in hand worth playing now. `tipPlayThreshold()`
+  // raises the auto-play bar above a bare "score > 0" and decays it as the
+  // game progresses (see its doc comment above), so a card doesn't get played
+  // the instant it's marginally positive off a single owned share -- a card
+  // below the bar just isn't auto-played yet (it stays in hand, still
+  // eligible for the stagnation fallback below).
+  const threshold = tipPlayThreshold(state, profile.params);
   let leastBadTipUid: string | null = null;
   let leastBadTipScore = -Infinity;
   for (const c of bot.hand) {
     if (c.category !== 'insider_tip') continue;
-    const score = tipScoreForBot(state, c, botId);
-    if (score > 0 && score >= profile.params.tipPlayDelayThreshold) {
+    const score = tipScoreForBot(state, c, botId, profile.params);
+    if (score > 0 && score >= threshold) {
       return {
         kind: 'free_action',
         request: { kind: 'play_market_movement', cardUid: c.uid }
@@ -375,12 +396,18 @@ function decideTurnAction(
 ): BotAction | null {
   // Sell-on-bad-news: bot owns a colored stock whose effective price (after
   // known peeked tips) is BELOW the current market price — i.e. a bad tip is
-  // coming for that color. Sell the worst one.
-  const effective = effectivePrices(state, profile.knownPeekedTips);
+  // coming for that color via an upcoming dice-bag draw, a genuine external
+  // risk outside the bot's control. Sell the worst one. Deliberately does
+  // NOT consider the bot's own HELD tip cards here: a card sitting in the
+  // bot's own hand is not a threat to itself (only the holder can ever choose
+  // to play it, and tipScoreForBot's self term already discourages doing so
+  // while the bot still owns the affected color) -- see the sell-to-enable
+  // heuristic below for the one case where a held card DOES motivate selling.
+  const peeked = effectivePrices(state, profile.knownPeekedTips);
   let worst: { uid: string; loss: number } | null = null;
   for (const c of bot.hand) {
     if (c.category !== 'stock' || c.color === 'Wild') continue;
-    const loss = state.stockPrices[c.color] - effective[c.color];
+    const loss = state.stockPrices[c.color] - peeked[c.color];
     if (loss > 0 && (!worst || loss > worst.loss)) {
       worst = { uid: c.uid, loss };
     }
@@ -407,6 +434,44 @@ function decideTurnAction(
     }
     if (best) {
       return { kind: 'turn_action', action: { type: 'sell_stock', stockUid: best.uid } };
+    }
+  }
+
+  // Sell-to-enable-an-attack: the bot holds a crash/slump card that would
+  // score well enough to play (clears tipPlayThreshold) EXCEPT that the bot
+  // itself owns some of the color(s) it would hurt, which drags the score
+  // below the bar (see tipScoreForBot's self term). If none of those colors
+  // are needed for a goal, sell that holding now to clear the self-harm —
+  // next turn (or as a free action once the sale resolves) the card becomes
+  // genuinely worth playing, which can only speed the game up: it converts a
+  // card that would otherwise sit idle in hand into a progress-tracker-
+  // advancing play. Skipped entirely if the card is already playable as-is
+  // (no setup needed) or would still miss the bar even after selling (not
+  // worth giving up the stock for nothing).
+  {
+    const useful = goalHoldUsefulnessByColor(state, bot.playerId);
+    const threshold = tipPlayThreshold(state, profile.params);
+    let bestSetup: { uid: string; gain: number } | null = null;
+    for (const tip of bot.hand) {
+      if (tip.category !== 'insider_tip') continue;
+      const negColors = negativeColorsForTip(tip, state.stockPrices).filter(c => useful[c] === 0);
+      if (negColors.length === 0) continue;
+      const ownedNegColors = negColors.filter(c => bot.hand.some(h => h.category === 'stock' && h.color === c));
+      if (ownedNegColors.length === 0) continue; // nothing of these colors to sell
+      const currentScore = tipScoreForBot(state, tip, bot.playerId, profile.params);
+      if (currentScore > 0 && currentScore >= threshold) continue; // already playable, no setup needed
+      const override: Partial<Record<Color, number>> = {};
+      for (const c of ownedNegColors) override[c] = 0;
+      const hypotheticalScore = tipScoreForBot(state, tip, bot.playerId, profile.params, override);
+      if (hypotheticalScore <= 0 || hypotheticalScore < threshold) continue; // still wouldn't clear the bar
+      const gain = hypotheticalScore - currentScore;
+      if (!bestSetup || gain > bestSetup.gain) {
+        const stockUid = bot.hand.find(h => h.category === 'stock' && ownedNegColors.includes(h.color as Color))?.uid;
+        if (stockUid) bestSetup = { uid: stockUid, gain };
+      }
+    }
+    if (bestSetup) {
+      return { kind: 'turn_action', action: { type: 'sell_stock', stockUid: bestSetup.uid } };
     }
   }
 
@@ -513,7 +578,7 @@ function respondToPrompt(
       if (cards) {
         for (const c of cards) {
           if (c.kind !== 'market_movement') continue;
-          const found = state.eventDeck.find(d => d.uid === c.uid) as InsiderTipCard | undefined;
+          const found = state.tipDeck.find(d => d.uid === c.uid);
           if (found && !profile.knownPeekedTips.some(t => t.uid === found.uid)) {
             profile.knownPeekedTips.push(found);
           }
@@ -523,15 +588,15 @@ function respondToPrompt(
     }
 
     case 'peek_bottom_choice': {
-      // Peek the top N event cards; optionally send ONE market-movement card to
+      // Peek the top N tip cards; optionally send ONE market-movement card to
       // the bottom. Move the worst one (most negative effect on our held
       // stocks) iff it would drop our net worth by $3 or more (score <= -3).
       const count = payload.count as number;
-      const top = state.eventDeck.slice(0, count);
+      const top = state.tipDeck.slice(0, count);
       let worst: { uid: string; score: number } | null = null;
       for (const card of top) {
         if (card.category !== 'insider_tip') continue;
-        const score = tipScoreForBot(state, card, botId);
+        const score = tipScoreForBot(state, card, botId, profile.params);
         if (!worst || score < worst.score) worst = { uid: card.uid, score };
       }
       const bottomUid = worst && worst.score <= -3 ? worst.uid : undefined;
@@ -857,14 +922,13 @@ function respondToPrompt(
     }
 
     case 'foresight_reorder': {
-      // Sort the peeked cards by the bot's own benefit (market-movement cards
-      // scored by tipScoreForBot; goals/others treated as neutral), keep the
-      // best on top, and bury the single worst one if it's actively bad.
+      // Sort the peeked tip cards by the bot's own benefit (tipScoreForBot),
+      // keep the best on top, and bury the single worst one if it's actively bad.
       const candidateUids = payload.candidateUids as string[];
-      const cards = state.eventDeck.slice(0, candidateUids.length);
+      const cards = state.tipDeck.slice(0, candidateUids.length);
       const scored = cards.map(c => ({
         uid: c.uid,
-        score: c.category === 'insider_tip' ? tipScoreForBot(state, c as InsiderTipCard, botId) : 0
+        score: tipScoreForBot(state, c, botId, profile.params)
       }));
       scored.sort((a, b) => b.score - a.score);
       const worst = scored[scored.length - 1];
@@ -930,7 +994,7 @@ function marketCardValue(
   profile: BotProfile,
   botId: PlayerId
 ): number {
-  if (card.category === 'insider_tip') return Math.max(0, tipScoreForBot(state, card, botId));
+  if (card.category === 'insider_tip') return Math.max(0, tipScoreForBot(state, card, botId, profile.params));
   if (card.category === 'goal') return perceivedGoalCardValue(state, card, profile.params);
   return perceivedCardValue(card, state, profile, botId);
 }
@@ -954,7 +1018,7 @@ function worstTradeableHandCardUid(
     } else if (c.category === 'action') {
       v = perceivedActionCardValue(c as ActionCard, state, profile, botId);
     } else if (c.category === 'insider_tip') {
-      v = Math.max(0, tipScoreForBot(state, c as InsiderTipCard, botId));
+      v = Math.max(0, tipScoreForBot(state, c as InsiderTipCard, botId, profile.params));
     } else {
       v = perceivedGoalCardValue(state, c as GoalCard, profile.params);
     }
@@ -1055,7 +1119,7 @@ function goalTargetBoostByColor(state: GameState, botId: PlayerId): Record<Color
  * instead of the priciest. A color counts as useful only if the bot isn't
  * already holding surplus of it beyond what a near goal needs.
  */
-function goalHoldUsefulnessByColor(state: GameState, botId: PlayerId): Record<Color, number> {
+export function goalHoldUsefulnessByColor(state: GameState, botId: PlayerId): Record<Color, number> {
   const out: Record<Color, number> = { Blue: 0, Orange: 0, Green: 0, Purple: 0 };
   const bot = state.players.find(p => p.playerId === botId);
   if (!bot) return out;

@@ -59,11 +59,38 @@
   {
     "id": 10,
     "name": "Insider Source",
-    "description": "Draw the top 2 cards of the event deck into your hand; play each as a free action anytime.",
+    "description": "Draw the top 2 cards of the tip deck into your hand; play each as a free action anytime.",
     "persistent": false,
     "effect": {
       "type": "draw_tip",
       "count": 2
+    }
+  },
+  {
+    "id": 103,
+    "name": "Foresight",
+    "description": "Look at the top 4 cards of the tip deck. Put them back on top in any order; optionally, move one of the 4 to the bottom of the deck instead of keeping all 4 on top. No card leaves the game either way.",
+    "persistent": false,
+    "effect": {
+      "type": "foresight"
+    }
+  },
+  {
+    "id": 106,
+    "name": "Backroom Deal",
+    "description": "Trade any one card from your hand for any face-up market card.",
+    "persistent": false,
+    "effect": {
+      "type": "backroom_deal"
+    }
+  },
+  {
+    "id": 107,
+    "name": "Double Down",
+    "description": "Choose a different single-use action card in your hand, resolve its effect twice, and discard it. Cannot target a persistent card.",
+    "persistent": false,
+    "effect": {
+      "type": "double_down"
     }
   },
   {

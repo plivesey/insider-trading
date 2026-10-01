@@ -36,7 +36,9 @@ export function Header({ state }: Props) {
       <div className="gb-divider" />
       <Meta label="DISCARD" value={String(state.discardPileSize)} />
       <div className="gb-divider" />
-      <Meta label="EVENT DECK" value={String(state.eventDeckSize)} />
+      <Meta label="TIP DECK" value={String(state.tipDeckSize)} />
+      <div className="gb-divider" />
+      <Meta label="GOAL RESERVE" value={String(state.goalReserveSize)} />
       <div className="gb-divider" />
       <div className="gb-meta">
         <div className={`gb-meta__label${finalTurn ? ' gb-meta__label--warn' : ''}`}>

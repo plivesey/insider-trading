@@ -207,10 +207,15 @@ export function encodeColorFeatures(
   // of being permanently compressed under the old game's numbers.
   x[25] = (bot ? bot.cash : 0) / 25;
   x[26] = (bot ? bot.loans : 0) / MAX_LOANS;
-  x[27] = state.eventDeck.length / tipDenom;
+  x[27] = state.tipDeck.length / tipDenom;
   x[28] = state.resolvedEventCards.length / tipDenom;
   x[29] = state.market.length / 5;
-  x[30] = state.goalRow.length / (numPlayers + 2);
+  // numPlayers+3 matches the V6 goal-reveal formula (DEFAULT_RULES:
+  // goalRevealPerPlayer=1, goalRevealBase=3) exactly, so this starts at 1.0
+  // when the goal row is freshly revealed at setup (V5 used a flat
+  // reveal-4-regardless-of-player-count rule, which this old numPlayers+2
+  // denominator was loosely normalizing for instead).
+  x[30] = state.goalRow.length / (numPlayers + 3);
   x[31] = state.turnNumber / 30;
   x[32] = numPlayers / 6;
   x[33] = coloredOwned / 8;

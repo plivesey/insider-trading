@@ -1,13 +1,13 @@
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { computeProgressThreshold, loadCards, DEFAULT_RULES } from '@insider-trading/shared';
+import { computeProgressThreshold, computeGoalRevealCount, loadCards, DEFAULT_RULES } from '@insider-trading/shared';
 import { createGameState } from '../../src/domain/setup.js';
 import { beginDraft, handleDraftPick } from '../../src/engine/setupDraft.js';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const CARDS_DIR = path.resolve(HERE, '../../../../cards');
 
-describe('createGameState (V5)', () => {
+describe('createGameState (V6)', () => {
   const catalog = loadCards(CARDS_DIR);
   const players3 = [
     { playerId: 'p1', name: 'Alice' },
@@ -25,9 +25,10 @@ describe('createGameState (V5)', () => {
     });
     expect(g.players).toHaveLength(3);
     expect(g.market).toHaveLength(5);
-    expect(g.mainDeck).toHaveLength(50 - 5); // 36 stock + 14 action (11 shared + 3 promoted)
-    expect(g.goalRow).toHaveLength(4); // default initialGoalRevealCount
-    expect(g.eventDeck).toHaveLength(43 - 4 * 3); // 47 total - 4 revealed goals, 4/player drafted out
+    expect(g.mainDeck).toHaveLength(50 - 5); // 36 stock + 14 action
+    expect(g.goalRow).toHaveLength(6); // 3 players * goalRevealPerPlayer(1) + goalRevealBase(3)
+    expect(g.tipDeck).toHaveLength(22); // 28 total - 6 drafted (50/50 split of 4*3=12)
+    expect(g.goalReserve).toHaveLength(7); // (19 - 6 revealed) - 6 drafted
     expect(g.players.every(p => p.cash === 25)).toBe(true);
     // Pre-draft: every player holds their guaranteed starter stock (visible
     // immediately) plus their 4-card draftable pile, directly in `hand` (the
@@ -101,7 +102,8 @@ describe('createGameState (V5)', () => {
     const uids: string[] = [
       ...g.market.map(c => c.uid),
       ...g.mainDeck.map(c => c.uid),
-      ...g.eventDeck.map(c => c.uid),
+      ...g.tipDeck.map(c => c.uid),
+      ...g.goalReserve.map(c => c.uid),
       ...g.goalRow.map(c => c.uid),
       ...g.players.flatMap(p => p.hand.map(c => c.uid))
     ];
@@ -110,16 +112,20 @@ describe('createGameState (V5)', () => {
     expect(new Set(uids).size).toBe(uids.length);
   });
 
-  it('different player counts produce expected event-deck/goal-row/threshold sizes (default ruleset)', () => {
-    // [players, eventDeck = 43 - 4*players, goalRow = 4, threshold = 3*players + 3]
-    const counts: Array<[number, number, number, number]> = [
-      [2, 35, 4, 9],
-      [3, 31, 4, 12],
-      [4, 27, 4, 15],
-      [5, 23, 4, 18],
-      [6, 19, 4, 21]
+  it('different player counts produce expected tip-deck/goal-reserve/goal-row/threshold sizes (default ruleset)', () => {
+    // [players, tipDeckSize, goalReserveSize, goalRowSize, threshold] -- see
+    // the splitDraftPool clamp-and-backfill math: at 6 players the goal
+    // reserve (10 cards: 19 - goalRevealCount(6)=9) runs out before the
+    // draft pool's half-share (12), so the shortfall backfills from the tip
+    // deck instead (goalReserve bottoms out at 0, tipDeck absorbs the extra).
+    const counts: Array<[number, number, number, number, number]> = [
+      [2, 24, 10, 5, 9],
+      [3, 22, 7, 6, 12],
+      [4, 20, 4, 7, 15],
+      [5, 18, 1, 8, 18],
+      [6, 14, 0, 9, 21]
     ];
-    for (const [n, eventDeckSize, goalRowSize, threshold] of counts) {
+    for (const [n, tipDeckSize, goalReserveSize, goalRowSize, threshold] of counts) {
       const ps = Array.from({ length: n }, (_, i) => ({
         playerId: `p${i}`,
         name: `P${i}`
@@ -131,10 +137,31 @@ describe('createGameState (V5)', () => {
         gameId: 'g',
         startedAt: '2026-01-01T00:00:00.000Z'
       });
-      expect(g.eventDeck).toHaveLength(eventDeckSize);
+      expect(g.tipDeck).toHaveLength(tipDeckSize);
+      expect(g.goalReserve).toHaveLength(goalReserveSize);
       expect(g.goalRow).toHaveLength(goalRowSize);
       expect(g.progressThreshold).toBe(threshold);
       expect(g.players.every(p => p.hand.length === 5)).toBe(true);
+    }
+  });
+
+  it('6-player goal-reserve shortfall never throws and still deals the right total per player', () => {
+    // The one player count where the goal reserve (10 cards) runs out before
+    // the draft pool's 50/50 half-share (12) -- splitDraftPool must backfill
+    // the shortfall from the tip deck rather than under-dealing.
+    const ps = Array.from({ length: 6 }, (_, i) => ({ playerId: `p${i}`, name: `P${i}` }));
+    for (let seed = 1; seed <= 20; seed++) {
+      const g = createGameState({
+        catalog,
+        players: ps,
+        seed,
+        gameId: `6p-${seed}`,
+        startedAt: '2026-01-01T00:00:00.000Z'
+      });
+      expect(g.goalReserve.length).toBeGreaterThanOrEqual(0);
+      expect(g.players.every(p => p.hand.length === 5)).toBe(true);
+      const totalDraftCards = g.players.reduce((sum, p) => sum + p.hand.length - 1, 0); // minus starter stock
+      expect(totalDraftCards).toBe(4 * 6);
     }
   });
 
@@ -149,25 +176,27 @@ describe('createGameState (V5)', () => {
     });
 
     expect(g.market).toHaveLength(5);
-    expect(g.mainDeck).toHaveLength(50 - 5); // 36 stock + 14 action (11 shared + 3 promoted)
+    expect(g.mainDeck).toHaveLength(50 - 5); // 36 stock + 14 action
 
     // Pre-draft: every player holds 5 cards -- their guaranteed starter
-    // stock (visible immediately) plus 4 event-deck-only draft candidates.
+    // stock (visible immediately) plus 4 tip/goal draft candidates.
     expect(g.players.every(p => p.hand.length === 5)).toBe(true);
     for (const p of g.players) {
       const stocks = p.hand.filter(c => c.category === 'stock');
-      const eventCards = p.hand.filter(c => c.category === 'insider_tip' || c.category === 'goal');
+      const draftCards = p.hand.filter(c => c.category === 'insider_tip' || c.category === 'goal');
       expect(stocks).toHaveLength(1);
-      expect(stocks[0].uid.startsWith('mini-starter-stock-')).toBe(true);
-      expect(eventCards).toHaveLength(4);
+      expect(stocks[0].uid.startsWith('starter-stock-')).toBe(true);
+      expect(draftCards).toHaveLength(4);
     }
     const uids = g.players.map(p => p.hand.find(c => c.category === 'stock')!.uid);
     expect(new Set(uids).size).toBe(uids.length);
 
     expect(g.progressThreshold).toBe(computeProgressThreshold(4, DEFAULT_RULES));
     expect(g.progressThreshold).toBe(15);
+    expect(g.goalRow).toHaveLength(computeGoalRevealCount(4, DEFAULT_RULES));
 
-    // None of the never-dealt starter actions/bonus cards ever appear.
+    // None of the deleted Classic-only cards ever appear -- they no longer
+    // exist in any card JSON at all, not just "never dealt".
     const forbiddenNames = new Set(['First Look', 'Fire Sale', 'Windfall', 'Market Panic', 'Nest Egg', 'Portfolio', 'Trophy Case', 'Clean Ledger', 'Easy Credit']);
     const marketAndDeck = [...g.market, ...g.mainDeck];
     for (const c of marketAndDeck) {
@@ -202,7 +231,7 @@ describe('createGameState (V5)', () => {
     beginDraft(g, events);
     // The stock never entered the draft pool -- it's still sitting in hand
     // right through every round, and each round's candidate count reflects
-    // only the 4 (then 3, then 2) draftable event cards, not the stock.
+    // only the 4 (then 3, then 2) draftable tip/goal cards, not the stock.
     for (const p of g.players) {
       expect(p.hand.map(c => c.uid)).toEqual([startingStockUids.get(p.playerId)]);
     }

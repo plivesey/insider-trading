@@ -3,18 +3,18 @@ import { relabelColors } from './theme.js';
 
 interface Props {
   tips: InsiderTipCard[];
-  /** Cards remaining in the event deck (market-movement + goal cards combined). */
-  eventDeckSize: number;
+  /** Cards remaining in the tip deck. */
+  tipDeckSize: number;
 }
 
-export function RecentTip({ tips, eventDeckSize }: Props) {
+export function RecentTip({ tips, tipDeckSize }: Props) {
   if (tips.length === 0) {
     return (
       <div className="recent-tip">
         <div className="recent-tip__label">Market Movement</div>
         <div className="recent-tip__body">
           No market-movement card has resolved yet.{' '}
-          <span className="recent-tip__when">event deck: {eventDeckSize} left</span>
+          <span className="recent-tip__when">tip deck: {tipDeckSize} left</span>
         </div>
       </div>
     );
@@ -27,7 +27,7 @@ export function RecentTip({ tips, eventDeckSize }: Props) {
         <div className="recent-tip__head">{tipHeadline(tip)}</div>
         <div className="recent-tip__body">
           {relabelColors(tip.text)} ·{' '}
-          <span className="recent-tip__when">most recent · event deck: {eventDeckSize} left</span>
+          <span className="recent-tip__when">most recent · tip deck: {tipDeckSize} left</span>
         </div>
       </div>
     </div>

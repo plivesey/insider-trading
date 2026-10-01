@@ -16,10 +16,10 @@ import type { ValueNetWeights } from '../src/bots/valueNet.js';
  *
  * Reports mean / p50 / p90 total turns and the delta vs baseline for each rule.
  *
- * V5 note: the only end condition is the progress tracker hitting its
- * threshold (see v5_tuning_notes.md items 1-2), so this is now the primary
+ * V6 note: the only end condition is the progress tracker hitting its
+ * threshold (see v6_tuning_notes.md), so this is now the primary
  * tool for empirically sanity-checking `progressThresholdPerPlayer` and
- * `initialGoalRevealCount` -- there's no more goal-vs-tip end-reason split to
+ * `goalRevealPerPlayer`/`goalRevealBase` -- there's no more goal-vs-tip end-reason split to
  * report since there's only one end reason.
  */
 
@@ -51,16 +51,16 @@ interface Variant {
   name: string;
   rules: Partial<RulesConfig>;
 }
-// V5 rule knobs (see v5_tuning_notes.md): initialGoalRevealCount (flat 4 by
-// default) and progressThresholdPerPlayer/progressThresholdBase (3x+3 by
-// default, e.g. 12 for 3 players). Variants below sweep both to see the
-// effect on game length.
+// V6 rule knobs (see v6_tuning_notes.md): goalRevealPerPlayer/goalRevealBase
+// (players+3 by default) and progressThresholdPerPlayer/progressThresholdBase
+// (3x+3 by default, e.g. 12 for 3 players). Variants below sweep both to see
+// the effect on game length.
 const VARIANTS: Variant[] = [
-  { name: 'baseline (4 / 3x+3)', rules: {} },
-  { name: 'goals=6', rules: { initialGoalRevealCount: 6 } },
+  { name: 'baseline (players+3 / 3x+3)', rules: {} },
+  { name: 'goals=players+5', rules: { goalRevealBase: 5 } },
   { name: 'threshold=3x', rules: { progressThresholdPerPlayer: 3 } },
   { name: 'threshold=5x', rules: { progressThresholdPerPlayer: 5 } },
-  { name: 'goals=6, threshold=5x', rules: { initialGoalRevealCount: 6, progressThresholdPerPlayer: 5 } }
+  { name: 'goals=players+5, threshold=5x', rules: { goalRevealBase: 5, progressThresholdPerPlayer: 5 } }
 ];
 
 function pctile(sorted: number[], p: number): number {

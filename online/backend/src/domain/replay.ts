@@ -158,7 +158,8 @@ export function diffStates(a: GameState, b: GameState): string | null {
     ['market', a.market, b.market],
     ['mainDeck', a.mainDeck, b.mainDeck],
     ['discardPile', a.discardPile, b.discardPile],
-    ['eventDeck', a.eventDeck, b.eventDeck],
+    ['tipDeck', a.tipDeck, b.tipDeck],
+    ['goalReserve', a.goalReserve, b.goalReserve],
     ['resolvedEventCards', a.resolvedEventCards, b.resolvedEventCards],
     ['goalRow', a.goalRow, b.goalRow]
   ];

@@ -1,13 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import type {
-  ActionCard,
-  BonusCard,
-  GoalCard,
-  InsiderTipCard,
-  LoanCard,
-  StockCard
-} from './cards.js';
+import type { ActionCard, GoalCard, InsiderTipCard, LoanCard, StockCard } from './cards.js';
 
 export interface CardCatalog {
   stocks: StockCard[];
@@ -15,27 +8,7 @@ export interface CardCatalog {
   insiderTips: InsiderTipCard[];
   goals: GoalCard[];
   loans: LoanCard[];
-  /**
-   * The full 24-card printed Starter Deck (12 basic stocks + 7 playable + 5
-   * hidden bonus action cards). Not dealt directly by `createGameState`
-   * anymore (only `promotedActions`/`starterStocks` below are) -- kept as a
-   * loaded data source for tests that need a specific named starter card
-   * (e.g. Windfall, a hidden bonus card) as a fixture.
-   */
-  starterDeck: (StockCard | ActionCard | BonusCard)[];
-  /**
-   * Foresight / Backroom Deal / Double Down, re-wrapped as ordinary Market
-   * Deck action cards -- the only starter actions actually dealt in the live
-   * game. Same source starter_deck.json entries (ids 103, 106, 107) as their
-   * `starterDeck` counterparts -- edit those once, not here, to change their
-   * text/effect.
-   */
-  promotedActions: ActionCard[];
-  /**
-   * The 8-card mini starter deck (2 basic stocks per color) dealt 1 per
-   * player at setup -- a subset of the same printed starter-stock entries in
-   * `starterDeck`.
-   */
+  /** The 8-card starter stock deck (2 basic stocks per color), dealt 1 per player at setup. */
   starterStocks: StockCard[];
 }
 
@@ -43,26 +16,13 @@ interface StarterStockRaw {
   color: string;
   type: string;
 }
-interface StarterActionRaw {
-  id: number;
-  name: string;
-  description: string;
-  hidden: boolean;
-  effect: Record<string, unknown> & { type: string };
-}
-
-function isStarterStockRaw(c: StarterStockRaw | StarterActionRaw): c is StarterStockRaw {
-  return 'color' in c;
-}
 
 /**
- * Load the five card JSON files plus the Starter Deck, and attach uids +
- * category discriminators.
+ * Load the five card JSON files plus the 8-card starter stock deck, and
+ * attach uids + category discriminators.
  * uid scheme matches /playtest/init.js: stock-N, action-N, itip-N, goal-N,
- * loan-N. Starter Deck cards use their own starter-stock-N / starter-action-N
- * / bonus-N prefixes so the frontend can detect starter-deck origin from the
- * uid alone. The N counter is per-category (not global), but stays unique
- * because of the prefix.
+ * loan-N. Starter stock cards use their own starter-stock-N prefix so the
+ * frontend can detect starter-stock origin from the uid alone.
  */
 export function loadCards(cardsDir: string): CardCatalog {
   const stocksRaw = JSON.parse(fs.readFileSync(path.join(cardsDir, 'stock_cards.json'), 'utf8'));
@@ -70,7 +30,7 @@ export function loadCards(cardsDir: string): CardCatalog {
   const tipsRaw = JSON.parse(fs.readFileSync(path.join(cardsDir, 'insider_tip_cards.json'), 'utf8'));
   const goalsRaw = JSON.parse(fs.readFileSync(path.join(cardsDir, 'goal_cards.json'), 'utf8'));
   const loansRaw = JSON.parse(fs.readFileSync(path.join(cardsDir, 'loan_cards.json'), 'utf8'));
-  const starterRaw: Array<StarterStockRaw | StarterActionRaw> = JSON.parse(
+  const starterRaw: StarterStockRaw[] = JSON.parse(
     fs.readFileSync(path.join(cardsDir, 'starter_deck.json'), 'utf8')
   );
 
@@ -102,77 +62,12 @@ export function loadCards(cardsDir: string): CardCatalog {
     uid: `loan-${i + 1}`
   }));
 
-  let stockN = 0;
-  let actionN = 0;
-  let bonusN = 0;
-  const starterDeck: (StockCard | ActionCard | BonusCard)[] = starterRaw.map((c) => {
-    if (isStarterStockRaw(c)) {
-      stockN += 1;
-      return {
-        category: 'stock',
-        uid: `starter-stock-${stockN}`,
-        color: c.color,
-        type: c.type
-      } as StockCard;
-    }
-    if (c.hidden) {
-      bonusN += 1;
-      return {
-        category: 'bonus',
-        uid: `bonus-${bonusN}`,
-        id: c.id,
-        name: c.name,
-        description: c.description,
-        effect: c.effect
-      } as BonusCard;
-    }
-    actionN += 1;
-    return {
-      category: 'action',
-      uid: `starter-action-${actionN}`,
-      id: c.id,
-      name: c.name,
-      description: c.description,
-      persistent: false,
-      effect: c.effect
-    } as ActionCard;
-  });
+  const starterStocks: StockCard[] = starterRaw.map((c, i) => ({
+    category: 'stock',
+    uid: `starter-stock-${i + 1}`,
+    color: c.color,
+    type: c.type
+  })) as StockCard[];
 
-  // Promote Foresight (103), Backroom Deal (106), and Double Down (107) into
-  // the Market Deck's action pool. Re-derived from the same starterRaw
-  // entries every load -- editing starter_deck.json is the only place these
-  // cards' text/effect need to change.
-  const PROMOTED_STARTER_ACTION_IDS = new Set([103, 106, 107]);
-  let promotedN = 0;
-  const promotedActions: ActionCard[] = starterRaw
-    .filter((c): c is StarterActionRaw => !isStarterStockRaw(c) && PROMOTED_STARTER_ACTION_IDS.has(c.id))
-    .map(c => {
-      promotedN += 1;
-      return {
-        category: 'action',
-        uid: `promoted-action-${promotedN}`,
-        id: c.id,
-        name: c.name,
-        description: c.description,
-        persistent: false,
-        effect: c.effect
-      } as ActionCard;
-    });
-
-  // An 8-card mini starter deck (2 basic stocks per color), a subset of the
-  // same printed stock entries above, dealt 1 per player at setup.
-  const colorCounts: Record<string, number> = {};
-  let miniStockN = 0;
-  const starterStocks: StockCard[] = starterRaw
-    .filter(isStarterStockRaw)
-    .filter(c => {
-      colorCounts[c.color] = (colorCounts[c.color] ?? 0) + 1;
-      return colorCounts[c.color] <= 2;
-    })
-    .map(c => {
-      miniStockN += 1;
-      return { category: 'stock', uid: `mini-starter-stock-${miniStockN}`, color: c.color, type: c.type } as StockCard;
-    });
-
-  return { stocks, actions, insiderTips, goals, loans, starterDeck, promotedActions, starterStocks };
+  return { stocks, actions, insiderTips, goals, loans, starterStocks };
 }

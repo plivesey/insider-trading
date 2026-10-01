@@ -7,7 +7,7 @@ import { GameBoard } from './game/GameBoard.js';
 import { ToastRack } from './components/ToastRack.js';
 
 export function App() {
-  const { state, log, connected } = useGameState();
+  const { state, log, connected, reconnect } = useGameState();
   const [myName, setMyName] = useState<string | null>(null);
 
   useEffect(() => {
@@ -23,7 +23,7 @@ export function App() {
       {!connected && (
         <div className="conn-indicator disconnected">○ Reconnecting…</div>
       )}
-      {state.mode === 'lobby' && <Lobby state={state} myName={myName} />}
+      {state.mode === 'lobby' && <Lobby state={state} myName={myName} onJoined={reconnect} />}
       {state.mode === 'game_in_progress_spectator' && <GameInProgressBlock />}
       {(state.mode === 'in_game' || state.mode === 'game_over') && (
         <GameBoard state={state.state} log={log} mode={state.mode} />

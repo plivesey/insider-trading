@@ -16,6 +16,7 @@ import {
   describeCard,
   findPlayer,
   payBank,
+  recordPublicStockGain,
   refillMarketIfNeeded,
   resolveStockSpecialOnBuy
 } from './turn.js';
@@ -231,6 +232,9 @@ function resolveAuction(state: GameState, events: GameLogEntry[]): void {
   }
   payBank(winner, amountDue, events);
   winner.hand.push(card);
+  if (card.category === 'stock' && card.color !== 'Wild') {
+    recordPublicStockGain(state, winner.playerId, card.color);
+  }
   events.push(
     event(
       'auction_resolved',

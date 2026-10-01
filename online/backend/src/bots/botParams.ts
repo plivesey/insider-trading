@@ -62,7 +62,23 @@ export interface BotParams {
   // list (and PARAM_SPECS below) since order defines the ES vector layout.
   loanWillingness: number; // 0..1: graduated credit line vs. effectiveBidCeiling's old cliff (0 = old behavior)
   endgameDiscountStrength: number; // 0..1: discounts `perceived` as the progress tracker nears threshold (0 = no discount)
-  tipPlayDelayThreshold: number; // only auto-play a market-movement card once its score >= this (0 = old "any score > 0" behavior)
+
+  // --- decaying tip-play threshold (decide.ts tipPlayThreshold()), replaces
+  // the flat (and permanently inert -- see v5_tuning_notes.md item 18)
+  // tipPlayDelayThreshold above. Progress-relative rather than turn-number
+  // based, since turn counts vary a lot by player count -- see
+  // v6_tuning_notes.md. ---
+  tipPlayThresholdStart: number; // required score to auto-play early in the game (progress fraction 0)
+  tipPlayThresholdFloor: number; // required score late in the game (<= Start)
+  tipPlayThresholdDecayWindow: number; // 0..1: progress fraction over which Start decays to Floor
+
+  // --- opponent-aware tip scoring (valuation.ts tipScoreForBot()) ---
+  // Weight on opponents' PUBLICLY KNOWN holdings (state.publicStockKnowledge,
+  // never ground-truth hands) in a market-movement card's score: a card that
+  // barely touches the bot's own holdings but would hurt a rival who's loaded
+  // up on that color is worth more than pure self-P&L says. 0 = old
+  // self-only behavior.
+  opponentImpactWeight: number;
 }
 
 export interface ParamSpec {
@@ -117,7 +133,25 @@ export const PARAM_SPECS: ParamSpec[] = [
   // encoding's undefined boundary -- see the ParamSpec doc comment above.
   { key: 'loanWillingness', min: -0.001, max: 1, int: false },
   { key: 'endgameDiscountStrength', min: -0.001, max: 1, int: false },
-  { key: 'tipPlayDelayThreshold', min: 0, max: 6, int: true }
+
+  { key: 'tipPlayThresholdStart', min: 4, max: 16, int: false },
+  { key: 'tipPlayThresholdFloor', min: 2, max: 12, int: false },
+  // max is nudged just above 1 (rather than 1) so the default of exactly 1
+  // (decay over the whole game) is strictly interior -- see the ParamSpec doc
+  // comment above.
+  { key: 'tipPlayThresholdDecayWindow', min: 0.05, max: 1.001, int: false },
+
+  // min is -0.1, not the usual -0.001 nudge (see loanWillingness/
+  // endgameDiscountStrength above): with a default of exactly 0 and a -0.001
+  // min, the logit encoding of 0 sits at ~-6.9, deep in the sigmoid's
+  // saturated tail -- a full ES mutation step there moves the decoded value
+  // by ~0.0002, so the search can't realistically climb out of that corner
+  // within a normal generation budget even when a much larger value performs
+  // better (confirmed: forcing 0.3 directly beats production by $0.67-4.11/
+  // game, but 3 separate ES runs converged back to ~0). -0.1 puts the
+  // default at logit ≈ -2.3, a non-saturated point with real mutation
+  // headroom in both directions -- see v6_tuning_notes.md.
+  { key: 'opponentImpactWeight', min: -0.1, max: 1, int: false }
 ];
 
 export function defaultBotParams(): BotParams {
@@ -158,7 +192,12 @@ export function defaultBotParams(): BotParams {
 
     loanWillingness: 0,
     endgameDiscountStrength: 0,
-    tipPlayDelayThreshold: 0
+
+    tipPlayThresholdStart: 10,
+    tipPlayThresholdFloor: 7,
+    tipPlayThresholdDecayWindow: 1,
+
+    opponentImpactWeight: 0
   };
 }
 
@@ -167,11 +206,28 @@ const PARAM_COUNT = PARAM_SPECS.length;
 const sigmoid = (u: number): number => 1 / (1 + Math.exp(-u));
 const logit = (p: number): number => Math.log(p / (1 - p));
 
-/** Encode params → unbounded ES vector (per-param logit of its [min,max] fraction). */
+/**
+ * Encode params → unbounded ES vector (per-param logit of its [min,max]
+ * fraction). Throws on a missing/non-finite field instead of silently
+ * producing NaN -- a param added to BotParams/PARAM_SPECS after a saved
+ * bot_params.json was written (e.g. loaded via `--resume`) would otherwise
+ * decode `undefined - min` to NaN, which then poisons every downstream ES
+ * generation (mutations on NaN stay NaN) and decodes back to `null` in the
+ * saved output, all silently -- this happened once already, corrupting a
+ * full 200-generation training run. Callers migrating an old saved file
+ * should spread it onto `defaultBotParams()` first: `{ ...defaultBotParams(),
+ * ...JSON.parse(old) }`.
+ */
 export function encodeParams(p: BotParams): Float64Array {
   const v = new Float64Array(PARAM_COUNT);
   PARAM_SPECS.forEach((s, i) => {
     const frac = (p[s.key] - s.min) / (s.max - s.min);
+    if (!Number.isFinite(frac)) {
+      throw new Error(
+        `encodeParams: non-finite value for "${s.key}" (got ${p[s.key]}) -- likely a stale saved ` +
+          `BotParams file missing a field added since it was written; merge onto defaultBotParams() first`
+      );
+    }
     const clamped = Math.min(1 - 1e-6, Math.max(1e-6, frac));
     v[i] = logit(clamped);
   });

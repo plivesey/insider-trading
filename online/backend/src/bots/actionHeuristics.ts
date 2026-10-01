@@ -60,7 +60,7 @@ export function shouldPlayActionCard(
       return true;
     case 'draw_tip':
       // Insider Source — only play if there's a card to draw.
-      return state.eventDeck.length > 0;
+      return state.tipDeck.length > 0;
     case 'fire_sale': {
       // Only worth the flat $3 if some market stock is worth more than that.
       let best = 0;
@@ -75,7 +75,7 @@ export function shouldPlayActionCard(
     case 'first_look':
       return state.mainDeck.length > 0;
     case 'foresight':
-      return state.eventDeck.length > 0;
+      return state.tipDeck.length > 0;
     case 'windfall':
       return true;
     case 'market_panic':

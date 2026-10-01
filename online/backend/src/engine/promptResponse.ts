@@ -23,6 +23,8 @@ import {
   findPlayer,
   payBank,
   receiveBank,
+  recordPublicStockGain,
+  recordPublicStockLoss,
   refillMarketIfNeeded,
   resolveStockSpecialOnBuy
 } from './turn.js';
@@ -79,21 +81,21 @@ export function respondToPrompt(
       return { ok: true, events };
 
     case 'peek_bottom_choice': {
-      // Peeked the top N event cards; may move ONE of them to the bottom of
+      // Peeked the top N tip cards; may move ONE of them to the bottom of
       // the deck. No bottomUid = keep them in place. The deck size is
       // unchanged either way, so this never ends the game.
       const bottomUid = response.bottomUid as string | undefined;
       if (bottomUid) {
         const count = payload.count as number;
-        const idx = state.eventDeck.findIndex(t => t.uid === bottomUid);
+        const idx = state.tipDeck.findIndex(t => t.uid === bottomUid);
         if (idx < 0 || idx >= count) {
           return { ok: false, error: 'card not among the peeked top cards', events };
         }
-        const [card] = state.eventDeck.splice(idx, 1);
-        state.eventDeck.push(card);
+        const [card] = state.tipDeck.splice(idx, 1);
+        state.tipDeck.push(card);
         clearPrompt(state, playerId);
         events.push(
-          event('peek_card_to_bottom', `${player.name} moves an event card to the bottom of the deck`, {
+          event('peek_card_to_bottom', `${player.name} moves a tip card to the bottom of the deck`, {
             actor: playerId,
             payload: { uid: card.uid }
           })
@@ -234,7 +236,9 @@ export function respondToPrompt(
         receiveBank(player, payout);
         adjust(state.stockPrices, card.color, -1);
         player.hand.splice(idx, 1);
+        recordPublicStockLoss(state, player.playerId, card.color);
         state.discardPile.push(card);
+        refillMarketIfNeeded(state, events);
         clearPrompt(state, playerId);
         events.push(
           event(
@@ -269,7 +273,9 @@ export function respondToPrompt(
         receiveBank(player, payout);
         adjust(state.stockPrices, card.color, -1);
         player.hand.splice(idx, 1);
+        recordPublicStockLoss(state, player.playerId, card.color);
         state.discardPile.push(card);
+        refillMarketIfNeeded(state, events);
         events.push(
           event(
             'sell_bonus_sale',
@@ -337,6 +343,10 @@ export function respondToPrompt(
       if (tIdx < 0) return { ok: false, error: 'stock not in target hand', events };
       const card = target.hand.splice(tIdx, 1)[0];
       player.hand.push(card);
+      if (card.category === 'stock' && card.color !== 'Wild') {
+        recordPublicStockLoss(state, target.playerId, card.color);
+        recordPublicStockGain(state, player.playerId, card.color);
+      }
       const drawn = drawTopOfDeck(state, target, events);
       clearPrompt(state, playerId);
       events.push(
@@ -406,6 +416,9 @@ export function respondToPrompt(
         // Corner the Market: take, no price move, no ability.
         const card = state.market.splice(mIdx, 1)[0];
         player.hand.push(card);
+        if (card.category === 'stock' && card.color !== 'Wild') {
+          recordPublicStockGain(state, player.playerId, card.color);
+        }
         clearPrompt(state, playerId);
         events.push(
           event('corner_the_market', `${player.name} takes ${card.uid} from market`, {
@@ -446,6 +459,7 @@ export function respondToPrompt(
         }
         state.market.splice(mIdx, 1);
         player.hand.push(target);
+        recordPublicStockGain(state, player.playerId, target.color);
         payBank(player, price, events);
         clearPrompt(state, playerId);
         events.push(
@@ -470,6 +484,12 @@ export function respondToPrompt(
         const marketCard = state.market[mIdx];
         player.hand[hIdx] = marketCard;
         state.market[mIdx] = handCard;
+        if (handCard.category === 'stock' && handCard.color !== 'Wild') {
+          recordPublicStockLoss(state, player.playerId, handCard.color);
+        }
+        if (marketCard.category === 'stock' && marketCard.color !== 'Wild') {
+          recordPublicStockGain(state, player.playerId, marketCard.color);
+        }
         clearPrompt(state, playerId);
         events.push(
           event(
@@ -501,6 +521,12 @@ export function respondToPrompt(
       // the market it is auctioned like any other market card.
       player.hand[hIdx] = marketCard;
       state.market[mIdx] = handCard;
+      if (handCard.category === 'stock' && handCard.color !== 'Wild') {
+        recordPublicStockLoss(state, player.playerId, handCard.color);
+      }
+      if (marketCard.category === 'stock' && marketCard.color !== 'Wild') {
+        recordPublicStockGain(state, player.playerId, marketCard.color);
+      }
       clearPrompt(state, playerId);
       events.push(
         event(
@@ -535,11 +561,11 @@ export function respondToPrompt(
       const stagedCards = payload.stagedCards as (DeckCard | InsiderTipCard | GoalCard)[] | undefined;
       const keepCount = payload.keepCount as number;
       // 'mainDeck_bottom' (the original behavior, still used by draw_and_choose)
-      // returns un-kept cards to the bottom of state.mainDeck; 'eventDeck_top'
-      // (used by the new draw_and_choose_tips goal reward) returns them to the
-      // TOP of state.eventDeck instead. Default preserves existing callers'
+      // returns un-kept cards to the bottom of state.mainDeck; 'tipDeck_top'
+      // (used by the draw_and_choose_tips goal reward) returns them to the
+      // TOP of state.tipDeck instead. Default preserves existing callers'
       // behavior byte-for-byte.
-      const returnTarget = (payload.returnTarget as 'mainDeck_bottom' | 'eventDeck_top' | undefined) ?? 'mainDeck_bottom';
+      const returnTarget = (payload.returnTarget as 'mainDeck_bottom' | 'tipDeck_top' | undefined) ?? 'mainDeck_bottom';
       if (!keepUids || !Array.isArray(keepUids) || keepUids.length !== keepCount) {
         return { ok: false, error: `must keep exactly ${keepCount}`, events };
       }
@@ -554,8 +580,13 @@ export function respondToPrompt(
         return { ok: false, error: 'keepUids does not match staged cards', events };
       }
       player.hand.push(...kept);
-      if (returnTarget === 'eventDeck_top') {
-        state.eventDeck.unshift(...(returned as (InsiderTipCard | GoalCard)[]));
+      for (const k of kept) {
+        if (k.category === 'stock' && k.color !== 'Wild') {
+          recordPublicStockGain(state, player.playerId, k.color);
+        }
+      }
+      if (returnTarget === 'tipDeck_top') {
+        state.tipDeck.unshift(...(returned as InsiderTipCard[]));
       } else {
         state.mainDeck.push(...(returned as DeckCard[]));
       }
@@ -563,14 +594,14 @@ export function respondToPrompt(
       events.push(
         event(
           'draw_and_keep_resolved',
-          `${player.name} kept ${kept.length}, returned ${returned.length} to the ${returnTarget === 'eventDeck_top' ? 'top of the event deck' : 'bottom of the deck'}`,
+          `${player.name} kept ${kept.length}, returned ${returned.length} to the ${returnTarget === 'tipDeck_top' ? 'top of the tip deck' : 'bottom of the deck'}`,
           { actor: playerId, payload: { keptUids: kept.map(c => c.uid) } }
         )
       );
       // Cards just went back into mainDeck -- if the market was starved below
       // 5 (mainDeck + discard both empty at the time), it can now top back up
       // without waiting on some unrelated future action to notice. No-op when
-      // the return went to the event deck instead.
+      // the return went to the tip deck instead.
       refillMarketIfNeeded(state, events);
       maybeContinueDoubleDown(state, playerId, events);
       return { ok: true, events };
@@ -597,18 +628,18 @@ export function respondToPrompt(
       if (allUids.slice().sort().join(',') !== candidateUids.slice().sort().join(',')) {
         return { ok: false, error: 'keepOrder/buriedUid must cover exactly the peeked cards', events };
       }
-      const topCards = state.eventDeck.splice(0, candidateUids.length);
+      const topCards = state.tipDeck.splice(0, candidateUids.length);
       const byUid = new Map(topCards.map(c => [c.uid, c]));
       const reordered = keepOrder.map(uid => byUid.get(uid)!);
-      state.eventDeck.unshift(...reordered);
+      state.tipDeck.unshift(...reordered);
       if (buriedUid) {
-        state.eventDeck.push(byUid.get(buriedUid)!);
+        state.tipDeck.push(byUid.get(buriedUid)!);
       }
       clearPrompt(state, playerId);
       events.push(
         event(
           'foresight_resolved',
-          `${player.name} reorders the top ${candidateUids.length} event cards${buriedUid ? ' and buries one at the bottom' : ''}`,
+          `${player.name} reorders the top ${candidateUids.length} tip cards${buriedUid ? ' and buries one at the bottom' : ''}`,
           { actor: playerId, payload: { keepOrder, buriedUid } }
         )
       );
@@ -662,6 +693,7 @@ export function respondToPrompt(
       const target = player.hand.splice(idx, 1)[0] as ActionCard;
       if (target.category !== 'action') return { ok: false, error: 'target is not an action card', events };
       state.discardPile.push(target);
+      refillMarketIfNeeded(state, events);
       clearPrompt(state, playerId);
       events.push(
         event('double_down_resolved', `${player.name} doubles ${target.name} via Double Down`, {

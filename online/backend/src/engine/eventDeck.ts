@@ -1,8 +1,7 @@
-import type { Color, GameLogEntry, GameState, GoalCard, InsiderTipCard } from '@insider-trading/shared';
+import type { Color, GameLogEntry, GameState, InsiderTipCard } from '@insider-trading/shared';
 import { COLORS } from '@insider-trading/shared';
 import { adjust, halve } from '../domain/prices.js';
 import { event } from './events.js';
-import { checkSimultaneousGoalClaims } from './goals.js';
 
 /**
  * Resolve a market-movement (Insider Tip) card: apply its price effect, log
@@ -54,49 +53,27 @@ export function adjustAllStocks(state: GameState, delta: number): void {
 }
 
 /**
- * Resolve one card popped off the top of the event deck (via a dice draw):
- * a market-movement card resolves immediately; a goal card is placed
- * face-up in the public goal row (does NOT bump the tracker on its own --
- * only claiming it later does) and is immediately checked for the rare
- * simultaneous-claim case.
- */
-function resolveEventCard(state: GameState, card: InsiderTipCard | GoalCard, events: GameLogEntry[]): void {
-  if (card.category === 'insider_tip') {
-    resolveMarketMovementCard(state, card, events, 'drawn');
-    return;
-  }
-  state.goalRow.push(card);
-  events.push(
-    event('goal_revealed', `A new public goal is revealed: "${card.goal.text}" (reward: ${card.reward.text})`, {
-      payload: { goalUid: card.uid, goalText: card.goal.text, rewardText: card.reward.text }
-    })
-  );
-  checkSimultaneousGoalClaims(state, card, events);
-}
-
-/**
- * Draw up to `n` cards from the top of the event deck, resolving each in
+ * Draw up to `n` cards from the top of the tip deck, resolving each in
  * sequence (order matters -- e.g. a same-color crash and surge drawn
  * together resolve in the order they came up) before moving to the next.
- * Stops early only if the deck runs out (expected to be essentially
- * unreachable given its size) -- no other special handling.
+ * Dice "draw" faces are tip-only in V6 -- goals are never drawn mid-game,
+ * only revealed at setup (see domain/setup.ts) -- so there's no goal branch
+ * here anymore. Stops early only if the deck runs out (expected to be
+ * essentially unreachable given its size) -- no other special handling.
  */
-export function drawFromEventDeck(state: GameState, n: number, events: GameLogEntry[]): void {
+export function drawFromTipDeck(state: GameState, n: number, events: GameLogEntry[]): void {
   for (let i = 0; i < n; i++) {
-    const card = state.eventDeck.shift();
+    const card = state.tipDeck.shift();
     if (!card) return;
-    resolveEventCard(state, card, events);
+    resolveMarketMovementCard(state, card, events, 'drawn');
   }
 }
 
 /**
- * Draw `n` cards off the top of the event deck directly into a player's
- * hand, unresolved (used by Insider Source and the `draw_tips`/`draw_deck_tip`
- * goal rewards). A market-movement card drawn this way is playable later as
- * a free action; a goal card drawn this way is simply a private goal from
- * that point on -- privacy is purely positional (in a hand = private), so no
- * extra bookkeeping is needed.
+ * Draw `n` cards off the top of the tip deck directly into a player's hand,
+ * unresolved (used by Insider Source and the `draw_tips`/`draw_deck_tip`
+ * goal rewards). Playable later as a free action.
  */
-export function drawEventCardsIntoHand(state: GameState, n: number): (InsiderTipCard | GoalCard)[] {
-  return state.eventDeck.splice(0, Math.min(n, state.eventDeck.length));
+export function drawTipCardsIntoHand(state: GameState, n: number): InsiderTipCard[] {
+  return state.tipDeck.splice(0, Math.min(n, state.tipDeck.length));
 }

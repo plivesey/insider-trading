@@ -1,3 +1,6 @@
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { makeRng } from '../../src/domain/rng.js';
 import {
   PARAM_DIM,
@@ -13,6 +16,9 @@ import {
 } from '../../src/bots/botParams.js';
 import { perceivedStockSpecialBump, rewardCashEquivalent } from '../../src/bots/valuation.js';
 import type { ValueNetWeights } from '../../src/bots/valueNet.js';
+
+const HERE = path.dirname(fileURLToPath(import.meta.url));
+const NETS_DIR = path.resolve(HERE, '../../nets');
 
 describe('botParams encode/decode', () => {
   test('defaultVector decodes back to defaultBotParams', () => {
@@ -39,6 +45,20 @@ describe('botParams encode/decode', () => {
         else expect(back[s.key]).toBeCloseTo(p[s.key], 4);
       }
     }
+  });
+
+  test('nets/bot_params.json has every current field, non-null/finite (catches a stale saved file from before a param was added)', () => {
+    const saved = JSON.parse(fs.readFileSync(path.join(NETS_DIR, 'bot_params.json'), 'utf8')) as BotParams;
+    for (const s of PARAM_SPECS) {
+      expect(saved[s.key]).not.toBeUndefined();
+      expect(saved[s.key]).not.toBeNull();
+      expect(Number.isFinite(saved[s.key])).toBe(true);
+    }
+    // Also confirm it round-trips through encode/decode without throwing --
+    // this is exactly the path `--resume` takes in trainBotParams.ts, and is
+    // how a missing field (undefined -> NaN -> silently serialized as null)
+    // corrupted a full 200-generation training run once already.
+    expect(() => encodeParams(saved)).not.toThrow();
   });
 
   test('decode keeps every param within its bounds and rounds ints', () => {

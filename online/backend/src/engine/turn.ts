@@ -14,8 +14,8 @@ import { reshuffleDiscardIfNeeded } from '../domain/deck.js';
 import type { MutationResult } from '../domain/mutate.js';
 import { event } from './events.js';
 import { setPrompt, hasAnyPendingPrompt } from './prompts.js';
-import { adjustAllStocks, drawEventCardsIntoHand, drawFromEventDeck } from './eventDeck.js';
-import { collectFinalGoalOffers, describeEventCardForPrompt } from './goals.js';
+import { adjustAllStocks, drawFromTipDeck, drawTipCardsIntoHand } from './eventDeck.js';
+import { collectFinalGoalOffers, describeTipCardForPrompt } from './goals.js';
 import { drawDieFromBag, rollDieFace, nextRng } from './rng.js';
 import { computeBreakdown, selectWinners } from './scoring.js';
 
@@ -27,6 +27,24 @@ export function findPlayer(state: GameState, id: PlayerId): PlayerPrivate {
   const p = state.players.find(p => p.playerId === id);
   if (!p) throw new Error(`unknown player: ${id}`);
   return p;
+}
+
+/**
+ * Record that `playerId` was just publicly observed gaining/losing one
+ * colored stock of `color` -- see GameState.publicStockKnowledge. Call at
+ * every site where a colored (non-Wild) stock enters/leaves a hand via a
+ * transfer the log feed reveals (everywhere except the initial setup deal).
+ * No-op for Wild Shares (never tracked by color) -- callers should still only
+ * call this for genuinely colored stock cards.
+ */
+export function recordPublicStockGain(state: GameState, playerId: PlayerId, color: Color): void {
+  const forPlayer = (state.publicStockKnowledge[playerId] ??= { Blue: 0, Orange: 0, Green: 0, Purple: 0 });
+  forPlayer[color] += 1;
+}
+
+export function recordPublicStockLoss(state: GameState, playerId: PlayerId, color: Color): void {
+  const forPlayer = (state.publicStockKnowledge[playerId] ??= { Blue: 0, Orange: 0, Green: 0, Purple: 0 });
+  forPlayer[color] = Math.max(0, forPlayer[color] - 1);
 }
 
 export function payBank(player: PlayerPrivate, amount: number, events: GameLogEntry[]): void {
@@ -76,9 +94,16 @@ export function sellStock(state: GameState, playerId: PlayerId, stockUid: string
   if (card.color === 'Wild') return { ok: false, error: 'Wild Shares cannot be sold', events };
   const price = state.stockPrices[card.color];
   player.hand.splice(idx, 1);
+  recordPublicStockLoss(state, player.playerId, card.color);
   receiveBank(player, price);
   adjust(state.stockPrices, card.color, -1);
   state.discardPile.push(card);
+  // A sold stock can be the only thing standing between a starved market and
+  // recovery (mainDeck empty -> only the discard pile can refill it) -- every
+  // other site where a card leaves circulation already rechecks this; selling
+  // didn't, which could permanently strand the market at 0 with no possible
+  // turn action for anyone (see the V6 stuck-game investigation).
+  refillMarketIfNeeded(state, events);
   events.push(
     event('sell_stock', `${player.name} sold ${card.color}${card.name ? ` (${card.name})` : ''} for $${price}`, {
       actor: playerId,
@@ -123,20 +148,19 @@ export function resolveStockSpecialOnBuy(
       break;
     }
     case 'peek_buy': {
-      // Scout gains the top event card into hand instead of just peeking at it.
-      const [drawn] = drawEventCardsIntoHand(state, 1);
+      // Scout gains the top tip-deck card into hand instead of just peeking at it.
+      const [drawn] = drawTipCardsIntoHand(state, 1);
       if (drawn) {
         buyer.hand.push(drawn);
         events.push(
-          event(
-            'special_scout_gain',
-            `Scout: ${buyer.name} gains ${drawn.category === 'insider_tip' ? 'a market-movement card' : 'a private goal'} from the event deck`,
-            { actor: buyer.playerId, payload: { uid: drawn.uid, category: drawn.category } }
-          )
+          event('special_scout_gain', `Scout: ${buyer.name} gains a market-movement card from the tip deck`, {
+            actor: buyer.playerId,
+            payload: { uid: drawn.uid }
+          })
         );
       } else {
         events.push(
-          event('special_scout_empty', `Scout: ${buyer.name} gains nothing — the event deck is empty`, {
+          event('special_scout_empty', `Scout: ${buyer.name} gains nothing — the tip deck is empty`, {
             actor: buyer.playerId
           })
         );
@@ -145,14 +169,14 @@ export function resolveStockSpecialOnBuy(
     }
     case 'peek_sell': {
       // Informant (V5: triggers on buy, same as Scout): peek the top 2 cards.
-      const top = state.eventDeck.slice(0, 2);
+      const top = state.tipDeck.slice(0, 2);
       if (top.length > 0) {
         setPrompt(
           state,
           buyer.playerId,
           'peek_ack',
-          `Informant: top ${top.length} event card${top.length > 1 ? 's' : ''}. Acknowledge to continue.`,
-          { cards: top.map(describeEventCardForPrompt) }
+          `Informant: top ${top.length} tip card${top.length > 1 ? 's' : ''}. Acknowledge to continue.`,
+          { cards: top.map(describeTipCardForPrompt) }
         );
       }
       break;
@@ -210,6 +234,9 @@ export function drawTopOfDeck(
   if (state.mainDeck.length === 0) return null;
   const card = state.mainDeck.shift()!;
   player.hand.push(card);
+  if (card.category === 'stock' && card.color !== 'Wild') {
+    recordPublicStockGain(state, player.playerId, card.color);
+  }
   // The reshuffle above (if it ran) can hand the market a lifeline it has no
   // other way to notice: once market hits 0, no auction/Fire Sale/Corner the
   // Market is possible to trigger a refill, so a starved market can only
@@ -259,13 +286,13 @@ export function resolveEndOfTurnDiceBag(state: GameState, events: GameLogEntry[]
       return;
     }
     case 'draw1':
-      drawFromEventDeck(state, 1, events);
+      drawFromTipDeck(state, 1, events);
       return;
     case 'draw2':
-      drawFromEventDeck(state, 2, events);
+      drawFromTipDeck(state, 2, events);
       return;
     case 'draw3':
-      drawFromEventDeck(state, 3, events);
+      drawFromTipDeck(state, 3, events);
       return;
   }
 }
@@ -273,7 +300,7 @@ export function resolveEndOfTurnDiceBag(state: GameState, events: GameLogEntry[]
 // ---- END CONDITION + SCORING ----
 
 /**
- * V5's sole end condition: the progress tracker has reached its threshold.
+ * V6's sole end condition: the progress tracker has reached its threshold.
  * Deck exhaustion and "only 2 goals remain" (V4's end conditions) no longer
  * apply.
  *

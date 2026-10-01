@@ -3,16 +3,17 @@ import type {
   GameLogEntry,
   GameState,
   GoalCard,
+  InsiderTipCard,
   PlayerPrivate,
   StockAssignment,
   StockCard
 } from '@insider-trading/shared';
-import { COLORS } from '@insider-trading/shared';
+import { COLORS, maxAffordableSpend } from '@insider-trading/shared';
 import { adjust } from '../domain/prices.js';
-import { drawEventCardsIntoHand } from './eventDeck.js';
+import { drawTipCardsIntoHand } from './eventDeck.js';
 import { event } from './events.js';
 import { setPrompt } from './prompts.js';
-import { describeCard, receiveBank } from './turn.js';
+import { describeCard, payBank, receiveBank } from './turn.js';
 
 /**
  * Validate that `assignment` (stock uid -> assigned color) satisfies
@@ -179,52 +180,6 @@ export function autoSatisfyAssignment(
   return { cards };
 }
 
-/**
- * Called immediately after a new goal enters the public goal row (setup
- * reveal or a dice draw). If 2+ players can already satisfy it right now,
- * it's a rare simultaneous-claim: set the goal aside, pay ALL qualifying
- * players, and bump the tracker once (not once per player). If 0 or exactly
- * 1 player qualifies, do nothing -- claiming stays optional/manual via the
- * normal free action, at any pace, for anyone (including that 1 player).
- */
-export function checkSimultaneousGoalClaims(state: GameState, goal: GoalCard, events: GameLogEntry[]): void {
-  const qualifying: { player: PlayerPrivate; assignment: StockAssignment }[] = [];
-  for (const player of state.players) {
-    const assignment = autoSatisfyAssignment(player, goal.goal.parsed.requirements);
-    if (assignment) qualifying.push({ player, assignment });
-  }
-  if (qualifying.length < 2) return;
-  const idx = state.goalRow.findIndex(g => g.uid === goal.uid);
-  if (idx < 0) return;
-  state.goalRow.splice(idx, 1);
-  state.progressTracker += 1;
-  events.push(
-    event(
-      'goal_simultaneous_claim',
-      `${qualifying.length} players can already satisfy the newly-revealed goal "${goal.goal.text}" -- all of them claim it`,
-      {
-        payload: {
-          goalUid: goal.uid,
-          playerIds: qualifying.map(q => q.player.playerId),
-          progressTracker: state.progressTracker
-        }
-      }
-    )
-  );
-  for (const { player, assignment } of qualifying) {
-    validateAndConsumeStockAssignment(state, player, goal.goal.parsed.requirements, assignment, events);
-    player.goalsClaimed.push(goal);
-    events.push(
-      event(
-        'goal_claimed',
-        `${player.name} claims "${goal.goal.text}" (simultaneous reveal; reward: ${goal.reward.text})`,
-        { actor: player.playerId, payload: { goalUid: goal.uid, goalText: goal.goal.text, rewardText: goal.reward.text } }
-      )
-    );
-    applyReward(state, player, goal, events);
-  }
-}
-
 function applyReward(
   state: GameState,
   player: PlayerPrivate,
@@ -255,8 +210,12 @@ function applyReward(
       let stolen = 0;
       for (const other of state.players) {
         if (other.playerId === player.playerId) continue;
-        const take = Math.min(other.cash, r.amount);
-        other.cash -= take;
+        // Unlike Market Panic, a steal forces the victim to take a loan to cover
+        // the shortfall (in $10 increments, same as any other payment) rather than
+        // just clamping to their cash on hand. They only pay less than r.amount
+        // once they're already at the 2-loan cap.
+        const take = Math.min(maxAffordableSpend(other.cash, other.loans), r.amount);
+        payBank(other, take, events);
         player.cash += take;
         stolen += take;
         events.push(
@@ -288,34 +247,34 @@ function applyReward(
       );
       return;
     case 'peek_tips': {
-      const n = Math.min(r.count, state.eventDeck.length);
-      const top = state.eventDeck.slice(0, n);
+      const n = Math.min(r.count, state.tipDeck.length);
+      const top = state.tipDeck.slice(0, n);
       setPrompt(
         state,
         player.playerId,
         'peek_ack',
-        `Reward: peek at the top ${n} event card${n === 1 ? '' : 's'}.`,
-        { cards: top.map(describeEventCardForPrompt) }
+        `Reward: peek at the top ${n} tip card${n === 1 ? '' : 's'}.`,
+        { cards: top.map(describeTipCardForPrompt) }
       );
       return;
     }
     case 'peek_tips_bottom': {
-      const n = Math.min(r.count, state.eventDeck.length);
+      const n = Math.min(r.count, state.tipDeck.length);
       if (n === 0) {
         events.push(
-          event('reward_peek_empty', `${player.name}'s peek reward: the event deck is empty`, {
+          event('reward_peek_empty', `${player.name}'s peek reward: the tip deck is empty`, {
             actor: player.playerId
           })
         );
         return;
       }
-      const top = state.eventDeck.slice(0, n);
+      const top = state.tipDeck.slice(0, n);
       setPrompt(
         state,
         player.playerId,
         'peek_bottom_choice',
-        `Reward: peek at the top ${n} event card${n === 1 ? '' : 's'}; you may move one to the bottom of the deck.`,
-        { cards: top.map(describeEventCardForPrompt), count: n, goalReward: true }
+        `Reward: peek at the top ${n} tip card${n === 1 ? '' : 's'}; you may move one to the bottom of the deck.`,
+        { cards: top.map(describeTipCardForPrompt), count: n, goalReward: true }
       );
       return;
     }
@@ -329,15 +288,14 @@ function applyReward(
       );
       return;
     case 'draw_tips': {
-      // Draw up to `count` cards from the top of the event deck into hand.
-      // A market-movement card can be played later as a free action; a goal
-      // card drawn this way is simply a new private goal.
-      const drawn = drawEventCardsIntoHand(state, r.count);
+      // Draw up to `count` cards from the top of the tip deck into hand,
+      // playable later as a free action.
+      const drawn = drawTipCardsIntoHand(state, r.count);
       player.hand.push(...drawn);
       events.push(
         event(
           'reward_draw_event_cards',
-          `${player.name} draws ${drawn.length} card${drawn.length === 1 ? '' : 's'} from the event deck into hand`,
+          `${player.name} draws ${drawn.length} card${drawn.length === 1 ? '' : 's'} from the tip deck into hand`,
           { actor: player.playerId, payload: { count: drawn.length, uids: drawn.map(t => t.uid) } }
         )
       );
@@ -389,19 +347,19 @@ function applyReward(
       return;
     }
     case 'draw_deck_tip': {
-      // Draw the top card of the event deck into hand, then gain cash.
-      const [drawn] = drawEventCardsIntoHand(state, 1);
+      // Draw the top card of the tip deck into hand, then gain cash.
+      const [drawn] = drawTipCardsIntoHand(state, 1);
       if (drawn) {
         player.hand.push(drawn);
         events.push(
-          event('reward_draw_deck_tip', `${player.name} draws the top event card into hand`, {
+          event('reward_draw_deck_tip', `${player.name} draws the top tip card into hand`, {
             actor: player.playerId,
             payload: { uid: drawn.uid }
           })
         );
       } else {
         events.push(
-          event('reward_draw_deck_tip_empty', `${player.name}'s reward: the event deck is empty`, {
+          event('reward_draw_deck_tip_empty', `${player.name}'s reward: the tip deck is empty`, {
             actor: player.playerId
           })
         );
@@ -418,18 +376,18 @@ function applyReward(
     case 'draw_deck_tip_adjust': {
       // Same draw-into-hand half as draw_deck_tip, but no cash -- followed by
       // the same generic pick_color_amount prompt adjust_stock already uses.
-      const [drawn] = drawEventCardsIntoHand(state, 1);
+      const [drawn] = drawTipCardsIntoHand(state, 1);
       if (drawn) {
         player.hand.push(drawn);
         events.push(
-          event('reward_draw_deck_tip', `${player.name} draws the top event card into hand`, {
+          event('reward_draw_deck_tip', `${player.name} draws the top tip card into hand`, {
             actor: player.playerId,
             payload: { uid: drawn.uid }
           })
         );
       } else {
         events.push(
-          event('reward_draw_deck_tip_empty', `${player.name}'s reward: the event deck is empty`, {
+          event('reward_draw_deck_tip_empty', `${player.name}'s reward: the tip deck is empty`, {
             actor: player.playerId
           })
         );
@@ -485,27 +443,27 @@ function applyReward(
       return;
     }
     case 'draw_and_choose_tips': {
-      // Same shape as draw_and_choose, but pulls from the top of the event
+      // Same shape as draw_and_choose, but pulls from the top of the tip
       // deck (not the main deck) and returns the un-kept cards to the TOP of
-      // the event deck (not the bottom of the main deck) -- see the
+      // the tip deck (not the bottom of the main deck) -- see the
       // returnTarget branch in promptResponse.ts's draw_and_keep handler.
-      // The event deck is far smaller than the main deck and depletes over
+      // The tip deck is far smaller than the main deck and depletes over
       // the course of a game, so running short here is common enough to hit
       // in practice, not just a theoretical edge case -- same keepCount clamp
       // as draw_and_choose above.
-      const drawn = drawEventCardsIntoHand(state, r.drawCount);
+      const drawn = drawTipCardsIntoHand(state, r.drawCount);
       if (drawn.length === 0) return;
       const keepCount = Math.min(r.keepCount, drawn.length);
       setPrompt(
         state,
         player.playerId,
         'draw_and_keep',
-        `Reward: choose ${keepCount} to keep, return the rest to the top of the event deck.`,
+        `Reward: choose ${keepCount} to keep, return the rest to the top of the tip deck.`,
         {
-          drawn: drawn.map(c => ({ uid: c.uid, summary: describeEventCardForPrompt(c), card: c })),
+          drawn: drawn.map(c => ({ uid: c.uid, summary: describeTipCardForPrompt(c), card: c })),
           stagedCards: drawn,
           keepCount,
-          returnTarget: 'eventDeck_top',
+          returnTarget: 'tipDeck_top',
           goalReward: true
         }
       );
@@ -515,13 +473,8 @@ function applyReward(
 }
 
 /** Summarize an event-deck card (market-movement or goal) for a peek prompt payload. */
-export function describeEventCardForPrompt(card: { category: string }): Record<string, unknown> {
-  if (card.category === 'insider_tip') {
-    const t = card as import('@insider-trading/shared').InsiderTipCard;
-    return { uid: t.uid, kind: 'market_movement', text: t.text, type: t.type };
-  }
-  const g = card as GoalCard;
-  return { uid: g.uid, kind: 'goal', text: `${g.goal.text} → ${g.reward.text}` };
+export function describeTipCardForPrompt(tip: InsiderTipCard): Record<string, unknown> {
+  return { uid: tip.uid, kind: 'market_movement', text: tip.text, type: tip.type };
 }
 
 export interface FinalGoalOffer {

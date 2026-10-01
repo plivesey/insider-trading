@@ -92,7 +92,7 @@ function driveBotGame(
       throw new Error(
         `bot game exceeded ${maxTicks} ticks. phase=${state.turnPhase} ` +
           `currentPlayer=${state.players[state.currentPlayerIndex].name} ` +
-          `eventDeckLeft=${state.eventDeck.length} goalsLeft=${state.goalRow.length} ` +
+          `tipDeckLeft=${state.tipDeck.length} goalReserveLeft=${state.goalReserve.length} goalsLeft=${state.goalRow.length} ` +
           `marketLen=${state.market.length} mainDeckLen=${state.mainDeck.length} ` +
           `turn=${state.turnNumber} ` +
           `prompts=${JSON.stringify(

@@ -3,6 +3,7 @@ import { fileURLToPath } from 'node:url';
 import {
   loadCards,
   DEFAULT_RULES,
+  computeGoalRevealCount,
   computeProgressThreshold,
   type GameState,
   type RulesConfig
@@ -29,17 +30,17 @@ function mkState(rules?: Partial<RulesConfig>, seed = 1): GameState {
   });
 }
 
-describe('RulesConfig plumbing (V5)', () => {
-  it('the shipped default ruleset has initialGoalRevealCount=4 and progressThresholdPerPlayer=3/base=3', () => {
+describe('RulesConfig plumbing (V6)', () => {
+  it('the shipped default ruleset has goalRevealPerPlayer=1/base=3 and progressThresholdPerPlayer=3/base=3', () => {
     const s = mkState(); // no override → DEFAULT_RULES
     expect(s.rules).toEqual(DEFAULT_RULES);
-    expect(s.goalRow).toHaveLength(4);
+    expect(s.goalRow).toHaveLength(6); // 3 players * 1 + 3
     expect(s.progressThreshold).toBe(3 * 3 + 3); // 3 players → 12
   });
 
-  it('initialGoalRevealCount controls how many goals are revealed at setup', () => {
-    expect(mkState({ initialGoalRevealCount: 2 }).goalRow).toHaveLength(2);
-    expect(mkState({ initialGoalRevealCount: 6 }).goalRow).toHaveLength(6);
+  it('goalRevealPerPlayer/goalRevealBase control how many goals are revealed at setup', () => {
+    expect(mkState({ goalRevealPerPlayer: 0, goalRevealBase: 2 }).goalRow).toHaveLength(2);
+    expect(mkState({ goalRevealPerPlayer: 0, goalRevealBase: 6 }).goalRow).toHaveLength(6);
   });
 
   it('progressThresholdPerPlayer and progressThresholdBase scale the end-game threshold', () => {
@@ -54,7 +55,14 @@ describe('RulesConfig plumbing (V5)', () => {
     }
   });
 
-  it('computeProgressThreshold matches setup for every player count 2-6', () => {
+  it('matches the 2-6 player goal-reveal table: 5, 6, 7, 8, 9', () => {
+    const expected = [5, 6, 7, 8, 9];
+    for (let n = 2; n <= 6; n++) {
+      expect(computeGoalRevealCount(n, DEFAULT_RULES)).toBe(expected[n - 2]);
+    }
+  });
+
+  it('computeProgressThreshold/computeGoalRevealCount match setup for every player count 2-6', () => {
     for (let n = 2; n <= 6; n++) {
       const ps = Array.from({ length: n }, (_, i) => ({ playerId: `p${i}`, name: `P${i}` }));
       const s = createGameState({
@@ -65,11 +73,12 @@ describe('RulesConfig plumbing (V5)', () => {
         startedAt: '2026-01-01T00:00:00.000Z'
       });
       expect(s.progressThreshold).toBe(computeProgressThreshold(n, DEFAULT_RULES));
+      expect(s.goalRow).toHaveLength(computeGoalRevealCount(n, DEFAULT_RULES));
     }
   });
 });
 
-describe('checkProgressThreshold: V5\'s sole end condition', () => {
+describe('checkProgressThreshold: V6\'s sole end condition', () => {
   it('does not end the game while the tracker is below threshold', () => {
     const s = mkState();
     s.progressTracker = s.progressThreshold - 1;

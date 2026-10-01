@@ -28,10 +28,10 @@ export function effectivePrices(
   knownPeekedTips: InsiderTipCard[]
 ): Record<Color, number> {
   const out: Record<Color, number> = { ...state.stockPrices };
-  // Tip resolution order is the order in the event deck. Sort known peeks by
+  // Tip resolution order is the order in the tip deck. Sort known peeks by
   // their index in the deck so we apply them in the order they'll fire.
   const indexed = knownPeekedTips
-    .map(t => ({ tip: t, idx: state.eventDeck.findIndex(d => d.uid === t.uid) }))
+    .map(t => ({ tip: t, idx: state.tipDeck.findIndex(d => d.uid === t.uid) }))
     .filter(e => e.idx >= 0)
     .sort((a, b) => a.idx - b.idx);
   for (const { tip } of indexed) {
@@ -443,10 +443,10 @@ function actionCardBaseValue(
       // Rumor Mill: max(floor, count of bot's colored stocks).
       return Math.max(p.adjustAllFloor, ownedColoredStockCount(state, botId));
     case 'draw_tip':
-      // Insider Source: knowing/holding the next event card(s) lets the bot
-      // react (or gains a private goal); valuable but not dramatically so.
-      // Scales with the card's draw count (2 in the shipped pool).
-      return state.eventDeck.length > 0 ? p.drawTipValue * (card.effect.count ?? 1) : 0;
+      // Insider Source: knowing/holding the next market-movement card(s)
+      // lets the bot react early; valuable but not dramatically so. Scales
+      // with the card's draw count (2 in the shipped pool).
+      return state.tipDeck.length > 0 ? p.drawTipValue * (card.effect.count ?? 1) : 0;
     case 'fire_sale': {
       let best = 0;
       for (const c of state.market) {
@@ -472,7 +472,7 @@ function actionCardBaseValue(
       for (const c of state.market) {
         const v =
           c.category === 'insider_tip'
-            ? Math.max(0, tipScoreForBot(state, c as InsiderTipCard, botId))
+            ? Math.max(0, tipScoreForBot(state, c as InsiderTipCard, botId, p))
             : c.category === 'goal'
               ? perceivedGoalCardValue(state, c as GoalCard, p)
               : c.category === 'action'
@@ -495,7 +495,7 @@ function actionCardBaseValue(
           } else if (c.category === 'action') {
             v = safeActionCardValue(c as ActionCard, state, profile, botId);
           } else if (c.category === 'insider_tip') {
-            v = Math.max(0, tipScoreForBot(state, c as InsiderTipCard, botId));
+            v = Math.max(0, tipScoreForBot(state, c as InsiderTipCard, botId, p));
           } else {
             v = perceivedGoalCardValue(state, c as GoalCard, p);
           }
@@ -568,28 +568,73 @@ export function bestOwnedColor(state: GameState, botId: PlayerId): Color | null 
   return best;
 }
 
+/** Per-color $ effect of one unit of a market-movement card's price change. */
+export function tipPerUnitEffect(tip: InsiderTipCard, stockPrices: Record<Color, number>): (c: Color) => number {
+  return c =>
+    tip.effect.type === 'halve'
+      ? c === tip.effect.color
+        ? Math.floor(stockPrices[c] / 2) - stockPrices[c] // negative
+        : 0
+      : (tip.effect.changes[c] ?? 0);
+}
+
+/** Colors a market-movement card would hurt (negative per-unit effect). */
+export function negativeColorsForTip(tip: InsiderTipCard, stockPrices: Record<Color, number>): Color[] {
+  const perUnit = tipPerUnitEffect(tip, stockPrices);
+  return COLORS.filter(c => perUnit(c) < 0);
+}
+
 /**
- * Signed score of a market-movement card from the bot's perspective (Σ over
- * colors of delta × ownedCount(color)). Higher = better. Used for reorder
- * decisions (Foresight, peek_bottom_choice) and for deciding whether to play
- * a held card.
+ * Signed score of a market-movement card from the bot's perspective: its
+ * effect on the bot's OWN holdings (Σ delta × ownedCount(color), ground
+ * truth -- a bot always knows its own hand perfectly) MINUS
+ * `opponentImpactWeight` × its effect on opponents' PUBLICLY KNOWN holdings
+ * (state.publicStockKnowledge -- never opponents' ground-truth hands, since a
+ * real player only knows what's been publicly revealed). A card that's
+ * neutral-to-bad for the bot's own stake but would hurt a rival loaded up on
+ * that color scores higher than pure self-P&L gives it; one that would help
+ * a loaded-up rival scores lower. At `opponentImpactWeight=0` this is
+ * byte-for-byte the old self-only behavior. Higher = better. Used for
+ * reorder decisions (Foresight, peek_bottom_choice) and for deciding whether
+ * to play a held card.
+ *
+ * `ownedOverride` replaces the bot's actual owned-count for specific colors
+ * (rather than reading it off `bot.hand`) -- used to answer "what would this
+ * card score if I sold my holding of color X first," for the sell-to-enable
+ * heuristic in decide.ts. Omit for the normal (ground-truth) score.
  */
-export function tipScoreForBot(state: GameState, tip: InsiderTipCard, botId: PlayerId): number {
+export function tipScoreForBot(
+  state: GameState,
+  tip: InsiderTipCard,
+  botId: PlayerId,
+  params: BotParams = DEFAULTS,
+  ownedOverride?: Partial<Record<Color, number>>
+): number {
   const bot = state.players.find(p => p.playerId === botId);
   if (!bot) return 0;
   const owned: Record<Color, number> = { Blue: 0, Orange: 0, Green: 0, Purple: 0 };
   for (const c of bot.hand) {
     if (c.category === 'stock' && c.color !== 'Wild') owned[c.color]++;
   }
-  if (tip.effect.type === 'halve') {
-    const c = tip.effect.color;
-    const halved = Math.floor(state.stockPrices[c] / 2);
-    const delta = halved - state.stockPrices[c]; // negative
-    return delta * owned[c];
+  if (ownedOverride) {
+    for (const c of COLORS) {
+      if (ownedOverride[c] !== undefined) owned[c] = ownedOverride[c]!;
+    }
   }
-  let total = 0;
-  for (const [c, d] of Object.entries(tip.effect.changes) as [Color, number][]) {
-    total += d * owned[c];
+
+  const perUnit = tipPerUnitEffect(tip, state.stockPrices);
+
+  let selfTotal = 0;
+  for (const c of COLORS) selfTotal += perUnit(c) * owned[c];
+
+  let opponentTotal = 0;
+  if (params.opponentImpactWeight !== 0) {
+    for (const p of state.players) {
+      if (p.playerId === botId) continue;
+      const known = state.publicStockKnowledge[p.playerId];
+      if (!known) continue;
+      for (const c of COLORS) opponentTotal += perUnit(c) * (known[c] ?? 0);
+    }
   }
-  return total;
+  return selfTotal - params.opponentImpactWeight * opponentTotal;
 }

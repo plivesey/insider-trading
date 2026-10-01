@@ -11,9 +11,11 @@ import { BrassButton, C, DecoBadge, Monogram } from '../game/theme.js';
 interface Props {
   state: Extract<StateResponse, { mode: 'lobby' }>;
   myName: string | null;
+  /** Called after a successful join, in case this tab's socket predates the join and needs to pick up the fresh player cookie. */
+  onJoined: () => void;
 }
 
-export function Lobby({ state, myName }: Props) {
+export function Lobby({ state, myName, onJoined }: Props) {
   const [name, setName] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -36,6 +38,7 @@ export function Lobby({ state, myName }: Props) {
     setError(null);
     try {
       await api.join(name.trim());
+      onJoined();
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'failed');
     } finally {

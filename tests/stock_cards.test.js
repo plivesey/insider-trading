@@ -80,11 +80,11 @@ describe('Stock Cards', () => {
     }
   });
 
-  test('peek specials should mention the event deck', () => {
+  test('peek specials should mention the tip deck', () => {
     const peeks = cards.filter(c => c.type === 'peek_buy' || c.type === 'peek_sell');
     expect(peeks).toHaveLength(8);
     for (const card of peeks) {
-      expect(card.ability).toContain('event deck');
+      expect(card.ability).toContain('tip deck');
     }
   });
 

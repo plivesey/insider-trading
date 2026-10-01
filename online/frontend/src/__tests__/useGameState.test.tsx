@@ -100,6 +100,19 @@ describe('useGameState', () => {
     expect(FakeSocket.instances.length).toBe(3);
   });
 
+  it('reconnect() forces a fresh socket so a post-join cookie is picked up', async () => {
+    const { result } = renderHook(() => useGameState());
+    expect(FakeSocket.instances.length).toBe(1);
+    act(() => FakeSocket.instances[0].open());
+
+    act(() => result.current.reconnect());
+    expect(FakeSocket.instances.length).toBe(1); // close() only schedules the reconnect
+    await act(async () => {
+      vi.advanceTimersByTime(260); // reset backoff -> immediate (250ms) reconnect, not a grown one
+    });
+    expect(FakeSocket.instances.length).toBe(2);
+  });
+
   it('stops reconnecting after unmount', async () => {
     const { unmount } = renderHook(() => useGameState());
     const first = FakeSocket.instances[0];

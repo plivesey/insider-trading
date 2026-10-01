@@ -16,7 +16,7 @@ export function beginDraft(state: GameState, events: GameLogEntry[]): void {
     const keep: HandCard[] = [];
     const draftable: HandCard[] = [];
     for (const c of p.hand) {
-      (c.uid.startsWith('mini-starter-stock-') ? keep : draftable).push(c);
+      (c.uid.startsWith('starter-stock-') ? keep : draftable).push(c);
     }
     p.hand = keep;
     hands[p.playerId] = draftable;

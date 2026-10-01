@@ -18,7 +18,7 @@ beforeEach(() => {
 const baseState: ProjectedGameState = {
   gameId: 'g',
   startedAt: '2026-01-01T00:00:00.000Z',
-  version: 5,
+  version: 6,
   status: 'in_progress',
   stockPrices: { Blue: 4, Orange: 4, Green: 4, Purple: 4 },
   currentPlayerIndex: 0,
@@ -28,7 +28,8 @@ const baseState: ProjectedGameState = {
   market: [],
   mainDeckSize: 0,
   discardPileSize: 0,
-  eventDeckSize: 0,
+  tipDeckSize: 0,
+  goalReserveSize: 0,
   resolvedEventCards: [],
   goalRow: [],
   progressTracker: 0,

@@ -159,7 +159,7 @@ const f1 = (x: number) => x.toFixed(2);
 const turnsMean = turns.reduce((a, b) => a + b, 0) / Math.max(1, turns.length);
 console.log(`\n=== Goal-pursuit analysis — ${SEATS}p, ${counted} games (${stuck} stuck) ===`);
 console.log(`Turns:                avg ${f1(turnsMean)}, p50 ${pctile(turns, 0.5)}, p90 ${pctile(turns, 0.9)}`);
-// V5 has a single end condition (progress tracker threshold) -- no more
+// V6 has a single end condition (progress tracker threshold) -- no more
 // goal-vs-tip end-reason split to report.
 console.log(`Goals claimed / game: ${f1(goalsClaimedTotal / counted)}  (game has ${SEATS + 2} goals, needs ${SEATS + 1} claimed to end on goals)`);
 console.log(`Goals claimed / player: ${f1(goalsClaimedTotal / counted / SEATS)}`);

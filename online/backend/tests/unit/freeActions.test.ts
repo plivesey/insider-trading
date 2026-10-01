@@ -189,25 +189,23 @@ describe('Action cards (carried over from V4, unchanged mechanics)', () => {
     expect(s.stockPrices).toEqual({ Blue: 5, Orange: 3, Green: 5, Purple: 3 });
   });
 
-  it('Insider Source: draws top 2 event-deck cards into hand, deck shrinks by 2', () => {
+  it('Insider Source: draws top 2 tip-deck cards into hand, deck shrinks by 2', () => {
     const s = mkState();
-    const top2Before = s.eventDeck.slice(0, 2);
-    const sizeBefore = s.eventDeck.length;
+    const top2Before = s.tipDeck.slice(0, 2);
+    const sizeBefore = s.tipDeck.length;
     const ac = giveActionCard(s, 'p1', 'draw_tip');
     expect(ac.effect).toEqual({ type: 'draw_tip', count: 2 });
     play(s, 'p1', ac);
-    expect(s.eventDeck.length).toBe(sizeBefore - 2);
+    expect(s.tipDeck.length).toBe(sizeBefore - 2);
     for (const card of top2Before) {
-      expect(s.eventDeck.find(t => t.uid === card.uid)).toBeUndefined();
+      expect(s.tipDeck.find(t => t.uid === card.uid)).toBeUndefined();
       expect(s.players[0].hand.find(c => c.uid === card.uid)).toBeTruthy();
     }
   });
 
-  it('Insider Source: if the drawn card is a market-movement card, playing it from hand resolves its effect and bumps the progress tracker', () => {
+  it('Insider Source: playing a drawn card from hand resolves its effect and bumps the progress tracker', () => {
     const s = mkState();
-    // Force the top of the event deck to be a market-movement card.
-    const tip = s.eventDeck.find(c => c.category === 'insider_tip')!;
-    s.eventDeck = [tip, ...s.eventDeck.filter(c => c.uid !== tip.uid)];
+    const tip = s.tipDeck[0];
     const ac = giveActionCard(s, 'p1', 'draw_tip');
     const trackerBefore = s.progressTracker;
     play(s, 'p1', ac);
@@ -221,17 +219,14 @@ describe('Action cards (carried over from V4, unchanged mechanics)', () => {
     expect(s.progressTracker).toBe(trackerBefore + 1);
   });
 
-  it('Insider Source: if the drawn card is a goal card, it becomes a new private goal', () => {
+  it('Insider Source never draws a goal card -- it is tip-deck-only in V6', () => {
     const s = mkState();
-    const goal = s.eventDeck.find(c => c.category === 'goal')!;
-    s.eventDeck = [goal, ...s.eventDeck.filter(c => c.uid !== goal.uid)];
     const ac = giveActionCard(s, 'p1', 'draw_tip');
+    const handBefore = new Set(s.players[0].hand.map(c => c.uid));
     play(s, 'p1', ac);
-    const drawn = s.players[0].hand.find(c => c.uid === goal.uid);
-    expect(drawn).toBeTruthy();
-    expect(drawn!.category).toBe('goal');
-    // It's private: not in the public goal row.
-    expect(s.goalRow.find(g => g.uid === goal.uid)).toBeUndefined();
+    const drawnCards = s.players[0].hand.filter(c => !handBefore.has(c.uid));
+    expect(drawnCards).toHaveLength(2);
+    expect(drawnCards.every(c => c.category === 'insider_tip')).toBe(true);
   });
 });
 
@@ -335,7 +330,7 @@ describe('Goal claiming (public)', () => {
     expect(events.find(e => e.type === 'error')).toBeTruthy();
   });
 
-  it('reward triggers a prompt: 2 Green → draw 3 event cards, keep 1, return the other 2 to the event deck top', () => {
+  it('reward triggers a prompt: 2 Green → draw 3 tip cards, keep 1, return the other 2 to the tip deck top', () => {
     const s = mkState();
     const goal: GoalCard = { ...catalog.goals.find(g => g.id === 3)! };
     s.goalRow.push(goal);
@@ -343,8 +338,8 @@ describe('Goal claiming (public)', () => {
     const tip1 = { ...catalog.insiderTips[0], uid: 'tip-fixture-1' };
     const tip2 = { ...catalog.insiderTips[1], uid: 'tip-fixture-2' };
     const tip3 = { ...catalog.insiderTips[2], uid: 'tip-fixture-3' };
-    s.eventDeck = [tip1, tip2, tip3, ...s.eventDeck];
-    const deckLenBefore = s.eventDeck.length;
+    s.tipDeck = [tip1, tip2, tip3, ...s.tipDeck];
+    const deckLenBefore = s.tipDeck.length;
     submitFreeAction(s, 'p1', {
       kind: 'claim_goal',
       goalUid: goal.uid,
@@ -354,15 +349,15 @@ describe('Goal claiming (public)', () => {
     const pr = s.pendingPrompts['p1']!;
     expect(pr.type).toBe('draw_and_keep');
     expect(pr.payload.keepCount).toBe(1);
-    expect(pr.payload.returnTarget).toBe('eventDeck_top');
+    expect(pr.payload.returnTarget).toBe('tipDeck_top');
     const staged = pr.payload.stagedCards as { uid: string }[];
     expect(staged.map(c => c.uid)).toEqual([tip1.uid, tip2.uid, tip3.uid]);
     respondToPrompt(s, 'p1', pr.promptId, { keepUids: [tip1.uid] });
     expect(s.players[0].hand.find(c => c.uid === tip1.uid)).toBeTruthy();
-    // The 2 un-kept cards go back to the TOP of the event deck (3 drawn, 1 kept, 2 returned).
-    expect(s.eventDeck[0]?.uid).toBe(tip2.uid);
-    expect(s.eventDeck[1]?.uid).toBe(tip3.uid);
-    expect(s.eventDeck.length).toBe(deckLenBefore - 1);
+    // The 2 un-kept cards go back to the TOP of the tip deck (3 drawn, 1 kept, 2 returned).
+    expect(s.tipDeck[0]?.uid).toBe(tip2.uid);
+    expect(s.tipDeck[1]?.uid).toBe(tip3.uid);
+    expect(s.tipDeck.length).toBe(deckLenBefore - 1);
   });
 
   it('draw-deck-tip reward (2 Green + 2 Purple → draw top tip into hand and gain $6)', () => {
@@ -372,7 +367,7 @@ describe('Goal claiming (public)', () => {
     const [g1, g2] = giveStock(s, 'p1', 'Green', 2);
     const [p1, p2] = giveStock(s, 'p1', 'Purple', 2);
     const tip1 = { ...catalog.insiderTips[0], uid: 'tip-fixture-14' };
-    s.eventDeck = [tip1, ...s.eventDeck];
+    s.tipDeck = [tip1, ...s.tipDeck];
     const cashBefore = s.players[0].cash;
     submitFreeAction(s, 'p1', {
       kind: 'claim_goal',
@@ -399,33 +394,35 @@ describe('Goal claiming (public)', () => {
     expect(s.players[0].endGameCashBonus).toBe(12);
   });
 
-  it('Steal $1 from each other player (2 Blue)', () => {
+  it('Steal $1 from each other player (2 Blue) forces a loan when a victim is broke', () => {
     const s = mkState();
     const goal: GoalCard = { ...catalog.goals.find(g => g.id === 1)! };
     s.goalRow.push(goal);
     const cashBefore = s.players[0].cash;
     const stocks = giveStock(s, 'p1', 'Blue', 2);
     s.players[1].cash = 10;
-    s.players[2].cash = 0; // nothing to give
+    s.players[2].cash = 0; // broke, but under the loan cap -- must borrow to pay
     submitFreeAction(s, 'p1', {
       kind: 'claim_goal',
       goalUid: goal.uid,
       stockAssignment: { cards: { [stocks[0].uid]: 'Blue', [stocks[1].uid]: 'Blue' } }
     });
     processNextFreeAction(s, []);
-    expect(s.players[0].cash).toBe(cashBefore + 1 + 0); // $1 from Bob, $0 from Carol (broke)
+    expect(s.players[0].cash).toBe(cashBefore + 1 + 1); // $1 from Bob, $1 from Carol (loan-funded)
     expect(s.players[1].cash).toBe(9);
-    expect(s.players[2].cash).toBe(0);
+    expect(s.players[1].loans).toBe(0);
+    expect(s.players[2].cash).toBe(9); // $0 + $10 loan - $1 paid
+    expect(s.players[2].loans).toBe(1);
   });
 
-  it('Steal $2 from each other player (3 Blue)', () => {
+  it('Steal $2 from each other player (3 Blue) tops up a loan for the shortfall', () => {
     const s = mkState();
     const goal: GoalCard = { ...catalog.goals.find(g => g.id === 5)! };
     s.goalRow.push(goal);
     const cashBefore = s.players[0].cash;
     const stocks = giveStock(s, 'p1', 'Blue', 3);
     s.players[1].cash = 10;
-    s.players[2].cash = 1; // only $1 to give
+    s.players[2].cash = 1; // short by $1, but under the loan cap -- must borrow to pay in full
     submitFreeAction(s, 'p1', {
       kind: 'claim_goal',
       goalUid: goal.uid,
@@ -434,9 +431,33 @@ describe('Goal claiming (public)', () => {
       }
     });
     processNextFreeAction(s, []);
-    expect(s.players[0].cash).toBe(cashBefore + 2 + 1); // $2 from Bob, $1 from Carol (capped)
+    expect(s.players[0].cash).toBe(cashBefore + 2 + 2); // $2 from Bob, $2 from Carol (loan-funded)
+    expect(s.players[1].cash).toBe(8);
+    expect(s.players[2].cash).toBe(9); // $1 + $10 loan - $2 paid
+    expect(s.players[2].loans).toBe(1);
+  });
+
+  it('Steal $2 from each other player (3 Blue) only clamps once a victim is already at the loan cap', () => {
+    const s = mkState();
+    const goal: GoalCard = { ...catalog.goals.find(g => g.id === 5)! };
+    s.goalRow.push(goal);
+    const cashBefore = s.players[0].cash;
+    const stocks = giveStock(s, 'p1', 'Blue', 3);
+    s.players[1].cash = 10;
+    s.players[2].cash = 1;
+    s.players[2].loans = 2; // already maxed out -- can't borrow any further
+    submitFreeAction(s, 'p1', {
+      kind: 'claim_goal',
+      goalUid: goal.uid,
+      stockAssignment: {
+        cards: { [stocks[0].uid]: 'Blue', [stocks[1].uid]: 'Blue', [stocks[2].uid]: 'Blue' }
+      }
+    });
+    processNextFreeAction(s, []);
+    expect(s.players[0].cash).toBe(cashBefore + 2 + 1); // $2 from Bob, only $1 from Carol (capped)
     expect(s.players[1].cash).toBe(8);
     expect(s.players[2].cash).toBe(0);
+    expect(s.players[2].loans).toBe(2); // unchanged -- no more loans available
   });
 
   it('Swap one of your cards for a market card (2 Blue + 2 Green)', () => {
@@ -528,7 +549,7 @@ describe('Goal claiming (public)', () => {
     const [o1, o2] = giveStock(s, 'p1', 'Orange', 2);
     const [g1, g2] = giveStock(s, 'p1', 'Green', 2);
     const tip1 = { ...catalog.insiderTips[0], uid: 'tip-fixture-12' };
-    s.eventDeck = [tip1, ...s.eventDeck];
+    s.tipDeck = [tip1, ...s.tipDeck];
     const cashBefore = s.players[0].cash;
     submitFreeAction(s, 'p1', {
       kind: 'claim_goal',
@@ -768,11 +789,7 @@ describe('Double Down', () => {
   }
 
   function giveDoubleDown(state: GameState, playerId: string): ActionCard {
-    const dd = structuredClone(
-      catalog.starterDeck.find(c => c.category === 'action' && c.effect.type === 'double_down')!
-    ) as ActionCard;
-    state.players.find(p => p.playerId === playerId)!.hand.push(dd);
-    return dd;
+    return giveActionCard(state, playerId, 'double_down');
   }
 
   it('doubling Pump and Dump lets the player sell two DIFFERENT stocks, not just one twice-ignored prompt', () => {
@@ -814,20 +831,18 @@ describe('Double Down', () => {
     expect(s.pendingDoubleDown).toHaveLength(0);
   });
 
-  it('doubling an instant effect (Windfall) applies it twice immediately, no deferral needed', () => {
+  it('doubling an instant effect (Insider Source) applies it twice immediately, no deferral needed', () => {
     const s = mkState();
     const dd = giveDoubleDown(s, 'p1');
-    const windfall = structuredClone(
-      catalog.starterDeck.find(c => c.category === 'action' && c.effect.type === 'windfall')!
-    ) as ActionCard;
-    s.players[0].hand.push(windfall);
-    const cashBefore = s.players[0].cash;
+    const insiderSource = giveActionCard(s, 'p1', 'draw_tip');
+    const tipsBefore = s.players[0].hand.filter(c => c.category === 'insider_tip').length;
 
     play(s, 'p1', dd);
     const ddPrompt = s.pendingPrompts['p1']!;
-    respondToPrompt(s, 'p1', ddPrompt.promptId, { cardUid: windfall.uid });
+    respondToPrompt(s, 'p1', ddPrompt.promptId, { cardUid: insiderSource.uid });
 
-    expect(s.players[0].cash).toBe(cashBefore + 10); // $5 twice
+    // 2 cards drawn, twice.
+    expect(s.players[0].hand.filter(c => c.category === 'insider_tip').length).toBe(tipsBefore + 4);
     expect(s.pendingPrompts['p1']).toBeNull();
     expect(s.pendingDoubleDown).toHaveLength(0);
   });

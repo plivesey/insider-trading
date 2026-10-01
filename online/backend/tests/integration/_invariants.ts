@@ -81,7 +81,8 @@ export function assertGameOverInvariants(state: GameState): void {
   all.push(...state.mainDeck.map(c => c.uid));
   all.push(...state.discardPile.map(c => c.uid));
   all.push(...state.goalRow.map(c => c.uid));
-  all.push(...state.eventDeck.map(c => c.uid));
+  all.push(...state.tipDeck.map(c => c.uid));
+  all.push(...state.goalReserve.map(c => c.uid));
   all.push(...state.resolvedEventCards.map(c => c.uid));
   expect(new Set(all).size).toBe(all.length);
 

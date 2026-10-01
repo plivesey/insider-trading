@@ -7,6 +7,7 @@ import { startAuction, bid, pass } from '../../src/engine/auction.js';
 import { advance } from '../../src/engine/advance.js';
 import { loanPenaltyFor } from '../../src/engine/scoring.js';
 import { respondToPrompt } from '../../src/engine/promptResponse.js';
+import { drawFromTipDeck } from '../../src/engine/eventDeck.js';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const CARDS_DIR = path.resolve(HERE, '../../../../cards');
@@ -296,25 +297,46 @@ describe('Scout special stock (peek_buy)', () => {
     return catalog.stocks.find(s => s.type === 'peek_buy')! as StockCard;
   }
 
-  it('gains the top event card into hand instead of peeking', () => {
+  it('gains the top tip-deck card into hand instead of peeking', () => {
     const state = mkState(1);
     const buyer = currentPlayer(state);
-    const topBefore = state.eventDeck[0];
-    const eventDeckBefore = state.eventDeck.length;
+    const topBefore = state.tipDeck[0];
+    const tipDeckBefore = state.tipDeck.length;
     const events: any[] = [];
     resolveStockSpecialOnBuy(state, buyer, scoutStock(), events);
     expect(state.pendingPrompts[buyer.playerId]).toBeNull();
-    expect(state.eventDeck.length).toBe(eventDeckBefore - 1);
+    expect(state.tipDeck.length).toBe(tipDeckBefore - 1);
     expect(buyer.hand.find(c => c.uid === topBefore.uid)).toBeTruthy();
     expect(events.some(e => e.type === 'special_scout_gain')).toBe(true);
   });
 
-  it('fizzles gracefully if the event deck is empty', () => {
+  it('fizzles gracefully if the tip deck is empty', () => {
     const state = mkState(1);
     const buyer = currentPlayer(state);
-    state.eventDeck = [];
+    state.tipDeck = [];
     const events: any[] = [];
     resolveStockSpecialOnBuy(state, buyer, scoutStock(), events);
     expect(events.some(e => e.type === 'special_scout_empty')).toBe(true);
+  });
+
+  it('never surfaces a goal card -- it can only ever gain a market-movement card', () => {
+    const state = mkState(1);
+    const buyer = currentPlayer(state);
+    const events: any[] = [];
+    resolveStockSpecialOnBuy(state, buyer, scoutStock(), events);
+    const gained = buyer.hand[buyer.hand.length - 1];
+    expect(gained.category).toBe('insider_tip');
+  });
+});
+
+describe('dice draws never surface a goal card', () => {
+  it('a dice "draw" face can only ever resolve market-movement cards, never reveal a goal', () => {
+    const state = mkState(1);
+    const goalRowBefore = state.goalRow.length;
+    const events: any[] = [];
+    drawFromTipDeck(state, state.tipDeck.length, events);
+    expect(state.goalRow).toHaveLength(goalRowBefore);
+    expect(events.every(e => e.type !== 'goal_revealed')).toBe(true);
+    expect(state.tipDeck).toHaveLength(0);
   });
 });

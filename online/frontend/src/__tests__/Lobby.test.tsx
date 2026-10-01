@@ -27,21 +27,26 @@ const emptyState = { mode: 'lobby' as const, lobby: [], canStart: false };
 
 describe('Lobby', () => {
   it('renders empty lobby with disabled Join button', () => {
-    render(<Lobby state={emptyState} myName={null} />);
+    render(<Lobby state={emptyState} myName={null} onJoined={vi.fn()} />);
     expect(screen.getByText('No one has joined yet.')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Join' })).toBeDisabled();
     expect(screen.queryByRole('button', { name: /Start Game/ })).not.toBeInTheDocument();
   });
 
-  it('enables Join once a name is typed and calls api.join on click', async () => {
+  it('enables Join once a name is typed, calls api.join on click, then reconnects the socket', async () => {
     mockedApi.join.mockResolvedValue({ playerId: 'p1', name: 'Alice' });
-    render(<Lobby state={emptyState} myName={null} />);
+    const onJoined = vi.fn();
+    render(<Lobby state={emptyState} myName={null} onJoined={onJoined} />);
     const input = screen.getByPlaceholderText('Your name') as HTMLInputElement;
     fireEvent.change(input, { target: { value: 'Alice' } });
     const btn = screen.getByRole('button', { name: 'Join' });
     expect(btn).toBeEnabled();
     fireEvent.click(btn);
     await waitFor(() => expect(mockedApi.join).toHaveBeenCalledWith('Alice'));
+    // Reconnecting the WS after join is what picks up the cookie /api/join
+    // just set, for a tab whose socket opened (with no cookie yet) before
+    // this was the first join -- see useGameState's `reconnect`.
+    await waitFor(() => expect(onJoined).toHaveBeenCalled());
   });
 
   it('shows joined names and hides the input once myName matches a lobby entry', () => {
@@ -53,19 +58,21 @@ describe('Lobby', () => {
       ],
       canStart: true
     };
-    render(<Lobby state={state} myName="Alice" />);
+    render(<Lobby state={state} myName="Alice" onJoined={vi.fn()} />);
     expect(screen.getByText(/Alice/)).toBeInTheDocument();
     expect(screen.getByText(/Bob/)).toBeInTheDocument();
     expect(screen.queryByPlaceholderText('Your name')).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Start Game \(2 players\)/ })).toBeEnabled();
   });
 
-  it('surfaces join errors', async () => {
+  it('surfaces join errors without reconnecting the socket', async () => {
     mockedApi.join.mockRejectedValue(new Error('name taken'));
-    render(<Lobby state={emptyState} myName={null} />);
+    const onJoined = vi.fn();
+    render(<Lobby state={emptyState} myName={null} onJoined={onJoined} />);
     fireEvent.change(screen.getByPlaceholderText('Your name'), { target: { value: 'Alice' } });
     fireEvent.click(screen.getByRole('button', { name: 'Join' }));
     await waitFor(() => expect(screen.getByText('name taken')).toBeInTheDocument());
+    expect(onJoined).not.toHaveBeenCalled();
   });
 
   it('calls api.start when Start Game clicked', async () => {
@@ -78,7 +85,7 @@ describe('Lobby', () => {
       ],
       canStart: true
     };
-    render(<Lobby state={state} myName="Alice" />);
+    render(<Lobby state={state} myName="Alice" onJoined={vi.fn()} />);
     fireEvent.click(screen.getByRole('button', { name: /Start Game/ }));
     await waitFor(() => expect(mockedApi.start).toHaveBeenCalledWith());
   });

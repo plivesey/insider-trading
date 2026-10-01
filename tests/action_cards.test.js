@@ -1,8 +1,10 @@
 const cards = require('../cards/action_cards.json');
 
 describe('Action Cards', () => {
-  test('should have exactly 11 cards', () => {
-    expect(cards).toHaveLength(11);
+  test('should have exactly 14 cards', () => {
+    // 11 original + Foresight/Backroom Deal/Double Down, folded in directly
+    // now that Classic (and the separate Starter Deck it needed) is gone.
+    expect(cards).toHaveLength(14);
   });
 
   test('should have unique ids', () => {
@@ -34,9 +36,9 @@ describe('Action Cards', () => {
     expect(persistent).toHaveLength(5);
   });
 
-  test('should have exactly 6 single-use cards', () => {
+  test('should have exactly 9 single-use cards', () => {
     const singleUse = cards.filter(c => c.persistent === false);
-    expect(singleUse).toHaveLength(6);
+    expect(singleUse).toHaveLength(9);
   });
 
   test('the persistent cards should be Preferred Bidder and the 4 Brokers', () => {
@@ -50,7 +52,7 @@ describe('Action Cards', () => {
     expect(cards.find(c => c.name === 'Connected Broker')).toBeUndefined();
   });
 
-  test('Black Market should no longer exist in V5', () => {
+  test('Black Market should no longer exist', () => {
     expect(cards.find(c => c.name === 'Black Market')).toBeUndefined();
     expect(cards.find(c => c.effect.type === 'auction_unused_tip')).toBeUndefined();
   });
@@ -82,6 +84,13 @@ describe('Action Cards', () => {
     for (const card of cards) {
       expect(card.effect).toHaveProperty('type');
       expect(typeof card.effect.type).toBe('string');
+    }
+  });
+
+  test('should include Foresight, Backroom Deal, and Double Down (folded in from the old Starter Deck)', () => {
+    const names = cards.map(c => c.name);
+    for (const n of ['Foresight', 'Backroom Deal', 'Double Down']) {
+      expect(names).toContain(n);
     }
   });
 });

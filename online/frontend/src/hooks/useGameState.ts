@@ -6,6 +6,16 @@ export interface UseGameState {
   state: StateResponse | null;
   log: GameLogEntry[];
   connected: boolean;
+  /**
+   * Force the socket closed and reconnected. The server identifies a WS
+   * connection by the player cookie present at handshake time and never
+   * re-checks it afterward -- so a tab that opened its socket before ever
+   * calling /api/join (i.e. before that cookie existed) would otherwise be
+   * stuck looking like a spectator for its whole session, even after
+   * joining successfully over HTTP. Call this right after a join that may
+   * have just set the cookie for the first time.
+   */
+  reconnect: () => void;
 }
 
 export function useGameState(): UseGameState {
@@ -73,5 +83,10 @@ export function useGameState(): UseGameState {
     };
   }, []);
 
-  return { state, log, connected };
+  function reconnect(): void {
+    reconnectAttempts.current = 0;
+    wsRef.current?.close(); // onclose schedules an immediate (250ms) reconnect
+  }
+
+  return { state, log, connected, reconnect };
 }

@@ -151,7 +151,7 @@ export interface GameState {
   seed: number;
   /** Counter that drives the seeded RNG forward as the game progresses. */
   rngCursor: number;
-  version: 5;
+  version: 6;
   status: 'in_progress' | 'finished';
   stockPrices: StockPrices;
   currentPlayerIndex: number;
@@ -162,15 +162,27 @@ export interface GameState {
   players: PlayerPrivate[];
   /**
    * Face-up market. Normally stocks/actions from the market deck, but a
-   * player can swap an event-deck card (market-movement or even a private
-   * goal) into it via Backroom Deal or the swap_with_market goal reward; any
-   * such card sitting in the market is auctioned like any other card.
+   * player can swap a tip/goal card into it via Backroom Deal or the
+   * swap_with_market goal reward; any such card sitting in the market is
+   * auctioned like any other card.
    */
   market: (StockCard | ActionCard | InsiderTipCard | GoalCard)[];
   mainDeck: (StockCard | ActionCard)[];
   discardPile: (StockCard | ActionCard)[];
-  /** Merged market-movement + goal deck (rules.md "Event Deck"). Never reshuffled. */
-  eventDeck: (InsiderTipCard | GoalCard)[];
+  /**
+   * Market-movement-only deck (rules.md "Tip Deck"). Dice "draw" faces,
+   * Scout, Informant, Foresight, and Insider Source all target this deck
+   * exclusively -- goals are never drawn mid-game (see `goalReserve`).
+   * Never reshuffled.
+   */
+  tipDeck: InsiderTipCard[];
+  /**
+   * Face-down goal cards beyond the player-scaled reveal count at setup
+   * (rules.md "Goal Reserve"). Feeds the setup draft's 50/50 split; not
+   * drawable in play -- there is no in-play way to gain a new private goal
+   * after setup (Insider Source is tip-deck-only, see actionCards.ts).
+   */
+  goalReserve: GoalCard[];
   resolvedEventCards: InsiderTipCard[];
   /** Public goal row. Any qualifying player may claim from here. */
   goalRow: GoalCard[];
@@ -205,6 +217,22 @@ export interface GameState {
   /** Track which players are currently connected (cosmetic). */
   connected: Record<PlayerId, boolean>;
   /**
+   * Per-player, per-color count of colored stock holdings that have been
+   * PUBLICLY REVEALED -- i.e. observable by any real player at the table, not
+   * ground truth. Mirrors what the engine's own log feed already broadcasts
+   * identically to every client: every stock transfer (auction win, any sell,
+   * Hostile Takeover steal, Corner the Market, Fire Sale, First Look, a
+   * Hostile Takeover victim's compensation draw, swap_with_market, Backroom
+   * Deal, a draw-and-keep reward) logs the stock's exact color via
+   * `describeCard()`, so it's public. The one deliberate exception is the
+   * initial setup deal (the guaranteed starter stock): never recorded here,
+   * matching a real hidden-starting-hand game. Bot valuation should read this
+   * for OPPONENTS' holdings (never ground-truth `player.hand`), while still
+   * using ground truth for the bot's own hand, which it always knows
+   * perfectly. Updated via recordPublicStockGain/Loss in engine/turn.ts.
+   */
+  publicStockKnowledge: Record<PlayerId, Record<Color, number>>;
+  /**
    * Experimental rule toggles for game-length tuning. Optional -- absent means
    * the default ruleset (see DEFAULT_RULES / createGameState).
    */
@@ -212,22 +240,25 @@ export interface GameState {
 }
 
 /**
- * Game-balance rule knobs for V5's still-being-playtested numbers (see
- * v5_tuning_notes.md items 1-2). Pass a partial override to `createGameState`
- * to run a different configuration (e.g. game-length experiments).
+ * Game-balance rule knobs for V6's still-being-playtested numbers (see
+ * v6_tuning_notes.md). Pass a partial override to `createGameState` to run a
+ * different configuration (e.g. game-length experiments).
  */
 export interface RulesConfig {
-  /** How many goal cards to reveal face-up at setup, before the rest of the event deck is reshuffled. */
-  initialGoalRevealCount: number;
-  /** Progress-tracker threshold = numPlayers * progressThresholdPerPlayer + progressThresholdBase. A placeholder linear formula -- see v5_tuning_notes.md item 2. */
+  /** Goal-reveal count at setup = numPlayers * goalRevealPerPlayer + goalRevealBase (V4's players+3 formula). Everything beyond that count goes to the face-down goal reserve. */
+  goalRevealPerPlayer: number;
+  /** Flat offset added to the per-player scaling above. */
+  goalRevealBase: number;
+  /** Progress-tracker threshold = numPlayers * progressThresholdPerPlayer + progressThresholdBase. A placeholder linear formula -- see v6_tuning_notes.md. */
   progressThresholdPerPlayer: number;
   /** Flat offset added to the per-player scaling above. */
   progressThresholdBase: number;
 }
 
-/** The live, shipped ruleset. 2p:9, 3p:12, 4p:15, 5p:18, 6p:21. */
+/** The live, shipped ruleset. Progress threshold: 2p:9, 3p:12, 4p:15, 5p:18, 6p:21. Goal reveal: 2p:5, 3p:6, 4p:7, 5p:8, 6p:9. */
 export const DEFAULT_RULES: RulesConfig = {
-  initialGoalRevealCount: 4,
+  goalRevealPerPlayer: 1,
+  goalRevealBase: 3,
   progressThresholdPerPlayer: 3,
   progressThresholdBase: 3
 };
@@ -235,6 +266,11 @@ export const DEFAULT_RULES: RulesConfig = {
 /** Computes the progress-tracker threshold for a given player count under the given rules. */
 export function computeProgressThreshold(numPlayers: number, rules: RulesConfig): number {
   return numPlayers * rules.progressThresholdPerPlayer + rules.progressThresholdBase;
+}
+
+/** Computes how many goal cards to reveal face-up at setup for a given player count. */
+export function computeGoalRevealCount(numPlayers: number, rules: RulesConfig): number {
+  return numPlayers * rules.goalRevealPerPlayer + rules.goalRevealBase;
 }
 
 /**
@@ -268,11 +304,11 @@ export interface GameLogEntry {
   payload?: Record<string, unknown>;
 }
 
-/** Per-player projection -- strips other players' hands and event deck contents. */
+/** Per-player projection -- strips other players' hands and tip/goal-reserve contents. */
 export interface ProjectedGameState {
   gameId: string;
   startedAt: string;
-  version: 5;
+  version: 6;
   status: 'in_progress' | 'finished';
   stockPrices: StockPrices;
   currentPlayerIndex: number;
@@ -282,7 +318,8 @@ export interface ProjectedGameState {
   market: (StockCard | ActionCard | InsiderTipCard | GoalCard)[];
   mainDeckSize: number;
   discardPileSize: number;
-  eventDeckSize: number;
+  tipDeckSize: number;
+  goalReserveSize: number;
   resolvedEventCards: InsiderTipCard[];
   goalRow: GoalCard[];
   progressTracker: number;
