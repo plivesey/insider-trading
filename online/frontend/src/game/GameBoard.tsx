@@ -83,7 +83,7 @@ export function GameBoard({ state, log, mode }: Props) {
               (!state.myPrompt || state.myPrompt.type === 'auction_bid')
             }
           />
-          <RecentTip tips={state.resolvedEventCards} eventDeckSize={state.eventDeckSize} />
+          <RecentTip tips={state.resolvedEventCards} tipDeckSize={state.tipDeckSize} />
         </div>
         <div className="gb-col">
           {state.auction ? (
@@ -118,7 +118,7 @@ export function GameBoard({ state, log, mode }: Props) {
         }
       />
       {showPrompt && state.myPrompt && <PromptModal prompt={state.myPrompt} state={state} />}
-      <DieRollOverlay log={log} />
+      <DieRollOverlay log={log} myPlayerId={myId} />
     </div>
   );
 }
