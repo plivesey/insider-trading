@@ -46,6 +46,7 @@ const TRAINED_PARAM_VARIANTS: BotParams[] = [
   loadTrainedParams('bot_params_bot2.json'),
   loadTrainedParams('bot_params_bot3.json')
 ];
+const TRAINED_PARAM_VARIANT_LABELS = ['bot1', 'bot2', 'bot3'];
 
 export class ServerHub {
   catalog: CardCatalog;
@@ -90,9 +91,11 @@ export class ServerHub {
       isBot: true
     };
     this.lobby.push(entry);
+    const variantIdx = this.botRng.int(TRAINED_PARAM_VARIANTS.length);
+    console.log(`[addBot] ${name} -> ${TRAINED_PARAM_VARIANT_LABELS[variantIdx]}`);
     this.botProfiles.set(
       entry.playerId,
-      makeProductionBotProfile(this.botRng, TRAINED_NET, this.botRng.pick(TRAINED_PARAM_VARIANTS))
+      makeProductionBotProfile(this.botRng, TRAINED_NET, TRAINED_PARAM_VARIANTS[variantIdx])
     );
     return entry;
   }
