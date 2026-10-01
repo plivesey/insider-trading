@@ -25,20 +25,27 @@ const NETS_DIR = path.resolve(HERE, '../../nets');
 
 /**
  * Trained bot artifacts, loaded once at startup. The stock-valuation net
- * (champion.json) + the optimized hand-coded constants (bot_params.json) are
- * required in production — every bot is built from them via
- * makeProductionBotProfile. Fail loud if either is missing.
+ * (champion.json) is shared by every bot; the hand-coded constants
+ * (BotParams) come from three independently-ES-trained "personalities" —
+ * bot_params.json, bot_params_bot2.json, bot_params_bot3.json (see
+ * scripts/trainBotParams.ts's --vsPool mode and scripts/README.md) — each
+ * added bot randomly picks one (see addBot) so opponents vary game to game
+ * instead of every bot sharing one tuned profile. Fail loud if any is missing.
  */
 function loadTrainedNet(): ValueNetWeights {
   const p = path.join(NETS_DIR, 'champion.json');
   return JSON.parse(fs.readFileSync(p, 'utf8')) as ValueNetWeights;
 }
-function loadTrainedParams(): BotParams {
-  const p = path.join(NETS_DIR, 'bot_params.json');
+function loadTrainedParams(file: string): BotParams {
+  const p = path.join(NETS_DIR, file);
   return JSON.parse(fs.readFileSync(p, 'utf8')) as BotParams;
 }
 const TRAINED_NET: ValueNetWeights = loadTrainedNet();
-const TRAINED_PARAMS: BotParams = loadTrainedParams();
+const TRAINED_PARAM_VARIANTS: BotParams[] = [
+  loadTrainedParams('bot_params.json'),
+  loadTrainedParams('bot_params_bot2.json'),
+  loadTrainedParams('bot_params_bot3.json')
+];
 
 export class ServerHub {
   catalog: CardCatalog;
@@ -85,7 +92,7 @@ export class ServerHub {
     this.lobby.push(entry);
     this.botProfiles.set(
       entry.playerId,
-      makeProductionBotProfile(this.botRng, TRAINED_NET, TRAINED_PARAMS)
+      makeProductionBotProfile(this.botRng, TRAINED_NET, this.botRng.pick(TRAINED_PARAM_VARIANTS))
     );
     return entry;
   }
