@@ -1,0 +1,10 @@
+{
+  "cards": [
+    { "id": 1, "name": "Bank Loan", "cashOnTake": 10, "endGameValue": -12 },
+    { "id": 2, "name": "Bank Loan", "cashOnTake": 10, "endGameValue": -12 },
+    { "id": 3, "name": "Bank Loan", "cashOnTake": 10, "endGameValue": -12 },
+    { "id": 4, "name": "Bank Loan", "cashOnTake": 10, "endGameValue": -12 },
+    { "id": 5, "name": "Bank Loan", "cashOnTake": 10, "endGameValue": -12 },
+    { "id": 6, "name": "Bank Loan", "cashOnTake": 10, "endGameValue": -12 }
+  ]
+}

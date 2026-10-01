@@ -1,0 +1,698 @@
+{
+  "status": "game_over",
+  "trackerCount": 9,
+  "trackerThreshold": 9,
+  "trackerPile": [
+    {
+      "id": 6,
+      "type": "double_up",
+      "stockChange": {
+        "text": "Orange +2 / Yellow +1",
+        "parsed": {
+          "Orange": 2,
+          "Yellow": 1
+        }
+      },
+      "category": "insider_tip",
+      "uid": "itip-50"
+    },
+    {
+      "id": 10,
+      "type": "mixed_up",
+      "stockChange": {
+        "text": "Orange +2 / Yellow -1",
+        "parsed": {
+          "Orange": 2,
+          "Yellow": -1
+        }
+      },
+      "category": "insider_tip",
+      "uid": "itip-54"
+    },
+    {
+      "id": 13,
+      "type": "mixed_down",
+      "stockChange": {
+        "text": "Orange -2 / Yellow +1",
+        "parsed": {
+          "Orange": -2,
+          "Yellow": 1
+        }
+      },
+      "category": "insider_tip",
+      "uid": "itip-57"
+    },
+    {
+      "id": 12,
+      "type": "mixed_down",
+      "stockChange": {
+        "text": "Blue -2 / Orange +1",
+        "parsed": {
+          "Blue": -2,
+          "Orange": 1
+        }
+      },
+      "category": "insider_tip",
+      "uid": "itip-56"
+    },
+    {
+      "id": 1,
+      "type": "crisis",
+      "name": "Newspaper Exposé",
+      "effect": "When revealed as a face-up market card: +1 to End Game Tracker. Remove from game to tracker pile. Draw replacement card.",
+      "category": "crisis",
+      "uid": "crisis-43"
+    },
+    {
+      "id": 7,
+      "difficulty": "hard",
+      "goal": {
+        "text": "3 Yellow",
+        "parsed": {
+          "type": "three_of_a_kind",
+          "requirements": { "Yellow": 3 }
+        }
+      },
+      "reward": {
+        "text": "Gain $1 per stock card you currently hold",
+        "parsed": { "type": "gain_per_stock", "amount": 1 }
+      },
+      "category": "goal",
+      "uid": "goal-65"
+    },
+    {
+      "id": 5,
+      "difficulty": "hard",
+      "goal": { "text": "3 Blue" },
+      "reward": { "text": "Steal $1 from each other player" },
+      "category": "goal",
+      "uid": "goal-63"
+    },
+    {
+      "id": 14,
+      "difficulty": "hard",
+      "goal": { "text": "2 Yellow + 2 Purple" },
+      "reward": { "text": "At the end of the game, gain $6" },
+      "category": "goal",
+      "uid": "goal-72"
+    }
+  ],
+  "stockPrices": {
+    "Blue": 3,
+    "Orange": 8,
+    "Yellow": 10,
+    "Purple": 5
+  },
+  "currentPlayerIndex": 1,
+  "turnNumber": 46,
+  "finalResults": {
+    "winner": "Vanderbilt",
+    "standings": [
+      { "place": 1, "name": "Vanderbilt", "cash": 41, "stockValue": 3, "endGameBonus": 0, "totalWealth": 44, "goalsClaimed": 0 },
+      { "place": 2, "name": "Morgan", "cash": 6, "stockValue": 30, "endGameBonus": 6, "totalWealth": 42, "goalsClaimed": 2 },
+      { "place": 3, "name": "Carnegie", "cash": 19, "stockValue": 3, "endGameBonus": 0, "totalWealth": 22, "goalsClaimed": 1 }
+    ],
+    "finalPrices": { "Blue": 3, "Orange": 8, "Yellow": 10, "Purple": 5 }
+  },
+  "players": [
+    {
+      "name": "Carnegie",
+      "personality": "value_estimator",
+      "cash": 19,
+      "hand": [
+        {
+          "color": "Blue",
+          "type": "stock_down",
+          "ability": "When gained, decrease any stock by 1",
+          "category": "stock",
+          "uid": "stock-6"
+        },
+      ],
+      "insiderTipCards": [
+        {
+          "id": 4,
+          "type": "single_down",
+          "stockChange": {
+            "text": "Purple -3",
+            "parsed": {
+              "Purple": -3
+            }
+          },
+          "category": "insider_tip",
+          "uid": "itip-48"
+        },
+        {
+          "id": 1,
+          "type": "single_down",
+          "stockChange": {
+            "text": "Blue -3",
+            "parsed": {
+              "Blue": -3
+            }
+          },
+          "category": "insider_tip",
+          "uid": "itip-45"
+        }
+      ],
+      "persistentEffects": ["Connected Broker (+$1 per sell)"],
+      "endGameCashBonus": 0,
+      "goalsClaimed": ["3 Blue (steal $1 from each, gained $2)"]
+    },
+    {
+      "name": "Vanderbilt",
+      "personality": "manipulator",
+      "cash": 41,
+      "hand": [
+        {
+          "color": "Blue",
+          "type": "blank",
+          "category": "stock",
+          "uid": "stock-2"
+        }
+      ],
+      "insiderTipCards": [],
+      "persistentEffects": [],
+      "endGameCashBonus": 0,
+      "goalsClaimed": []
+    },
+    {
+      "name": "Morgan",
+      "personality": "goal_chaser",
+      "cash": 6,
+      "hand": [
+        {
+          "color": "Yellow",
+          "type": "blank",
+          "category": "stock",
+          "uid": "stock-20"
+        },
+        {
+          "color": "Yellow",
+          "type": "stock_down",
+          "ability": "When gained, decrease any stock by 1",
+          "category": "stock",
+          "uid": "stock-22"
+        },
+        {
+          "color": "Purple",
+          "type": "blank",
+          "category": "stock",
+          "uid": "stock-28"
+        },
+        {
+          "color": "Purple",
+          "type": "stock_up",
+          "ability": "When gained, increase any stock by 1",
+          "category": "stock",
+          "uid": "stock-29"
+        },
+      ],
+      "insiderTipCards": [
+        {
+          "id": 3,
+          "type": "single_down",
+          "stockChange": {
+            "text": "Yellow -3",
+            "parsed": {
+              "Yellow": -3
+            }
+          },
+          "category": "insider_tip",
+          "uid": "itip-47"
+        },
+        {
+          "id": 5,
+          "type": "double_up",
+          "stockChange": {
+            "text": "Blue +2 / Orange +1",
+            "parsed": {
+              "Blue": 2,
+              "Orange": 1
+            }
+          },
+          "category": "insider_tip",
+          "uid": "itip-49"
+        }
+      ],
+      "persistentEffects": [],
+      "endGameCashBonus": 6,
+      "goalsClaimed": ["3 Yellow ($1/stock, gained $4)", "2Y+2P (end-game $6)"]
+    }
+  ],
+  "market": [
+    {
+      "id": 5,
+      "name": "The Squeeze",
+      "description": "Increase one stock by +2 OR decrease one stock by -2",
+      "persistent": false,
+      "effect": { "type": "adjust_stock", "amount": 2 },
+      "category": "action",
+      "uid": "action-37"
+    },
+    {
+      "color": "Orange",
+      "type": "insider",
+      "ability": "When sold, draw an unused Insider Tip Action",
+      "category": "stock",
+      "uid": "stock-16"
+    },
+    {
+      "id": 8,
+      "name": "Stock Certificate Forgery",
+      "description": "Complete any one goal using one fewer card than required",
+      "persistent": false,
+      "effect": { "type": "goal_discount", "discount": 1 },
+      "category": "action",
+      "uid": "action-40"
+    },
+    {
+      "id": 7,
+      "name": "Preferred Bidder",
+      "description": "For rest of game, when you tie the winning bid, you win",
+      "persistent": true,
+      "effect": {
+        "type": "tie_breaker"
+      },
+      "category": "action",
+      "uid": "action-39"
+    },
+    {
+      "color": "Yellow",
+      "type": "hype",
+      "ability": "When gained, Yellow +1. When sold, Yellow -1",
+      "category": "stock",
+      "uid": "stock-23"
+    }
+  ],
+  "mainDeck": [
+    {
+      "id": 2,
+      "type": "crisis",
+      "name": "Newspaper Exposé",
+      "effect": "When revealed as a face-up market card: +1 to End Game Tracker. Remove from game to tracker pile. Draw replacement card.",
+      "category": "crisis",
+      "uid": "crisis-44"
+    },
+    {
+      "color": "Blue",
+      "type": "hype",
+      "ability": "When gained, Blue +1. When sold, Blue -1",
+      "category": "stock",
+      "uid": "stock-7"
+    },
+    {
+      "color": "Blue",
+      "type": "blank",
+      "category": "stock",
+      "uid": "stock-4"
+    },
+    {
+      "color": "Orange",
+      "type": "stock_down",
+      "ability": "When gained, decrease any stock by 1",
+      "category": "stock",
+      "uid": "stock-14"
+    },
+    {
+      "id": 10,
+      "name": "Rumor Mill",
+      "description": "Adjust every stock by +1 or -1",
+      "persistent": false,
+      "effect": {
+        "type": "adjust_all_stocks",
+        "amount": 1
+      },
+      "category": "action",
+      "uid": "action-42"
+    },
+    {
+      "color": "Blue",
+      "type": "stock_up",
+      "ability": "When gained, increase any stock by 1",
+      "category": "stock",
+      "uid": "stock-5"
+    },
+    {
+      "color": "Blue",
+      "type": "insider",
+      "ability": "When sold, draw an unused Insider Tip Action",
+      "category": "stock",
+      "uid": "stock-8"
+    },
+    {
+      "color": "Yellow",
+      "type": "stock_up",
+      "ability": "When gained, increase any stock by 1",
+      "category": "stock",
+      "uid": "stock-21"
+    },
+    {
+      "color": "Purple",
+      "type": "blank",
+      "category": "stock",
+      "uid": "stock-25"
+    },
+    {
+      "color": "Purple",
+      "type": "blank",
+      "category": "stock",
+      "uid": "stock-26"
+    },
+    {
+      "id": 2,
+      "name": "Corner the Market",
+      "description": "Take any face-up stock from market for free",
+      "persistent": false,
+      "effect": {
+        "type": "take_face_up"
+      },
+      "category": "action",
+      "uid": "action-34"
+    },
+    {
+      "color": "Yellow",
+      "type": "blank",
+      "category": "stock",
+      "uid": "stock-17"
+    },
+    {
+      "color": "Purple",
+      "type": "hype",
+      "ability": "When gained, Purple +1. When sold, Purple -1",
+      "category": "stock",
+      "uid": "stock-31"
+    },
+    {
+      "color": "Purple",
+      "type": "stock_down",
+      "ability": "When gained, decrease any stock by 1",
+      "category": "stock",
+      "uid": "stock-30"
+    }
+  ],
+  "discardPile": [
+    {
+      "id": 9,
+      "name": "Hostile Takeover",
+      "description": "Choose another player, look at their hand, take 1 stock of your choice. They receive $5 from the bank",
+      "persistent": false,
+      "effect": {
+        "type": "steal_stock",
+        "compensation": 5
+      },
+      "category": "action",
+      "uid": "action-41"
+    },
+    {
+      "color": "Orange",
+      "type": "stock_up",
+      "ability": "When gained, increase any stock by 1",
+      "category": "stock",
+      "uid": "stock-13"
+    },
+    {
+      "color": "Orange",
+      "type": "blank",
+      "category": "stock",
+      "uid": "stock-9"
+    },
+    {
+      "color": "Orange",
+      "type": "blank",
+      "category": "stock",
+      "uid": "stock-11"
+    },
+    {
+      "color": "Yellow",
+      "type": "blank",
+      "category": "stock",
+      "uid": "stock-18"
+    },
+    {
+      "id": 3,
+      "name": "Pump and Dump",
+      "description": "Sell 1 stock at double its current price immediately",
+      "persistent": false,
+      "effect": {
+        "type": "sell_double",
+        "count": 1
+      },
+      "category": "action",
+      "uid": "action-35"
+    },
+    {
+      "color": "Orange",
+      "type": "blank",
+      "category": "stock",
+      "uid": "stock-10"
+    },
+    {
+      "color": "Purple",
+      "type": "insider",
+      "ability": "When sold, draw an unused Insider Tip Action",
+      "category": "stock",
+      "uid": "stock-32"
+    },
+    {
+      "id": 1,
+      "name": "Tipster's Choice",
+      "description": "Draw 2 cards from deck, keep 1, return other to bottom",
+      "persistent": false,
+      "effect": {
+        "type": "draw_and_choose",
+        "drawCount": 2,
+        "keepCount": 1
+      },
+      "category": "action",
+      "uid": "action-33"
+    },
+    {
+      "color": "Purple",
+      "type": "blank",
+      "category": "stock",
+      "uid": "stock-27"
+    },
+    {
+      "color": "Orange",
+      "type": "blank",
+      "category": "stock",
+      "uid": "stock-12"
+    },
+    {
+      "color": "Orange",
+      "type": "hype",
+      "ability": "When gained, Orange +1. When sold, Orange -1",
+      "category": "stock",
+      "uid": "stock-15"
+    },
+    {
+      "color": "Yellow",
+      "type": "insider",
+      "ability": "When sold, draw an unused Insider Tip Action",
+      "category": "stock",
+      "uid": "stock-24"
+    },
+    {
+      "color": "Blue",
+      "type": "blank",
+      "category": "stock",
+      "uid": "stock-3"
+    },
+    {
+      "color": "Yellow",
+      "type": "blank",
+      "category": "stock",
+      "uid": "stock-19"
+    },
+    {
+      "id": 6,
+      "name": "Wild Speculation",
+      "persistent": false,
+      "category": "action",
+      "uid": "action-38"
+    },
+    {
+      "color": "Blue",
+      "type": "blank",
+      "category": "stock",
+      "uid": "stock-1"
+    }
+  ],
+  "insiderTipDeck": [
+    {
+      "id": 11,
+      "type": "mixed_up",
+      "stockChange": {
+        "text": "Yellow +2 / Purple -1",
+        "parsed": {
+          "Yellow": 2,
+          "Purple": -1
+        }
+      },
+      "category": "insider_tip",
+      "uid": "itip-55"
+    },
+    {
+      "id": 9,
+      "type": "mixed_up",
+      "stockChange": {
+        "text": "Blue +2 / Orange -1",
+        "parsed": {
+          "Blue": 2,
+          "Orange": -1
+        }
+      },
+      "category": "insider_tip",
+      "uid": "itip-53"
+    },
+    {
+      "id": 8,
+      "type": "double_up",
+      "stockChange": {
+        "text": "Purple +2 / Blue +1",
+        "parsed": {
+          "Purple": 2,
+          "Blue": 1
+        }
+      },
+      "category": "insider_tip",
+      "uid": "itip-52"
+    },
+    {
+      "id": 2,
+      "type": "single_down",
+      "stockChange": {
+        "text": "Orange -3",
+        "parsed": {
+          "Orange": -3
+        }
+      },
+      "category": "insider_tip",
+      "uid": "itip-46"
+    },
+    {
+      "id": 14,
+      "type": "mixed_down",
+      "stockChange": {
+        "text": "Yellow -2 / Purple +1",
+        "parsed": {
+          "Yellow": -2,
+          "Purple": 1
+        }
+      },
+      "category": "insider_tip",
+      "uid": "itip-58"
+    },
+    {
+      "id": 7,
+      "type": "double_up",
+      "stockChange": {
+        "text": "Yellow +2 / Purple +1",
+        "parsed": {
+          "Yellow": 2,
+          "Purple": 1
+        }
+      },
+      "category": "insider_tip",
+      "uid": "itip-51"
+    }
+  ],
+  "activeGoals": [
+    {
+      "id": 6,
+      "difficulty": "hard",
+      "goal": {
+        "text": "3 Orange",
+        "parsed": {
+          "type": "three_of_a_kind",
+          "requirements": {
+            "Orange": 3
+          }
+        }
+      },
+      "reward": {
+        "text": "Adjust any one stock by +/-2",
+        "parsed": {
+          "type": "adjust_stock",
+          "amount": 2
+        }
+      },
+      "category": "goal",
+      "uid": "goal-64"
+    },
+    {
+      "id": 10,
+      "difficulty": "hard",
+      "goal": {
+        "text": "2 Blue + 2 Yellow",
+        "parsed": {
+          "type": "two_pair",
+          "requirements": {
+            "Blue": 2,
+            "Yellow": 2
+          }
+        }
+      },
+      "reward": {
+        "text": "Adjust any one stock by +2 and another stock by -2",
+        "parsed": {
+          "type": "adjust_two_stocks",
+          "up": 2,
+          "down": 2
+        }
+      },
+      "category": "goal",
+      "uid": "goal-68"
+    },
+  ],
+  "log": [
+    "Game initialized with 3 players, 39 cards in deck, 5 in market, tracker at 0/9.",
+    "T1: Carnegie auctions Orange stock_up (stock-13), wins at $7. Boosts Orange to $6. Wild Speculation revealed in market.",
+    "T2: Vanderbilt auctions Orange blank (stock-11), wins at $8. Hostile Takeover revealed in market.",
+    "T3: Morgan auctions Hostile Takeover (action-41), wins at $7. Connected Broker revealed in market.",
+    "T4: Carnegie auctions Orange blank (stock-9), wins at $9. Yellow blank revealed in market.",
+    "T5: Vanderbilt auctions Orange blank (stock-10), wins at $9. Yellow stock_down revealed in market.",
+    "T6: Morgan plays Hostile Takeover on Carnegie, takes Orange stock_up (stock-13). Carnegie gets $5. Morgan boosts Yellow to $6.",
+    "T7: Carnegie plays insider tip 'Orange +2 / Yellow +1' (itip-50). Orange $6->$8, Yellow $6->$7. Tracker 1/9.",
+    "T8: Vanderbilt plays insider tip 'Orange +2 / Yellow -1' (itip-54). Orange $8->$10, Yellow $7->$6. Tracker 2/9.",
+    "T9: Morgan sells Orange stock_up (stock-13) for $10.",
+    "T10: Carnegie sells Orange blank (stock-9) for $10.",
+    "T11: Vanderbilt sells Orange blank (stock-11) for $10.",
+    "T12: Morgan plays insider tip 'Orange -2 / Yellow +1' (itip-57). Orange $10->$8, Yellow $6->$7. Tracker 3/9.",
+    "T13: Carnegie auctions Yellow blank (stock-18), wins at $9. Pump and Dump revealed in market.",
+    "T14: Vanderbilt auctions Pump and Dump (action-35), Carnegie wins at $8. Yellow blank revealed in market.",
+    "T15: Morgan auctions Yellow blank (stock-20), wins at $8. Purple insider revealed in market.",
+    "T16: Carnegie plays Pump and Dump, sells Yellow blank (stock-18) at double for $14.",
+    "T17: Vanderbilt plays insider tip 'Blue -2 / Orange +1' (itip-56). Orange $8->$9, Blue $5->$3. Tracker 4/9.",
+    "T18: Morgan auctions Yellow stock_down (stock-22), wins at $8. Decreases Orange to $8. Crisis card revealed during refill! Tracker 5/9. Purple blank replaces it.",
+    "T19: Carnegie auctions Purple insider (stock-32), wins at $7. Another Purple blank revealed in market.",
+    "T20: Vanderbilt sells Orange blank (stock-10) for $8.",
+    "T21: Morgan auctions Purple blank (stock-27), Carnegie wins at $8. Blue blank revealed in market.",
+    "T22: Carnegie sells Purple insider (stock-32) for $5, draws 'Blue -3' (itip-45) from insider tip deck.",
+    "T23: Vanderbilt auctions Tipster's Choice (action-33), wins at $3. Blue blank revealed in market.",
+    "T24: Carnegie auctions Blue blank (stock-3), wins at $1 (nobody contested). Yellow insider revealed in market.",
+    "T25: Vanderbilt plays Tipster's Choice, draws Purple stock_down + Orange blank, keeps Orange blank (stock-12, $8).",
+    "T26: Morgan auctions Purple blank (stock-28), wins at $7. Yellow hype revealed in market.",
+    "T27: Carnegie sells Purple blank (stock-27) for $5.",
+    "T28: Vanderbilt sells Orange blank (stock-12) for $8.",
+    "T29: Morgan auctions Yellow insider (stock-24), wins at $8. Purple stock_up revealed in market.",
+    "T30: Carnegie auctions Blue blank (stock-1), wins at $1. Orange hype revealed in market.",
+    "T31: Vanderbilt auctions Orange hype (stock-15), wins at $1. Orange $8->$9. Blue stock_down revealed in market.",
+    "T32: Morgan claims 3 Yellow goal (goal-65). Gains $4 ($1 per 4 stocks held). Tracker 6/9.",
+    "T33: Carnegie auctions Blue stock_down (stock-6), wins at $8. Decreases Yellow $7->$6. Blue blank revealed in market.",
+    "T34: Vanderbilt sells Orange hype (stock-15) for $9. Orange $9->$8 (hype penalty).",
+    "T35: Morgan auctions Purple stock_up (stock-29), wins at $5. Boosts Yellow $6->$7. Preferred Bidder revealed in market.",
+    "T36: Carnegie claims 3 Blue goal (goal-63). Steals $1 from Vanderbilt and $1 from Morgan. Tracker 7/9.",
+    "T37: Vanderbilt auctions Connected Broker (action-36), Carnegie wins at $2. Orange insider revealed in market.",
+    "T38: Morgan claims 2Y+2P goal (goal-72). Gains $6 end-game bonus. Tracker 8/9.",
+    "T39: Carnegie plays Connected Broker (persistent: +$1 per sell).",
+    "T40: Vanderbilt auctions Blue blank (stock-2), wins at $1. Stock Certificate Forgery revealed in market.",
+    "T41: Morgan sells Yellow insider (stock-24) for $7. Draws insider tip 'Blue +2 / Orange +1' (itip-49).",
+    "T42: Carnegie sells Blue blank (stock-3) for $4 ($3 + $1 Connected Broker).",
+    "T43: Vanderbilt auctions Wild Speculation (action-38), Morgan wins at $1. The Squeeze revealed in market.",
+    "T44: Morgan plays Wild Speculation, flips Yellow blank (stock-19). Chooses +3. Yellow $7->$10!",
+    "T45: Carnegie sells Blue blank (stock-1) for $4 ($3 + $1 Connected Broker).",
+    "T46: Vanderbilt auctions Preferred Bidder (action-39), wins at $1. CRISIS CARD (crisis-44) drawn as replacement! Tracker 9/9. GAME OVER!",
+    "FINAL: Vanderbilt $44, Morgan $42 (incl $6 end-game bonus), Carnegie $22. Vanderbilt wins!"
+  ]
+}

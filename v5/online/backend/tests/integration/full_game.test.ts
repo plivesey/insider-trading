@@ -1,0 +1,270 @@
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import {
+  loadCards,
+  type Color,
+  type GameState,
+  type PlayerId
+} from '@insider-trading/shared';
+import { createGameState } from '../../src/domain/setup.js';
+import { startAuction, pass } from '../../src/engine/auction.js';
+import { sellStock, currentPlayer } from '../../src/engine/turn.js';
+import { advance } from '../../src/engine/advance.js';
+import { submitFreeAction } from '../../src/engine/freeActions.js';
+import { respondToPrompt } from '../../src/engine/promptResponse.js';
+import { assertGameOverInvariants } from './_invariants.js';
+
+const HERE = path.dirname(fileURLToPath(import.meta.url));
+const CARDS_DIR = path.resolve(HERE, '../../../../cards');
+const catalog = loadCards(CARDS_DIR);
+
+function pids(n: number): { playerId: PlayerId; name: string }[] {
+  return Array.from({ length: n }, (_, i) => ({ playerId: `p${i + 1}`, name: `Player${i + 1}` }));
+}
+
+/**
+ * Deterministic AI driver. Runs a game to completion through direct engine
+ * calls (no HTTP). First clears the setup draft (always keep the first
+ * candidate offered), then each turn the current player either starts a $0
+ * auction on the cheapest market stock or sells a stock if cash is low. All
+ * other players pass during auctions. Players auto-claim any qualifying goal
+ * (public or private) via Wild Share substitution where possible.
+ */
+function driveToEnd(state: GameState, events: any[], maxTurns = 200): void {
+  // Kick off the setup draft -- production code does this via ServerHub's
+  // post-setup advance() call; a directly-constructed state needs the same
+  // one-time nudge before beginDraft() ever runs.
+  advance(state, events);
+  let safety = 0;
+  while (!state.gameOver && safety < maxTurns * 30) {
+    safety++;
+    // 1. Resolve any pending prompts deterministically (this also clears the
+    //    setup draft's `setup_draft_pick` prompts).
+    const drained = drainPrompts(state, events);
+    if (drained) {
+      advance(state, events);
+      continue;
+    }
+    // 2. If we're awaiting an auction bid (no prompt set means engine is
+    //    between states), then handle.
+    if (state.turnPhase === 'in_auction' && state.auction?.awaitingBidderId) {
+      const r = pass(state, state.auction.awaitingBidderId);
+      events.push(...r.events);
+      advance(state, events);
+      continue;
+    }
+    // 3. Try goal claims (auto, public or private).
+    if (tryClaimAnyGoal(state, events)) continue;
+    // 4. Take turn action.
+    if (state.turnPhase === 'awaiting_turn_action') {
+      const player = currentPlayer(state);
+      // If we have a sellable stock and low cash, sell.
+      const sellable = player.hand.find(c => c.category === 'stock' && c.color !== 'Wild');
+      if (sellable && player.cash < 5) {
+        const r = sellStock(state, player.playerId, sellable.uid);
+        events.push(...r.events);
+        advance(state, events);
+        continue;
+      }
+      // Otherwise start an auction at $0 on a market stock if available.
+      const target = state.market.find(c => c.category === 'stock') ?? state.market[0];
+      const r = startAuction(state, player.playerId, target.uid, 0);
+      events.push(...r.events);
+      advance(state, events);
+      continue;
+    }
+    // Shouldn't normally reach here — break to avoid infinite loop.
+    break;
+  }
+}
+
+function drainPrompts(state: GameState, events: any[]): boolean {
+  for (const [pid, pr] of Object.entries(state.pendingPrompts)) {
+    if (!pr) continue;
+    if (pr.type === 'auction_bid') {
+      // Always pass.
+      const r = pass(state, pid);
+      events.push(...r.events);
+      return true;
+    }
+    let resp: Record<string, unknown> = {};
+    switch (pr.type) {
+      case 'setup_draft_pick': {
+        const candidateUids = pr.payload?.candidateUids as string[];
+        resp = { keepUid: candidateUids[0] };
+        break;
+      }
+      case 'peek_ack':
+        resp = {};
+        break;
+      case 'peek_bottom_choice':
+        resp = {};
+        break;
+      case 'pick_color': {
+        const exclude = pr.payload?.exclude;
+        resp = { color: ['Blue', 'Orange', 'Green', 'Purple'].find(c => c !== exclude) };
+        break;
+      }
+      case 'pick_color_amount': {
+        if (pr.payload?.perColor) {
+          const amount = pr.payload.amount as number;
+          resp = { choices: { Blue: amount, Orange: amount, Green: amount, Purple: amount } };
+        } else {
+          resp = { color: 'Blue', sign: 'up' };
+        }
+        break;
+      }
+      case 'set_stock_choice':
+        resp = { color: 'Blue' };
+        break;
+      case 'adjust_two_stocks_choice':
+        resp = { upColor: 'Blue', downColor: 'Orange' };
+        break;
+      case 'wild_speculation_choice':
+        resp = { sign: 'up' };
+        break;
+      case 'draw_and_keep': {
+        const drawn = pr.payload?.drawn as { uid: string }[];
+        const keepCount = pr.payload?.keepCount as number;
+        resp = { keepUids: drawn.slice(0, keepCount).map(d => d.uid) };
+        break;
+      }
+      case 'foresight_reorder': {
+        const candidateUids = pr.payload?.candidateUids as string[];
+        resp = { keepOrder: candidateUids };
+        break;
+      }
+      case 'pick_target_player': {
+        const target = state.players.find(p => p.playerId !== pid && p.hand.some(c => c.category === 'stock'));
+        resp = { targetId: target?.playerId ?? state.players.find(p => p.playerId !== pid)!.playerId };
+        break;
+      }
+      case 'pick_stock_from_target': {
+        const stocks = pr.payload?.stocks as { uid: string }[];
+        resp = { stockUid: stocks[0]?.uid };
+        break;
+      }
+      case 'pick_market_card':
+        resp = { cardUid: state.market[0].uid };
+        break;
+      case 'backroom_deal_pick_own_card': {
+        const player = state.players.find(p => p.playerId === pid)!;
+        const tradeable = player.hand.find(c => c.category !== 'bonus');
+        resp = { cardUid: tradeable?.uid };
+        break;
+      }
+      case 'double_down_pick_card': {
+        const eligibleUids = pr.payload?.eligibleUids as string[];
+        resp = { cardUid: eligibleUids?.[0] };
+        break;
+      }
+      case 'pick_hand_stock_for_swap': {
+        const player = state.players.find(p => p.playerId === pid)!;
+        const myStock = player.hand.find(c => c.category === 'stock');
+        resp = { stockUid: myStock?.uid };
+        break;
+      }
+      case 'pick_stock_from_hand': {
+        const player = state.players.find(p => p.playerId === pid)!;
+        const myStock = player.hand.find(c => c.category === 'stock' && c.color !== 'Wild');
+        resp = { stockUid: myStock?.uid, done: true };
+        break;
+      }
+    }
+    const r = respondToPrompt(state, pid, pr.promptId, resp);
+    events.push(...r.events);
+    return true;
+  }
+  return false;
+}
+
+function buildAssignment(
+  hand: { category: string; color?: string; uid: string }[],
+  req: Partial<Record<Color, number>>
+): Record<string, Color> | null {
+  const need: Partial<Record<Color, number>> = { ...req };
+  const assignment: Record<string, Color> = {};
+  const usedUids = new Set<string>();
+  for (const c of hand) {
+    if (c.category !== 'stock' || c.color === 'Wild') continue;
+    if (usedUids.has(c.uid)) continue;
+    const color = c.color as Color;
+    const remaining = need[color] ?? 0;
+    if (remaining > 0) {
+      assignment[c.uid] = color;
+      usedUids.add(c.uid);
+      need[color] = remaining - 1;
+    }
+  }
+  const remainingColors = (Object.keys(need) as Color[]).filter(k => (need[k] ?? 0) > 0);
+  for (const col of remainingColors) {
+    while ((need[col] ?? 0) > 0) {
+      const wild = hand.find(c => c.category === 'stock' && c.color === 'Wild' && !usedUids.has(c.uid));
+      if (!wild) break;
+      assignment[wild.uid] = col;
+      usedUids.add(wild.uid);
+      need[col] = (need[col] ?? 0) - 1;
+    }
+  }
+  const satisfied = (Object.keys(need) as Color[]).every(k => (need[k] ?? 0) <= 0);
+  return satisfied ? assignment : null;
+}
+
+function tryClaimAnyGoal(state: GameState, events: any[]): boolean {
+  for (const player of state.players) {
+    for (const goal of state.goalRow.slice()) {
+      const assignment = buildAssignment(player.hand as any, goal.goal.parsed.requirements);
+      if (assignment) {
+        submitFreeAction(state, player.playerId, {
+          kind: 'claim_goal',
+          goalUid: goal.uid,
+          stockAssignment: { cards: assignment }
+        });
+        advance(state, events);
+        return true;
+      }
+    }
+    for (const card of player.hand.slice()) {
+      if (card.category !== 'goal') continue;
+      const assignment = buildAssignment(player.hand as any, card.goal.parsed.requirements);
+      if (assignment) {
+        submitFreeAction(state, player.playerId, {
+          kind: 'claim_private_goal',
+          goalUid: card.uid,
+          stockAssignment: { cards: assignment }
+        });
+        advance(state, events);
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+describe('full game integration', () => {
+  it('runs a 2-player game to completion with valid scoring', () => {
+    const state = createGameState({
+      catalog,
+      players: pids(2),
+      seed: 42,
+      gameId: 'g',
+      startedAt: '2026-01-01T00:00:00.000Z'
+    });
+    const events: any[] = [];
+    driveToEnd(state, events);
+    assertGameOverInvariants(state);
+  });
+
+  it('runs a 4-player game to completion deterministically', () => {
+    const state = createGameState({
+      catalog,
+      players: pids(4),
+      seed: 99,
+      gameId: 'g',
+      startedAt: '2026-01-01T00:00:00.000Z'
+    });
+    const events: any[] = [];
+    driveToEnd(state, events);
+    expect(state.gameOver).not.toBeNull();
+  });
+});

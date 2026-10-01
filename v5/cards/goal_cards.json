@@ -1,0 +1,308 @@
+{
+  "cards": [
+    {
+      "id": 1,
+      "difficulty": "easy",
+      "title": "Foundry Stake",
+      "goal": {
+        "text": "2 Blue",
+        "parsed": {
+          "type": "pair",
+          "requirements": { "Blue": 2 }
+        }
+      },
+      "reward": {
+        "text": "Steal $1 from each other player",
+        "parsed": { "type": "steal_from_all", "amount": 1 }
+      }
+    },
+    {
+      "id": 2,
+      "difficulty": "easy",
+      "title": "Wildcat Wells",
+      "goal": {
+        "text": "2 Orange",
+        "parsed": {
+          "type": "pair",
+          "requirements": { "Orange": 2 }
+        }
+      },
+      "reward": {
+        "text": "Adjust any one stock by +/-3",
+        "parsed": { "type": "adjust_stock", "amount": 3 }
+      }
+    },
+    {
+      "id": 3,
+      "difficulty": "easy",
+      "title": "Branch Line",
+      "goal": {
+        "text": "2 Green",
+        "parsed": {
+          "type": "pair",
+          "requirements": { "Green": 2 }
+        }
+      },
+      "reward": {
+        "text": "Look at the top 3 Insider Tips. Draw 1 into your hand; return the other 2 to the top of the deck",
+        "parsed": { "type": "draw_and_choose_tips", "drawCount": 3, "keepCount": 1 }
+      }
+    },
+    {
+      "id": 4,
+      "difficulty": "easy",
+      "title": "Counting House",
+      "goal": {
+        "text": "2 Purple",
+        "parsed": {
+          "type": "pair",
+          "requirements": { "Purple": 2 }
+        }
+      },
+      "reward": {
+        "text": "Gain $4",
+        "parsed": { "type": "gain_cash", "amount": 4 }
+      }
+    },
+    {
+      "id": 5,
+      "difficulty": "hard",
+      "title": "Steel Trust",
+      "goal": {
+        "text": "3 Blue",
+        "parsed": {
+          "type": "three_of_a_kind",
+          "requirements": { "Blue": 3 }
+        }
+      },
+      "reward": {
+        "text": "Steal $2 from each other player",
+        "parsed": { "type": "steal_from_all", "amount": 2 }
+      }
+    },
+    {
+      "id": 6,
+      "difficulty": "hard",
+      "title": "Oil Baron",
+      "goal": {
+        "text": "3 Orange",
+        "parsed": {
+          "type": "three_of_a_kind",
+          "requirements": { "Orange": 3 }
+        }
+      },
+      "reward": {
+        "text": "Sell any number of your stocks; gain +$3 per stock sold",
+        "parsed": { "type": "sell_bonus_batch", "bonus": 3 }
+      }
+    },
+    {
+      "id": 7,
+      "difficulty": "hard",
+      "title": "Rail Monopoly",
+      "goal": {
+        "text": "3 Green",
+        "parsed": {
+          "type": "three_of_a_kind",
+          "requirements": { "Green": 3 }
+        }
+      },
+      "reward": {
+        "text": "Look at the top 4 Insider Tips. Draw 2 into your hand; return the other 2 to the top of the deck",
+        "parsed": { "type": "draw_and_choose_tips", "drawCount": 4, "keepCount": 2 }
+      }
+    },
+    {
+      "id": 8,
+      "difficulty": "hard",
+      "title": "Money Trust",
+      "goal": {
+        "text": "3 Purple",
+        "parsed": {
+          "type": "three_of_a_kind",
+          "requirements": { "Purple": 3 }
+        }
+      },
+      "reward": {
+        "text": "Gain $8",
+        "parsed": { "type": "gain_cash", "amount": 8 }
+      }
+    },
+    {
+      "id": 9,
+      "difficulty": "hard",
+      "title": "Heavy Industry",
+      "goal": {
+        "text": "2 Blue + 2 Orange",
+        "parsed": {
+          "type": "two_pair",
+          "requirements": { "Blue": 2, "Orange": 2 }
+        }
+      },
+      "reward": {
+        "text": "Adjust one stock by +2 and another stock by -2",
+        "parsed": { "type": "adjust_two_stocks", "up": 2, "down": 2 }
+      }
+    },
+    {
+      "id": 10,
+      "difficulty": "hard",
+      "title": "Vertical Integration",
+      "goal": {
+        "text": "2 Blue + 2 Green",
+        "parsed": {
+          "type": "two_pair",
+          "requirements": { "Blue": 2, "Green": 2 }
+        }
+      },
+      "reward": {
+        "text": "Swap one of your cards for a face-up market card",
+        "parsed": { "type": "swap_with_market" }
+      }
+    },
+    {
+      "id": 11,
+      "difficulty": "hard",
+      "title": "Industrial Capital",
+      "goal": {
+        "text": "2 Blue + 2 Purple",
+        "parsed": {
+          "type": "two_pair",
+          "requirements": { "Blue": 2, "Purple": 2 }
+        }
+      },
+      "reward": {
+        "text": "At the end of the game, gain $12",
+        "parsed": { "type": "end_game_cash", "amount": 12 }
+      }
+    },
+    {
+      "id": 12,
+      "difficulty": "hard",
+      "title": "Fuel & Freight",
+      "goal": {
+        "text": "2 Orange + 2 Green",
+        "parsed": {
+          "type": "two_pair",
+          "requirements": { "Orange": 2, "Green": 2 }
+        }
+      },
+      "reward": {
+        "text": "Draw the top Insider Tip into your hand. Adjust any one stock by +2 or -2",
+        "parsed": { "type": "draw_deck_tip_adjust", "amount": 2 }
+      }
+    },
+    {
+      "id": 13,
+      "difficulty": "hard",
+      "title": "Crude & Credit",
+      "goal": {
+        "text": "2 Orange + 2 Purple",
+        "parsed": {
+          "type": "two_pair",
+          "requirements": { "Orange": 2, "Purple": 2 }
+        }
+      },
+      "reward": {
+        "text": "Gain $4 and adjust one stock by +2 or -2",
+        "parsed": { "type": "gain_cash_adjust", "cash": 4, "amount": 2 }
+      }
+    },
+    {
+      "id": 14,
+      "difficulty": "hard",
+      "title": "Track & Trust",
+      "goal": {
+        "text": "2 Green + 2 Purple",
+        "parsed": {
+          "type": "two_pair",
+          "requirements": { "Green": 2, "Purple": 2 }
+        }
+      },
+      "reward": {
+        "text": "Draw the top Insider Tip into your hand and gain $6",
+        "parsed": { "type": "draw_deck_tip", "cash": 6 }
+      }
+    },
+    {
+      "id": 15,
+      "difficulty": "very_hard",
+      "title": "Steel Empire",
+      "goal": {
+        "text": "4 Blue",
+        "parsed": {
+          "type": "four_of_a_kind",
+          "requirements": { "Blue": 4 }
+        }
+      },
+      "reward": {
+        "text": "Gain $12",
+        "parsed": { "type": "gain_cash", "amount": 12 }
+      }
+    },
+    {
+      "id": 16,
+      "difficulty": "very_hard",
+      "title": "Oil Empire",
+      "goal": {
+        "text": "4 Orange",
+        "parsed": {
+          "type": "four_of_a_kind",
+          "requirements": { "Orange": 4 }
+        }
+      },
+      "reward": {
+        "text": "Gain $12",
+        "parsed": { "type": "gain_cash", "amount": 12 }
+      }
+    },
+    {
+      "id": 17,
+      "difficulty": "very_hard",
+      "title": "Rail Empire",
+      "goal": {
+        "text": "4 Green",
+        "parsed": {
+          "type": "four_of_a_kind",
+          "requirements": { "Green": 4 }
+        }
+      },
+      "reward": {
+        "text": "Gain $12",
+        "parsed": { "type": "gain_cash", "amount": 12 }
+      }
+    },
+    {
+      "id": 18,
+      "difficulty": "very_hard",
+      "title": "Banking Empire",
+      "goal": {
+        "text": "4 Purple",
+        "parsed": {
+          "type": "four_of_a_kind",
+          "requirements": { "Purple": 4 }
+        }
+      },
+      "reward": {
+        "text": "Gain $12",
+        "parsed": { "type": "gain_cash", "amount": 12 }
+      }
+    },
+    {
+      "id": 19,
+      "difficulty": "medium",
+      "title": "Diversified Holdings",
+      "goal": {
+        "text": "1 Blue + 1 Orange + 1 Green + 1 Purple",
+        "parsed": {
+          "type": "full_spread",
+          "requirements": { "Blue": 1, "Orange": 1, "Green": 1, "Purple": 1 }
+        }
+      },
+      "reward": {
+        "text": "Gain $6",
+        "parsed": { "type": "gain_cash", "amount": 6 }
+      }
+    }
+  ]
+}
